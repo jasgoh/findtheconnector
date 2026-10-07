@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connector Recognizer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔌</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
+
+<style>
+:root {
+  --bg: #EEF1F4;
+  --surface: #FFFFFF;
+  --ink: #1B2430;
+  --muted: #5C6876;
+  --line: #D3DAE2;
+  --mat: #2E5E8C;          /* ESD-mat blue */
+  --mat-soft: #E1EAF3;
+  --brass: #B8862E;        /* connector-pin brass */
+  --brass-soft: #F4EAD6;
+  --danger: #B33A3A;
+  --ok: #2F7A4F;
+  --radius-lg: 14px;
+  --radius-sm: 6px;
+  --font: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Barlow", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121820; --surface: #1A222C; --ink: #E6EBF0; --muted: #98A4B2;
+    --line: #2C3743; --mat: #6FA2D4; --mat-soft: #1D2D3E;
+    --brass: #D9A94F; --brass-soft: #33291A; --danger: #E07070; --ok: #6BC08F;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121820; --surface: #1A222C; --ink: #E6EBF0; --muted: #98A4B2;
+  --line: #2C3743; --mat: #6FA2D4; --mat-soft: #1D2D3E;
+  --brass: #D9A94F; --brass-soft: #33291A; --danger: #E07070; --ok: #6BC08F;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 1.0625rem; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 1.25rem; }
+
+/* Header + tabs */
+header.top {
+  background: var(--mat); color: #fff;
+  padding: 1.5rem 0 0;
+}
+:root[data-theme="dark"] header.top { color: #0E1620; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) header.top { color: #0E1620; } }
+.brand { display: flex; align-items: center; gap: .9rem; }
+.brand-mark {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid currentColor; position: relative; flex: none;
+}
+.brand-mark::before, .brand-mark::after {
+  content: ""; position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--brass); top: 50%; transform: translateY(-50%);
+}
+.brand-mark::before { left: 9px; }
+.brand-mark::after { right: 9px; }
+.brand h1 {
+  font-family: var(--font-display); font-weight: 700; font-size: 2rem;
+  line-height: 1; margin: 0; letter-spacing: .01em;
+}
+.brand p { margin: .2rem 0 0; opacity: .85; font-size: .95rem; }
+
+.tabs { display: flex; gap: .25rem; margin-top: 1.4rem; }
+.tab {
+  appearance: none; border: 0; cursor: pointer;
+  background: transparent; color: inherit; opacity: .8;
+  padding: .75rem 1.15rem; font-weight: 600; font-size: 1rem;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.tab:hover { opacity: 1; }
+.tab[aria-selected="true"] { background: var(--bg); color: var(--ink); opacity: 1; }
+
+main { padding: 2rem 0 4rem; }
+[role="tabpanel"][hidden] { display: none; }
+
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1.15; margin: 0 0 .5rem; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 .35rem; }
+p { margin: 0 0 .9rem; }
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: .9em; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); padding: 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Instructions */
+.steps { list-style: none; padding: 0; margin: 1.5rem 0 0; counter-reset: step; }
+.steps > li {
+  counter-increment: step; position: relative;
+  padding: 0 0 1.6rem 3.4rem; max-width: 70ch;
+}
+.steps > li::before {
+  content: counter(step);
+  position: absolute; left: 0; top: -.15rem;
+  width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;
+  background: var(--surface); border: 2px solid var(--mat); color: var(--mat);
+}
+.steps > li:not(:last-child)::after {
+  content: ""; position: absolute; left: calc(1.15rem - 1px); top: 2.3rem; bottom: .2rem;
+  width: 2px; background: var(--line);
+}
+.steps ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+.steps ul li { margin-bottom: .25rem; }
+
+.note {
+  border-left: 4px solid var(--brass); background: var(--brass-soft);
+  padding: 1rem 1.2rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  max-width: 70ch;
+}
+.note p:last-child { margin: 0; }
+
+.targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1rem 0 0; }
+.target { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface); }
+.target strong { font-family: var(--font-display); font-size: 1.8rem; display: block; line-height: 1; color: var(--mat); }
+
+/* Train tab */
+.status {
+  display: inline-flex; align-items: center; gap: .5rem;
+  font-size: .9rem; font-weight: 500; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem;
+  background: var(--surface);
+}
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--brass); }
+.status[data-state="ready"]::before { background: var(--ok); }
+.status[data-state="error"]::before { background: var(--danger); }
+.status[data-state="loading"]::before { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+.train-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+
+.field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .9rem; }
+.field label { font-weight: 600; font-size: .95rem; }
+.field .hint { font-size: .85rem; color: var(--muted); }
+input[type="text"], select, textarea {
+  width: 100%; padding: .65rem .8rem; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--bg);
+}
+textarea { min-height: 4rem; resize: vertical; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+@media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface);
+  padding: .65rem 1.1rem; border-radius: var(--radius-sm);
+  font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: .5rem;
+  min-height: 44px;
+}
+.btn:hover:not(:disabled) { border-color: var(--mat); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--mat); border-color: var(--mat); color: #fff; }
+:root[data-theme="dark"] .btn-primary { color: #0E1620; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-primary { color: #0E1620; } }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-danger { color: var(--danger); }
+.btn-danger:hover:not(:disabled) { border-color: var(--danger); }
+.btn-small { padding: .35rem .7rem; min-height: 36px; font-size: .9rem; }
+.btn-row { display: flex; flex-wrap: wrap; gap: .6rem; }
+
+.toggle-link { background: none; border: 0; color: var(--mat); font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.new-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--line); }
+
+.dropzone {
+  border: 2px dashed var(--line); border-radius: var(--radius-lg);
+  padding: 1.4rem; text-align: center; background: var(--bg);
+  transition: border-color .15s, background .15s;
+}
+.dropzone.drag { border-color: var(--mat); background: var(--mat-soft); }
+.dropzone .btn-row { justify-content: center; margin-top: .8rem; }
+
+.queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .6rem; margin-top: 1rem; }
+.thumb {
+  position: relative; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden;
+  border: 1px solid var(--line); background: var(--bg);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb .x {
+  position: absolute; top: 4px; right: 4px; width: 28px; height: 28px;
+  border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(20,26,34,.75); color: #fff; font-size: 1rem; line-height: 1;
+}
+.thumb .tag {
+  position: absolute; left: 4px; bottom: 4px; font-size: .7rem; font-weight: 600;
+  background: rgba(20,26,34,.75); color: #fff; padding: .1rem .4rem; border-radius: 4px;
+}
+.thumb[data-state="saving"] { outline: 3px solid var(--brass); }
+.thumb[data-state="failed"] { outline: 3px solid var(--danger); }
+
+.progress { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: .8rem; }
+.progress > span { display: block; height: 100%; width: 0; background: var(--brass); transition: width .2s; }
+
+.save-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; margin-top: 1rem; }
+
+/* Training set library */
+.lib { display: flex; flex-direction: column; gap: .75rem; }
+.conn { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface); }
+.conn-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; align-items: flex-start; }
+.conn-name { font-weight: 700; font-size: 1.1rem; }
+.conn-meta { color: var(--muted); font-size: .9rem; }
+
+/* Pin meter: one pin per photo, up to the target. The signature element. */
+.pins { display: flex; flex-wrap: wrap; gap: 4px; margin: .7rem 0 .35rem; max-width: 100%; }
+.pin { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--line); }
+.pin.on { background: var(--brass); border-color: var(--brass); }
+.pin-label { font-size: .85rem; color: var(--muted); }
+.pin-label b { color: var(--ink); }
+
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: .5rem; margin-top: .9rem; }
+
+.empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
+.banner { background: var(--brass-soft); border: 1px solid var(--brass); border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-bottom: 1.25rem; }
+.banner p:last-child { margin: 0; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%) translateY(150%); transition: transform .25s;
+  background: var(--ink); color: var(--bg); padding: .8rem 1.2rem; border-radius: var(--radius-sm);
+  font-weight: 500; max-width: calc(100% - 2rem); z-index: 10;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--danger); color: #fff; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div>
+        <h1>Connector Recognizer</h1>
+        <p>Point a camera at a connector, find out what it is.</p>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-guide" aria-controls="panel-guide" aria-selected="true">How to use</button>
+      <button class="tab" role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" tabindex="-1">Train the model</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ TAB 1: INSTRUCTIONS ============ -->
+  <section role="tabpanel" id="panel-guide" aria-labelledby="tab-guide">
+    <h2>Teaching the site a new connector</h2>
+    <p class="lead">The model learns from example photos. Each photo you add becomes a reference it compares against, so better photos mean better recognition. No coding or retraining needed.</p>
+
+    <ol class="steps">
+      <li>
+        <h3>Set up the scanning spot</h3>
+        <p>Use the lab's standard background every time, ideally a plain white or light grey mat. Keep it free of other parts, tools and labels.</p>
+      </li>
+      <li>
+        <h3>Create the connector type</h3>
+        <p>Open <strong>Train the model</strong> and add the connector with a clear name, such as "SMA female, panel mount". Add the part number if you have it.</p>
+      </li>
+      <li>
+        <h3>Take varied photos</h3>
+        <p>Variety matters more than quantity. Ten different shots teach more than fifty near-identical ones.</p>
+        <ul>
+          <li>Rotate the connector and photograph it from the front, side, top and at an angle.</li>
+          <li>Shoot some with the cable attached and some without.</li>
+          <li>Vary the distance a little, but keep the connector filling most of the frame.</li>
+          <li>For look-alikes (male vs female, 4-pin vs 5-pin), add close-ups of the pin face or threads.</li>
+          <li>Take photos on the phones people will actually use for scanning.</li>
+        </ul>
+      </li>
+      <li>
+        <h3>Add online images if you have them</h3>
+        <p>Catalog photos from manufacturers or distributors help fill gaps. They work best on a white background, or with the background removed. Always add some real lab photos too, so the model sees what an actual scan looks like.</p>
+      </li>
+      <li>
+        <h3>Save and check the count</h3>
+        <p>Each connector shows a row of pins that fill up as you add photos. Aim to fill the row before relying on the results.</p>
+      </li>
+    </ol>
+
+    <div class="targets">
+      <div class="target"><strong>20–50</strong>photos for connectors that look clearly different from everything else</div>
+      <div class="target"><strong>100+</strong>photos for look-alikes that differ by gender, pin count or thread</div>
+    </div>
+
+    <div class="note" style="margin-top:1.5rem">
+      <p><strong>On the phone:</strong> "Take photo" opens the rear camera. Hold the phone steady, tap to focus on the connector, and avoid harsh reflections on shiny metal.</p>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2: TRAIN ============ -->
+  <section role="tabpanel" id="panel-train" aria-labelledby="tab-train" hidden>
+
+    <div id="configBanner" class="banner" hidden>
+      <p><strong>Supabase isn't connected yet.</strong> Open <span class="mono">index.html</span>, set <span class="mono">SUPABASE_URL</span> and <span class="mono">SUPABASE_ANON_KEY</span> near the bottom, then redeploy. Photos can't be saved until then.</p>
+    </div>
+
+    <div class="train-head">
+      <div>
+        <h2>Train the model</h2>
+        <p class="muted" style="margin:0">Pick a connector, add photos, save them to the training set.</p>
+      </div>
+      <span id="modelStatus" class="status" data-state="loading" role="status">Loading model</span>
+    </div>
+
+    <!-- Step 1: choose connector -->
+    <div class="panel">
+      <h3>Connector</h3>
+      <div class="field">
+        <label for="connectorSelect">Which connector are these photos of?</label>
+        <select id="connectorSelect">
+          <option value="">Choose a connector</option>
+        </select>
+      </div>
+      <button class="toggle-link" id="toggleNew" aria-expanded="false" aria-controls="newForm">Add a new connector type</button>
+
+      <div class="new-form" id="newForm" hidden>
+        <div class="row">
+          <div class="field">
+            <label for="newName">Name</label>
+            <input type="text" id="newName" placeholder="SMA female, panel mount" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="newPart">Part number <span class="muted">(optional)</span></label>
+            <input type="text" id="newPart" placeholder="132134" autocomplete="off">
+          </div>
+        </div>
+        <div class="field">
+          <label for="newDesc">Notes <span class="muted">(optional)</span></label>
+          <textarea id="newDesc" placeholder="Where it's stored, what it's used for, how to tell it apart"></textarea>
+        </div>
+        <button class="btn btn-primary" id="createBtn">Add connector</button>
+      </div>
+    </div>
+
+    <!-- Step 2: add photos -->
+    <div class="panel">
+      <h3>Photos</h3>
+      <div class="dropzone" id="dropzone">
+        <p style="margin:0">Take photos with your camera, or upload images from your computer.</p>
+        <p class="muted" style="margin:.2rem 0 0;font-size:.9rem">You can also drag images here.</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="cameraBtn">Take photo</button>
+          <button class="btn" id="uploadBtn">Upload images</button>
+        </div>
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+        <input type="file" id="uploadInput" accept="image/*" multiple hidden>
+      </div>
+
+      <div class="queue" id="queue" aria-live="polite"></div>
+
+      <div class="save-bar">
+        <span id="queueInfo" class="muted">No photos added yet.</span>
+        <button class="btn btn-primary" id="saveBtn" disabled>Save to training set</button>
+      </div>
+      <div class="progress" id="progress" hidden><span></span></div>
+    </div>
+
+    <!-- Training set -->
+    <h2 style="margin-top:2rem">Training set</h2>
+    <div class="lib" id="library">
+      <div class="empty">Loading connectors…</div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="alert"></div>
+
+<script>
+/* ===================== CONFIG ===================== */
+// Supabase Dashboard > Project Settings > API
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';        // e.g. https://abcdxyz.supabase.co
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const BUCKET = 'connector-images';
+const TARGET_PHOTOS = 30;   // pins shown per connector
+const MAX_SIDE = 512;       // photos are resized to this before upload
+
+/* ===================== STATE ===================== */
+let db = null;
+let model = null;
+let connectors = [];
+let queue = [];             // { id, file, url, source, state }
+let saving = false;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+/* ===================== TABS ===================== */
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+function selectTab(tab) {
+  tabs.forEach(t => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    $(t.getAttribute('aria-controls')).hidden = !on;
+  });
+  history.replaceState(null, '', tab.id === 'tab-train' ? '#train' : '#guide');
+}
+tabs.forEach((t, i) => {
+  t.addEventListener('click', () => selectTab(t));
+  t.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+    next.focus(); selectTab(next);
+  });
+});
+if (location.hash === '#train') selectTab($('tab-train'));
+
+/* ===================== TOAST ===================== */
+let toastTimer;
+function toast(msg, isError = false) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.toggle('error', isError);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), isError ? 6000 : 3000);
+}
+
+/* ===================== SETUP ===================== */
+function isConfigured() {
+  return !SUPABASE_URL.startsWith('YOUR_') && !SUPABASE_ANON_KEY.startsWith('YOUR_');
+}
+
+async function loadModel() {
+  const status = $('modelStatus');
+  try {
+    await tf.ready();
+    // MobileNet V2 turns each image into 1,280 numbers (its "fingerprint")
+    model = await mobilenet.load({ version: 2, alpha: 1.0 });
+    status.dataset.state = 'ready';
+    status.textContent = 'Model ready';
+  } catch (err) {
+    console.error(err);
+    status.dataset.state = 'error';
+    status.textContent = 'Model failed to load';
+    toast('The recognition model failed to load. Check your connection and reload the page.', true);
+  }
+  updateSaveState();
+}
+
+/* ===================== CONNECTORS ===================== */
+async function loadConnectors(selectId) {
+  if (!db) {
+    $('library').innerHTML = '<div class="empty">Connect Supabase to start building the training set.</div>';
+    return;
+  }
+  const { data, error } = await db
+    .from('connectors')
+    .select('id, name, part_number, description, training_images(count)')
+    .order('name');
+  if (error) {
+    console.error(error);
+    $('library').innerHTML = `<div class="empty">Couldn't load connectors: ${esc(error.message)}. Check that supabase-setup.sql has been run.</div>`;
+    return;
+  }
+  connectors = data.map(c => ({ ...c, count: c.training_images?.[0]?.count ?? 0 }));
+  renderSelect(selectId);
+  renderLibrary();
+}
+
+function renderSelect(selectId) {
+  const sel = $('connectorSelect');
+  const current = selectId ?? sel.value;
+  sel.innerHTML = '<option value="">Choose a connector</option>' +
+    connectors.map(c => `<option value="${c.id}">${esc(c.name)}${c.part_number ? ' (' + esc(c.part_number) + ')' : ''}</option>`).join('');
+  if (connectors.some(c => c.id === current)) sel.value = current;
+  updateSaveState();
+}
+
+function pinsHTML(count) {
+  const shown = Math.min(count, TARGET_PHOTOS);
+  let pins = '';
+  for (let i = 0; i < TARGET_PHOTOS; i++) pins += `<span class="pin${i < shown ? ' on' : ''}"></span>`;
+  const msg = count >= TARGET_PHOTOS ? 'target reached' : `${TARGET_PHOTOS - count} to go`;
+  return `<div class="pins" aria-hidden="true">${pins}</div>
+          <div class="pin-label"><b>${count}</b> photo${count === 1 ? '' : 's'}, ${msg}</div>`;
+}
+
+function renderLibrary() {
+  const lib = $('library');
+  if (!connectors.length) {
+    lib.innerHTML = '<div class="empty">No connectors yet. Add your first one above.</div>';
+    return;
+  }
+  lib.innerHTML = connectors.map(c => `
+    <div class="conn" data-id="${c.id}">
+      <div class="conn-top">
+        <div>
+          <div class="conn-name">${esc(c.name)}</div>
+          ${c.part_number ? `<div class="conn-meta mono">${esc(c.part_number)}</div>` : ''}
+          ${c.description ? `<div class="conn-meta">${esc(c.description)}</div>` : ''}
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-small" data-act="view" aria-expanded="false">View photos</button>
+          <button class="btn btn-small btn-danger" data-act="delete">Delete</button>
+        </div>
+      </div>
+      ${pinsHTML(c.count)}
+      <div class="gallery" hidden></div>
+    </div>`).join('');
+}
+
+$('library').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const card = btn.closest('.conn');
+  const id = card?.dataset.id;
+  const c = connectors.find(x => x.id === id);
+
+  if (btn.dataset.act === 'view') {
+    const gallery = card.querySelector('.gallery');
+    const open = gallery.hidden;
+    gallery.hidden = !open;
+    btn.setAttribute('aria-expanded', open);
+    btn.textContent = open ? 'Hide photos' : 'View photos';
+    if (open) await loadGallery(id, gallery);
+  }
+
+  if (btn.dataset.act === 'delete') {
+    if (!confirm(`Delete "${c.name}" and all ${c.count} of its photos? This can't be undone.`)) return;
+    btn.disabled = true;
+    await deleteConnector(id);
+  }
+
+  if (btn.dataset.act === 'delimg') {
+    btn.disabled = true;
+    await deleteImage(btn.dataset.img, btn.dataset.path, id);
+  }
+});
+
+async function loadGallery(connectorId, gallery) {
+  gallery.innerHTML = '<span class="muted">Loading…</span>';
+  const { data, error } = await db.from('training_images')
+    .select('id, storage_path, source').eq('connector_id', connectorId).order('created_at', { ascending: false });
+  if (error) { gallery.innerHTML = `<span class="muted">${esc(error.message)}</span>`; return; }
+  if (!data.length) { gallery.innerHTML = '<span class="muted">No photos yet.</span>'; return; }
+  gallery.innerHTML = data.map(img => {
+    const url = db.storage.from(BUCKET).getPublicUrl(img.storage_path).data.publicUrl;
+    return `<div class="thumb">
+      <img src="${esc(url)}" alt="" loading="lazy">
+      <span class="tag">${img.source === 'camera' ? 'Camera' : 'Upload'}</span>
+      <button class="x" data-act="delimg" data-img="${img.id}" data-path="${esc(img.storage_path)}" aria-label="Delete photo">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function deleteImage(imageId, path, connectorId) {
+  const { error } = await db.from('training_images').delete().eq('id', imageId);
+  if (error) { toast(`Couldn't delete photo: ${error.message}`, true); return; }
+  await db.storage.from(BUCKET).remove([path]);
+  toast('Photo deleted');
+  await loadConnectors();
+  const card = document.querySelector(`.conn[data-id="${connectorId}"]`);
+  if (card) {
+    const gallery = card.querySelector('.gallery');
+    const viewBtn = card.querySelector('[data-act="view"]');
+    gallery.hidden = false; viewBtn.textContent = 'Hide photos'; viewBtn.setAttribute('aria-expanded', true);
+    await loadGallery(connectorId, gallery);
+  }
+}
+
+async function deleteConnector(id) {
+  const { data: imgs } = await db.from('training_images').select('storage_path').eq('connector_id', id);
+  const { error } = await db.from('connectors').delete().eq('id', id);
+  if (error) { toast(`Couldn't delete connector: ${error.message}`, true); await loadConnectors(); return; }
+  if (imgs?.length) await db.storage.from(BUCKET).remove(imgs.map(i => i.storage_path));
+  toast('Connector deleted');
+  await loadConnectors();
+}
+
+/* New connector form */
+$('toggleNew').addEventListener('click', () => {
+  const form = $('newForm');
+  form.hidden = !form.hidden;
+  $('toggleNew').setAttribute('aria-expanded', !form.hidden);
+  if (!form.hidden) $('newName').focus();
+});
+
+$('createBtn').addEventListener('click', async () => {
+  if (!db) { toast('Connect Supabase first.', true); return; }
+  const name = $('newName').value.trim();
+  if (!name) { toast('Give the connector a name.', true); $('newName').focus(); return; }
+  $('createBtn').disabled = true;
+  const { data, error } = await db.from('connectors').insert({
+    name,
+    part_number: $('newPart').value.trim() || null,
+    description: $('newDesc').value.trim() || null,
+  }).select().single();
+  $('createBtn').disabled = false;
+  if (error) {
+    toast(error.code === '23505' ? `A connector called "${name}" already exists.` : `Couldn't add connector: ${error.message}`, true);
+    return;
+  }
+  $('newName').value = ''; $('newPart').value = ''; $('newDesc').value = '';
+  $('newForm').hidden = true; $('toggleNew').setAttribute('aria-expanded', false);
+  toast(`Added "${data.name}"`);
+  await loadConnectors(data.id);
+});
+
+$('connectorSelect').addEventListener('change', updateSaveState);
+
+/* ===================== PHOTO QUEUE ===================== */
+$('cameraBtn').addEventListener('click', () => $('cameraInput').click());
+$('uploadBtn').addEventListener('click', () => $('uploadInput').click());
+$('cameraInput').addEventListener('change', e => { addFiles(e.target.files, 'camera'); e.target.value = ''; });
+$('uploadInput').addEventListener('change', e => { addFiles(e.target.files, 'upload'); e.target.value = ''; });
+
+const dz = $('dropzone');
+['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+dz.addEventListener('drop', e => addFiles(e.dataTransfer.files, 'upload'));
+
+function addFiles(fileList, source) {
+  let skipped = 0;
+  for (const file of fileList) {
+    if (!file.type.startsWith('image/') || /heic|heif/i.test(file.type)) { skipped++; continue; }
+    queue.push({ id: uuid(), file, url: URL.createObjectURL(file), source, state: 'queued' });
+  }
+  if (skipped) toast(`${skipped} file${skipped > 1 ? 's' : ''} skipped. Use JPG, PNG or WebP images.`, true);
+  renderQueue();
+}
+
+function renderQueue() {
+  $('queue').innerHTML = queue.map(q => `
+    <div class="thumb" data-state="${q.state}">
+      <img src="${q.url}" alt="">
+      <span class="tag">${q.source === 'camera' ? 'Camera' : 'Upload'}</span>
+      ${saving ? '' : `<button class="x" data-q="${q.id}" aria-label="Remove photo">×</button>`}
+    </div>`).join('');
+  const n = queue.length;
+  $('queueInfo').textContent = n ? `${n} photo${n > 1 ? 's' : ''} ready to save.` : 'No photos added yet.';
+  updateSaveState();
+}
+
+$('queue').addEventListener('click', e => {
+  const id = e.target.closest('[data-q]')?.dataset.q;
+  if (!id) return;
+  const item = queue.find(q => q.id === id);
+  URL.revokeObjectURL(item.url);
+  queue = queue.filter(q => q.id !== id);
+  renderQueue();
+});
+
+function updateSaveState() {
+  const ready = db && model && queue.length && $('connectorSelect').value && !saving;
+  $('saveBtn').disabled = !ready;
+  if (queue.length && !$('connectorSelect').value) $('queueInfo').textContent = 'Choose a connector above before saving.';
+}
+
+/* ===================== SAVE ===================== */
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Image could not be read'));
+    img.src = url;
+  });
+}
+
+function resizeToCanvas(img) {
+  const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; // flatten transparent PNGs onto white
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+const canvasToBlob = (canvas) => new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.88));
+
+async function saveOne(item, connectorId) {
+  const img = await loadImage(item.url);
+  const canvas = resizeToCanvas(img);
+
+  // Fingerprint the photo
+  const t = model.infer(canvas, true);
+  const embedding = Array.from(await t.data());
+  t.dispose();
+
+  // Upload the photo
+  const path = `${connectorId}/${uuid()}.jpg`;
+  const blob = await canvasToBlob(canvas);
+  const up = await db.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+  if (up.error) throw up.error;
+
+  // Save the record
+  const ins = await db.from('training_images').insert({
+    connector_id: connectorId, storage_path: path, source: item.source, embedding,
+  });
+  if (ins.error) {
+    await db.storage.from(BUCKET).remove([path]);
+    throw ins.error;
+  }
+}
+
+$('saveBtn').addEventListener('click', async () => {
+  const connectorId = $('connectorSelect').value;
+  const c = connectors.find(x => x.id === connectorId);
+  if (!connectorId || !queue.length) return;
+
+  saving = true; updateSaveState(); renderQueue();
+  const bar = $('progress'); const fill = bar.firstElementChild;
+  bar.hidden = false; fill.style.width = '0%';
+
+  let done = 0, failed = 0;
+  const total = queue.length;
+  for (const item of queue) {
+    item.state = 'saving'; renderQueue();
+    $('queueInfo').textContent = `Saving ${done + failed + 1} of ${total}…`;
+    try {
+      await saveOne(item, connectorId);
+      item.state = 'saved'; done++;
+    } catch (err) {
+      console.error(err);
+      item.state = 'failed'; failed++;
+    }
+    fill.style.width = `${((done + failed) / total) * 100}%`;
+  }
+
+  queue.filter(q => q.state === 'saved').forEach(q => URL.revokeObjectURL(q.url));
+  queue = queue.filter(q => q.state !== 'saved').map(q => ({ ...q, state: 'queued' }));
+  saving = false;
+  setTimeout(() => { bar.hidden = true; }, 800);
+  renderQueue();
+
+  if (failed) toast(`Saved ${done} photo${done === 1 ? '' : 's'}. ${failed} failed and are still in the queue; try saving again.`, true);
+  else toast(`Saved ${done} photo${done === 1 ? '' : 's'} to "${c.name}"`);
+  await loadConnectors(connectorId);
+});
+
+/* ===================== START ===================== */
+if (isConfigured()) {
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  $('configBanner').hidden = false;
+}
+loadConnectors();
+loadModel();
+</script>
+</body>
+</html>
