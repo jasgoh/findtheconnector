@@ -304,6 +304,52 @@ textarea { min-height: 4rem; resize: vertical; }
 .check { display: flex; gap: .6rem; align-items: flex-start; margin-top: 1rem; cursor: pointer; }
 .check input { width: 20px; height: 20px; margin-top: .15rem; accent-color: var(--mat); flex: none; }
 
+/* Crop editor */
+.cropper {
+  position: fixed; inset: 0; z-index: 20; background: #0E1318; color: #fff;
+  display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+.crop-head { padding: 1rem 1.25rem .5rem; text-align: center; }
+.crop-head h3 { font-family: var(--font-display); font-size: 1.4rem; margin: 0; }
+.crop-head p { margin: .2rem 0 0; opacity: .75; font-size: .95rem; }
+.crop-area { flex: 1; min-height: 0; display: grid; place-items: center; padding: 1rem; }
+.crop-stage { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
+.crop-stage canvas { display: block; width: 100%; height: 100%; }
+.crop-box {
+  position: absolute; border: 2px solid #fff; cursor: move; touch-action: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.35)), linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.35)),
+    linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.35)), linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.35));
+  background-size: 1px 100%, 1px 100%, 100% 1px, 100% 1px;
+  background-position: 33.3% 0, 66.6% 0, 0 33.3%, 0 66.6%;
+  background-repeat: no-repeat;
+}
+.crop-clip { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.crop-shade { position: absolute; box-shadow: 0 0 0 9999px rgba(14, 19, 24, .62); }
+.crop-box:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.crop-handle {
+  position: absolute; width: 44px; height: 44px; margin: -22px; touch-action: none;
+}
+.crop-handle::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%);
+  background: var(--brass); border: 2px solid #fff; border-radius: 50%;
+}
+.crop-handle[data-h="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+.crop-handle[data-h="ne"] { right: 0; top: 0; cursor: nesw-resize; }
+.crop-handle[data-h="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
+.crop-handle[data-h="se"] { right: 0; bottom: 0; cursor: nwse-resize; }
+.crop-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; padding: .75rem 1rem 1rem; }
+.crop-actions .btn { background: #1E2731; border-color: #34404D; color: #fff; }
+.crop-actions .btn-primary { background: var(--brass); border-color: var(--brass); color: #1B1408; }
+@media (max-width: 480px) { .crop-actions .btn { flex: 1 1 40%; justify-content: center; } }
+
+.thumb .crop-btn {
+  position: absolute; right: 4px; bottom: 4px; border: 0; cursor: pointer;
+  background: rgba(20,26,34,.8); color: #fff; font-size: .72rem; font-weight: 600;
+  padding: .2rem .45rem; border-radius: 4px;
+}
+
 .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
 .banner { background: var(--brass-soft); border: 1px solid var(--brass); border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-bottom: 1.25rem; }
 .banner p:last-child { margin: 0; }
@@ -350,7 +396,7 @@ textarea { min-height: 4rem; resize: vertical; }
     <div class="train-head">
       <div>
         <h2>Identify a connector</h2>
-        <p class="muted" style="margin:0">Place it on the scanning mat and take a photo.</p>
+        <p class="muted" style="margin:0">Place it on the plate, take a photo, then frame the connector.</p>
       </div>
       <span class="status" data-state="loading" role="status" data-model-status>Loading model</span>
     </div>
@@ -377,7 +423,7 @@ textarea { min-height: 4rem; resize: vertical; }
   <!-- ============ TAB 1: INSTRUCTIONS ============ -->
   <section role="tabpanel" id="panel-guide" aria-labelledby="tab-guide" hidden>
     <h2>Scanning a connector</h2>
-    <p class="lead">Open <strong>Scan me</strong>, place the connector on the scanning mat and take a photo. You'll see the closest matches with their part numbers. If the top answer is right, tap <strong>This is it</strong> and your photo is added to the training set, so the next scan gets a little better.</p>
+    <p class="lead">Open <strong>Scan me</strong>, place the connector on the plate and take a photo. A crop box appears around the connector; drag it or its corners if it isn't framed well, then tap <strong>Use photo</strong>. You'll see the closest matches with their part numbers. If the top answer is right, tap <strong>This is it</strong> and your photo is added to the training set, so the next scan gets a little better.</p>
     <p class="muted" style="max-width:70ch;margin-bottom:2.5rem">If the result says it isn't sure, retake the photo closer, with the pins facing the camera and no glare. If it still can't tell, the connector may not have been trained yet.</p>
 
     <h2>Teaching the site a new connector</h2>
@@ -542,6 +588,29 @@ textarea { min-height: 4rem; resize: vertical; }
     </div>
   </section>
 </main>
+
+<div class="cropper" id="cropper" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
+  <div class="crop-head">
+    <h3 id="cropTitle">Crop the photo</h3>
+    <p>Drag the box or its corners so it frames the connector.</p>
+  </div>
+  <div class="crop-area" id="cropArea">
+    <div class="crop-stage" id="cropStage">
+      <canvas id="cropCanvas"></canvas>
+      <div class="crop-clip" aria-hidden="true"><div class="crop-shade" id="cropShade"></div></div>
+      <div class="crop-box" id="cropBox" tabindex="0" aria-label="Crop area. Arrow keys move it; hold Shift to resize.">
+        <span class="crop-handle" data-h="nw"></span><span class="crop-handle" data-h="ne"></span>
+        <span class="crop-handle" data-h="sw"></span><span class="crop-handle" data-h="se"></span>
+      </div>
+    </div>
+  </div>
+  <div class="crop-actions">
+    <button class="btn" id="cropCancel">Cancel</button>
+    <button class="btn" id="cropAuto">Auto</button>
+    <button class="btn" id="cropAll">Whole photo</button>
+    <button class="btn btn-primary" id="cropUse">Use photo</button>
+  </div>
+</div>
 
 <div class="toast" id="toast" role="alert"></div>
 
@@ -807,19 +876,45 @@ const dz = $('dropzone');
 ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
 dz.addEventListener('drop', e => addFiles(e.dataTransfer.files, 'upload'));
 
-function addFiles(fileList, source) {
+async function addFiles(fileList, source) {
   let skipped = 0;
+  const added = [];
   for (const file of fileList) {
     if (!file.type.startsWith('image/') || /heic|heif/i.test(file.type)) { skipped++; continue; }
-    queue.push({ id: uuid(), file, url: URL.createObjectURL(file), source, state: 'queued' });
+    added.push({ id: uuid(), file, url: URL.createObjectURL(file), source, state: 'queued' });
   }
   if (skipped) toast(`${skipped} file${skipped > 1 ? 's' : ''} skipped. Use JPG, PNG or WebP images.`, true);
+
+  // A single camera photo goes straight to the crop editor, like on the Scan tab
+  if (source === 'camera' && added.length === 1) {
+    const q = added[0];
+    if (!(await cropQueueItem(q))) { URL.revokeObjectURL(q.url); return; }
+    queue.push(q); renderQueue();
+    return;
+  }
+
+  queue.push(...added);
   renderQueue();
-  // Swap each thumbnail for its cleaned version so you can check the crop before saving
-  if (PREPROCESS) queue.filter(q => !q.preview).forEach(async q => {
-    try { q.preview = (await cleanImage(q.url)).toDataURL('image/jpeg', .85); if (!saving) renderQueue(); }
-    catch { /* keep the original thumbnail */ }
+  // Show each photo with its automatic crop; tap Crop on a thumbnail to adjust it
+  added.forEach(async q => {
+    try {
+      const original = resizeToCanvas(await loadImage(q.url));
+      q.preview = (PREPROCESS ? preprocess(original) : original).toDataURL('image/jpeg', .85);
+      if (!saving) renderQueue();
+    } catch { /* keep the original thumbnail */ }
   });
+}
+
+// Open the crop editor for a queued photo; returns false if cancelled
+async function cropQueueItem(q) {
+  let original;
+  try { original = resizeToCanvas(await loadImage(q.url)); }
+  catch { toast('That photo couldn\'t be read.', true); return false; }
+  const crop = await openCropper(original, q.crop || null);
+  if (!crop) return false;
+  q.crop = crop;
+  q.preview = renderCrop(original, crop).toDataURL('image/jpeg', .85);
+  return true;
 }
 
 function renderQueue() {
@@ -827,14 +922,21 @@ function renderQueue() {
     <div class="thumb" data-state="${q.state}">
       <img src="${q.preview || q.url}" alt="">
       <span class="tag">${q.source === 'camera' ? 'Camera' : 'Upload'}</span>
-      ${saving ? '' : `<button class="x" data-q="${q.id}" aria-label="Remove photo">×</button>`}
+      ${saving ? '' : `<button class="x" data-q="${q.id}" aria-label="Remove photo">×</button>
+      <button class="crop-btn" data-crop="${q.id}">Crop</button>`}
     </div>`).join('');
   const n = queue.length;
   $('queueInfo').textContent = n ? `${n} photo${n > 1 ? 's' : ''} ready to save.` : 'No photos added yet.';
   updateSaveState();
 }
 
-$('queue').addEventListener('click', e => {
+$('queue').addEventListener('click', async e => {
+  const cropId = e.target.closest('[data-crop]')?.dataset.crop;
+  if (cropId) {
+    const item = queue.find(q => q.id === cropId);
+    if (item && await cropQueueItem(item)) renderQueue();
+    return;
+  }
   const id = e.target.closest('[data-q]')?.dataset.q;
   if (!id) return;
   const item = queue.find(q => q.id === id);
@@ -882,8 +984,8 @@ const canvasToBlob = (canvas) => new Promise(r => canvas.toBlob(r, 'image/jpeg',
    2. Ignore everything outside the plate (bench, tools, hands).
    3. Find the connector as whatever sits on the plate but isn't plate-coloured.
    4. Crop to the connector (or to the whole plate, see CROP_TO) and pad to a square. */
-function preprocess(src) {
-  if (!PREPROCESS) return src;
+// Returns the suggested square crop { cx, cy, side, fill } in the photo's own pixels
+function autoCrop(src) {
   const w = src.width, h = src.height;
 
   // Work on a small, smoothed copy: print lines and dust blur away, and it's fast
@@ -997,15 +1099,31 @@ function preprocess(src) {
     side = Math.max(side, Math.min(w, h) * 0.08); // don't zoom into a single speck
   }
 
-  // Draw onto a square canvas, padding with the plate colour
+  return { cx, cy, side, fill: `rgb(${plateColour.join(',')})` };
+}
+
+// Draw a square crop onto an OUT_SIZE canvas, padding anything outside the photo with the plate colour
+function renderCrop(src, { cx, cy, side, fill }) {
   const res = document.createElement('canvas');
   res.width = OUT_SIZE; res.height = OUT_SIZE;
   const rctx = res.getContext('2d');
-  rctx.fillStyle = `rgb(${plateColour.join(',')})`; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+  rctx.fillStyle = fill; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
   rctx.imageSmoothingQuality = 'high';
   const k = OUT_SIZE / side;
-  rctx.drawImage(src, (side / 2 - cx) * k, (side / 2 - cy) * k, w * k, h * k);
+  rctx.drawImage(src, (side / 2 - cx) * k, (side / 2 - cy) * k, src.width * k, src.height * k);
   return res;
+}
+
+// A box the user drew ({ x, y, w, h }) becomes a square crop centred on it
+const boxToCrop = (b, fill) => ({ cx: b.x + b.w / 2, cy: b.y + b.h / 2, side: Math.max(b.w, b.h), fill });
+const cropToBox = (c, w, h) => {
+  const x = Math.max(0, c.cx - c.side / 2), y = Math.max(0, c.cy - c.side / 2);
+  return { x, y, w: Math.min(w, c.cx + c.side / 2) - x, h: Math.min(h, c.cy + c.side / 2) - y };
+};
+
+function preprocess(src) {
+  if (!PREPROCESS) return src;
+  return renderCrop(src, autoCrop(src));
 }
 
 // Load any image URL and return the cleaned square canvas
@@ -1041,7 +1159,8 @@ async function saveCanvas(canvas, source, connectorId, original = null) {
 
 async function saveOne(item, connectorId) {
   const original = resizeToCanvas(await loadImage(item.url));
-  await saveCanvas(preprocess(original), item.source, connectorId, original);
+  const cleaned = item.crop ? renderCrop(original, item.crop) : preprocess(original);
+  await saveCanvas(cleaned, item.source, connectorId, original);
 }
 
 // Extra training copies of one catalog photo: rotations, a mirror, and a slight tilt
@@ -1100,7 +1219,7 @@ $('saveBtn').addEventListener('click', async () => {
 });
 
 /* ===================== SCAN ===================== */
-let scan = null;          // { url, source }
+let scan = null;          // { url, source, original, cleaned }
 let modelReady = null;    // promise from loadModel()
 
 $('scanCameraBtn').addEventListener('click', () => $('scanCameraInput').click());
@@ -1118,10 +1237,18 @@ async function runScan(file, source) {
     toast('That file type isn\'t supported. Use a JPG, PNG or WebP image.', true);
     return;
   }
-  if (scan) URL.revokeObjectURL(scan.url);
-  scan = { url: URL.createObjectURL(file), source };
+  // Let the user frame the photo before it's used
+  const url = URL.createObjectURL(file);
+  let original;
+  try { original = resizeToCanvas(await loadImage(url)); }
+  catch { URL.revokeObjectURL(url); toast('That photo couldn\'t be read. Try again.', true); return; }
+  const crop = await openCropper(original);
+  if (!crop) { URL.revokeObjectURL(url); return; }   // cancelled: keep the previous result on screen
 
-  $('scanPreview').src = scan.url;
+  if (scan) URL.revokeObjectURL(scan.url);
+  scan = { url, source, original, cleaned: renderCrop(original, crop) };
+
+  $('scanPreview').src = scan.cleaned.toDataURL('image/jpeg', .9);   // show exactly what the model sees
   $('scanPreview').hidden = false;
   $('scanEmpty').hidden = true;
   $('scanFrame').classList.add('busy');
@@ -1132,8 +1259,7 @@ async function runScan(file, source) {
     if (!model) await modelReady;
     if (!model) throw new Error('The recognition model failed to load. Reload the page and try again.');
 
-    const canvas = await cleanImage(scan.url);
-    if (PREPROCESS) $('scanPreview').src = canvas.toDataURL('image/jpeg', .9); // show what the model sees
+    const canvas = scan.cleaned;
     const t = model.infer(canvas, true);
     const embedding = Array.from(await t.data());
     t.dispose();
@@ -1225,7 +1351,7 @@ $('scanResults').addEventListener('click', async e => {
     $('scanResults').querySelectorAll('[data-act="confirm"]').forEach(b => b.disabled = true);
     btn.textContent = 'Adding…';
     try {
-      await saveOne({ url: scan.url, source: scan.source }, id);
+      await saveCanvas(scan.cleaned, scan.source, id, scan.original);   // keep the user's crop
       btn.parentElement.innerHTML = '<span class="confirmed">Added to the training set. Thanks!</span>';
       loadConnectors();
     } catch (err) {
@@ -1447,6 +1573,129 @@ $('cleanupBtn').addEventListener('click', async () => {
   if (failed) toast(`Updated ${done} photos. ${failed} failed; click Update photos to retry them.`, true);
   else toast(`Updated ${done} photo${done === 1 ? '' : 's'}`);
   await loadConnectors();
+});
+
+/* ===================== CROP EDITOR ===================== */
+// openCropper(photoCanvas) -> resolves to { cx, cy, side, fill } or null if cancelled
+let cropState = null;
+
+function openCropper(src, initialCrop = null) {
+  return new Promise(resolve => {
+    const auto = autoCrop(src);
+    const fill = auto.fill;
+    const W = src.width, H = src.height;
+    const cv = $('cropCanvas');
+    cv.width = W; cv.height = H;
+    cv.getContext('2d').drawImage(src, 0, 0);
+    cropState = {
+      W, H, fill, auto, scale: 1,
+      box: cropToBox(initialCrop || auto, W, H),
+      finish(result) {
+        $('cropper').hidden = true;
+        document.body.style.overflow = '';
+        window.removeEventListener('resize', layoutCropper);
+        document.removeEventListener('keydown', cropKeys);
+        cropState = null;
+        resolve(result);
+      },
+    };
+    $('cropper').hidden = false;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('resize', layoutCropper);
+    document.addEventListener('keydown', cropKeys);
+    layoutCropper();
+    $('cropUse').focus();
+  });
+}
+
+function layoutCropper() {
+  if (!cropState) return;
+  const area = $('cropArea');
+  const cs = getComputedStyle(area);
+  const aw = area.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const ah = area.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  cropState.scale = Math.min(aw / cropState.W, ah / cropState.H);
+  $('cropStage').style.width = `${cropState.W * cropState.scale}px`;
+  $('cropStage').style.height = `${cropState.H * cropState.scale}px`;
+  drawCropBox();
+}
+
+function drawCropBox() {
+  const { box, scale } = cropState;
+  const pos = {
+    left: `${box.x * scale}px`, top: `${box.y * scale}px`,
+    width: `${box.w * scale}px`, height: `${box.h * scale}px`,
+  };
+  Object.assign($('cropBox').style, pos);
+  Object.assign($('cropShade').style, pos);
+}
+
+function clampBox(b) {
+  const { W, H } = cropState;
+  const min = Math.max(16, Math.min(W, H) * 0.05);
+  b.w = Math.min(Math.max(b.w, min), W); b.h = Math.min(Math.max(b.h, min), H);
+  b.x = Math.min(Math.max(b.x, 0), W - b.w); b.y = Math.min(Math.max(b.y, 0), H - b.h);
+  return b;
+}
+
+// Dragging: move the box, or resize from a corner
+let drag = null;
+$('cropBox').addEventListener('pointerdown', e => {
+  if (!cropState) return;
+  e.preventDefault();
+  drag = { mode: e.target.dataset.h || 'move', sx: e.clientX, sy: e.clientY, start: { ...cropState.box } };
+  $('cropBox').setPointerCapture(e.pointerId);
+});
+$('cropBox').addEventListener('pointermove', e => {
+  if (!drag || !cropState) return;
+  const { W, H, scale } = cropState;
+  const dx = (e.clientX - drag.sx) / scale, dy = (e.clientY - drag.sy) / scale;
+  const s = drag.start;
+  const min = Math.max(16, Math.min(W, H) * 0.05);
+  let b;
+  if (drag.mode === 'move') {
+    b = clampBox({ ...s, x: s.x + dx, y: s.y + dy });
+  } else {
+    let x0 = s.x, y0 = s.y, x1 = s.x + s.w, y1 = s.y + s.h;
+    if (drag.mode.includes('w')) x0 = Math.min(Math.max(0, x0 + dx), x1 - min);
+    if (drag.mode.includes('e')) x1 = Math.max(Math.min(W, x1 + dx), x0 + min);
+    if (drag.mode.includes('n')) y0 = Math.min(Math.max(0, y0 + dy), y1 - min);
+    if (drag.mode.includes('s')) y1 = Math.max(Math.min(H, y1 + dy), y0 + min);
+    b = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  cropState.box = b;
+  drawCropBox();
+});
+['pointerup', 'pointercancel'].forEach(ev => $('cropBox').addEventListener(ev, () => { drag = null; }));
+
+function cropKeys(e) {
+  if (!cropState) return;
+  if (e.key === 'Escape') { e.preventDefault(); cropState.finish(null); return; }
+  if (document.activeElement !== $('cropBox') || !e.key.startsWith('Arrow')) return;
+  e.preventDefault();
+  const step = Math.max(2, Math.min(cropState.W, cropState.H) * 0.02);
+  const b = { ...cropState.box };
+  const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+  const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+  if (e.shiftKey) { b.w += dx; b.h += dy; } else { b.x += dx; b.y += dy; }
+  cropState.box = clampBox(b);
+  drawCropBox();
+}
+
+$('cropCancel').addEventListener('click', () => cropState?.finish(null));
+$('cropAuto').addEventListener('click', () => {
+  if (!cropState) return;
+  cropState.box = cropToBox(cropState.auto, cropState.W, cropState.H);
+  drawCropBox();
+});
+$('cropAll').addEventListener('click', () => {
+  if (!cropState) return;
+  cropState.box = { x: 0, y: 0, w: cropState.W, h: cropState.H };
+  drawCropBox();
+});
+$('cropUse').addEventListener('click', () => {
+  if (!cropState) return;
+  cropState.finish(boxToCrop(cropState.box, cropState.fill));
 });
 
 /* ===================== START ===================== */
