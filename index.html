@@ -532,6 +532,7 @@ textarea { min-height: 4rem; resize: vertical; }
       <p id="cleanupText"></p>
       <div class="btn-row" style="align-items:center">
         <button class="btn btn-primary" id="cleanupBtn">Update photos</button>
+        <button class="btn btn-danger" id="whitenedBtn" hidden>Delete colour-corrected photos</button>
         <span class="muted" id="cleanupStatus" style="font-size:.9rem"></span>
       </div>
       <div class="progress" id="cleanupProgress" hidden><span></span></div>
@@ -558,12 +559,13 @@ const CONFIDENT_AT = 0.80;  // at or above: "This looks like..."
 const POSSIBLE_AT  = 0.65;  // between the two: "Possibly..."; below: "Not sure"
 const SHOW_MATCHES = 3;     // how many connectors to list
 
-// Image cleanup, applied identically to training photos and scans
+// Image cleanup (cropping only), applied identically to training photos and scans
 const PREPROCESS = true;    // set false to switch cleanup off
 const OUT_SIZE = 384;       // cleaned images are square, this many pixels
-const FG_THRESHOLD = 42;    // how different from the mat a pixel must be to count as connector
+const FG_THRESHOLD = 42;    // how different from the plate a pixel must be to count as connector
 const CROP_MARGIN = 0.12;   // space left around the connector, as a share of its size
-const PROCESSED_TAG = '.p.jpg'; // file ending that marks a cleaned image
+const PROCESSED_TAG = '.c.jpg'; // file ending that marks a cropped image
+const OLD_COLOUR_TAG = '.p.jpg'; // earlier colour-corrected images (originals not kept)
 
 /* ===================== STATE ===================== */
 let db = null;
@@ -873,17 +875,15 @@ function resizeToCanvas(img) {
 const canvasToBlob = (canvas) => new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.88));
 
 /* ===================== IMAGE CLEANUP =====================
-   1. Find the mat colour from the photo's edges.
-   2. Correct colour cast and stretch contrast so the mat becomes near-white.
-   3. Find the pixels that differ from the mat, crop to them with a margin, pad to a square. */
-const BG_OUT = 248;
-
+   Crop only, no colour changes:
+   1. Find the plate colour from the photo's edges.
+   2. Find the pixels that differ from the plate, crop to them with a margin, pad to a square. */
 function preprocess(src) {
   if (!PREPROCESS) return src;
   const w = src.width, h = src.height;
   const px = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
 
-  // Mat colour: median of a thin band around the edges
+  // Plate colour: median of a thin band around the edges
   const band = Math.max(2, Math.round(Math.min(w, h) * 0.04));
   const edge = [[], [], []];
   for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
@@ -894,43 +894,19 @@ function preprocess(src) {
   const median = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
   const bg = edge.map(median);
 
-  // Per-channel levels: darkest 0.5% -> black, mat -> near-white
-  const hist = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
-  for (let i = 0; i < px.length; i += 4) { hist[0][px[i]]++; hist[1][px[i + 1]]++; hist[2][px[i + 2]]++; }
-  const lowAt = (hc) => { let acc = 0; const t = w * h * 0.005; for (let v = 0; v < 256; v++) { acc += hc[v]; if (acc >= t) return v; } return 0; };
-  const lut = [0, 1, 2].map(c => {
-    const hi = Math.max(bg[c], 40);
-    const lo = Math.max(0, Math.min(lowAt(hist[c]), hi - 80));
-    const gain = Math.min(BG_OUT / Math.max(1, hi - lo), 3);   // cap so dark photos don't blow out
-    const t = new Uint8ClampedArray(256);
-    for (let v = 0; v < 256; v++) t[v] = (v - lo) * gain;
-    return t;
-  });
-
-  const fixed = document.createElement('canvas');
-  fixed.width = w; fixed.height = h;
-  const fctx = fixed.getContext('2d', { willReadFrequently: true });
-  const out = fctx.createImageData(w, h);
-  for (let i = 0; i < px.length; i += 4) {
-    out.data[i] = lut[0][px[i]]; out.data[i + 1] = lut[1][px[i + 1]]; out.data[i + 2] = lut[2][px[i + 2]]; out.data[i + 3] = 255;
-  }
-  fctx.putImageData(out, 0, 0);
-  const bgFixed = [0, 1, 2].map(c => lut[c][bg[c]]);
-  const fill = `rgb(${bgFixed.join(',')})`;
-
-  // Connector mask on a small, smoothed copy (fine grid lines and dust blur away)
+  // Connector mask on a small, smoothed copy (print lines, grid lines and dust blur away)
   const sScale = Math.min(1, 128 / Math.max(w, h));
   const sw = Math.max(1, Math.round(w * sScale)), sh = Math.max(1, Math.round(h * sScale));
   const small = document.createElement('canvas');
   small.width = sw; small.height = sh;
   const sctx = small.getContext('2d', { willReadFrequently: true });
   sctx.imageSmoothingQuality = 'high';
-  sctx.drawImage(fixed, 0, 0, sw, sh);
+  sctx.drawImage(src, 0, 0, sw, sh);
   const sp = sctx.getImageData(0, 0, sw, sh).data;
   const xs = [], ys = [];
   for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
     const i = (y * sw + x) * 4;
-    const d = Math.max(Math.abs(sp[i] - bgFixed[0]), Math.abs(sp[i + 1] - bgFixed[1]), Math.abs(sp[i + 2] - bgFixed[2]));
+    const d = Math.max(Math.abs(sp[i] - bg[0]), Math.abs(sp[i + 1] - bg[1]), Math.abs(sp[i + 2] - bg[2]));
     if (d > FG_THRESHOLD) { xs.push(x); ys.push(y); }
   }
 
@@ -949,14 +925,14 @@ function preprocess(src) {
     }
   }
 
-  // Draw the crop onto a square, mat-coloured canvas
+  // Draw the crop onto a square canvas, padding with the plate colour
   const res = document.createElement('canvas');
   res.width = OUT_SIZE; res.height = OUT_SIZE;
   const rctx = res.getContext('2d');
-  rctx.fillStyle = fill; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+  rctx.fillStyle = `rgb(${bg.join(',')})`; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
   rctx.imageSmoothingQuality = 'high';
   const k = OUT_SIZE / side;
-  rctx.drawImage(fixed, (side / 2 - cx) * k, (side / 2 - cy) * k, w * k, h * k);
+  rctx.drawImage(src, (side / 2 - cx) * k, (side / 2 - cy) * k, w * k, h * k);
   return res;
 }
 
@@ -1315,7 +1291,8 @@ $('lcscSaveBtn').addEventListener('click', async () => {
 });
 
 /* ===================== UPDATE OLD PHOTOS ===================== */
-let outdated = [];
+let outdated = [];   // saved before any cleanup: can be cropped now
+let whitened = [];   // saved with the old colour correction: originals are gone
 
 async function listAllImages() {
   const rows = [];
@@ -1332,12 +1309,36 @@ async function checkCleanup() {
   if (!db || !PREPROCESS) return;
   try {
     const all = await listAllImages();
-    outdated = all.filter(r => !r.storage_path.endsWith(PROCESSED_TAG));
+    whitened = all.filter(r => r.storage_path.endsWith(OLD_COLOUR_TAG));
+    outdated = all.filter(r => !r.storage_path.endsWith(PROCESSED_TAG) && !r.storage_path.endsWith(OLD_COLOUR_TAG));
   } catch (err) { console.error(err); return; }
-  const n = outdated.length;
-  $('cleanupPanel').hidden = !n;
-  if (n) $('cleanupText').innerHTML = `<strong>${n} training photo${n === 1 ? ' was' : 's were'} saved before image cleanup was added.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are now processed. This takes a few seconds per photo; keep this page open until it finishes.`;
+  const n = outdated.length, m = whitened.length;
+  $('cleanupPanel').hidden = !n && !m;
+  $('cleanupBtn').hidden = !n;
+  $('whitenedBtn').hidden = !m;
+  const parts = [];
+  if (n) parts.push(`<strong>${n} photo${n === 1 ? ' hasn\'t' : 's haven\'t'} been cropped yet.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are processed.`);
+  if (m) parts.push(`<strong>${m} photo${m === 1 ? ' was' : 's were'} saved with the earlier colour correction.</strong> The originals weren't kept, so ${m === 1 ? 'it' : 'they'} can't be repaired and may be hurting recognition. Delete ${m === 1 ? 'it' : 'them'}, then retake or re-import from LCSC.`);
+  $('cleanupText').innerHTML = parts.join('<br><br>');
 }
+
+$('whitenedBtn').addEventListener('click', async () => {
+  const m = whitened.length;
+  if (!confirm(`Delete ${m} colour-corrected photo${m === 1 ? '' : 's'}? Connectors stay; only these photos are removed.`)) return;
+  const btn = $('whitenedBtn'); btn.disabled = true;
+  let failed = 0;
+  for (let i = 0; i < whitened.length; i += 100) {
+    const chunk = whitened.slice(i, i + 100);
+    $('cleanupStatus').textContent = `Deleting ${Math.min(i + 100, m)} of ${m}…`;
+    const del = await db.from('training_images').delete().in('id', chunk.map(r => r.id));
+    if (del.error) { console.error(del.error); failed += chunk.length; continue; }
+    await db.storage.from(BUCKET).remove(chunk.map(r => r.storage_path));
+  }
+  btn.disabled = false; $('cleanupStatus').textContent = '';
+  if (failed) toast(`${failed} photos couldn't be deleted. Try again.`, true);
+  else toast(`Deleted ${m} photo${m === 1 ? '' : 's'}`);
+  await loadConnectors();
+});
 
 $('cleanupBtn').addEventListener('click', async () => {
   if (!model) { toast('The model is still loading, try again in a moment.', true); return; }

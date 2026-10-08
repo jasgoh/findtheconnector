@@ -35,3 +35,20 @@ policies to signed-in users.
 - iPhone HEIC files uploaded from a computer are skipped; photos taken through the
   "Take photo" button arrive as JPEG automatically.
 - Photos are resized to 512 px on the longest side before upload to save storage.
+
+## LCSC quick add
+The Train tab can pull official product photos from LCSC using an LCSC part number (C######).
+This uses the Netlify Function in `netlify/functions/lcsc.mjs`, which Netlify detects and
+deploys automatically. It must stay at exactly that path in the repo. No API key is needed.
+
+The lookup uses the same public data endpoint as LCSC's own product pages. It isn't an official,
+documented API, so it could change without notice; if lookups start failing, that's the first place
+to check. It only works on the deployed site, not when opening index.html directly from your computer.
+
+## Image cleanup
+Every training photo and every scan is cropped the same way before fingerprinting: the plate
+colour is detected from the photo's edges, the connector is found as whatever differs from it,
+and the image is cropped to the connector with a margin and padded to a square. Colours are
+not changed. Settings live in the CONFIG block of index.html (PREPROCESS, FG_THRESHOLD,
+CROP_MARGIN). Cropped files end in `.c.jpg`; the Train tab offers to crop older photos and to
+delete photos saved by the earlier colour-correcting version (`.p.jpg`), which can't be repaired.
