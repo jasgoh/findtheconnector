@@ -287,6 +287,23 @@ textarea { min-height: 4rem; resize: vertical; }
 .match .btn-row { margin-top: .5rem; }
 .confirmed { color: var(--ok); font-weight: 600; font-size: .95rem; }
 
+/* LCSC quick add */
+.lcsc-panel { border-color: var(--mat); }
+.lcsc-search { display: flex; gap: .6rem; margin-top: .6rem; }
+.lcsc-search input { font-family: var(--font-mono); text-transform: uppercase; }
+.lcsc-info { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px dashed var(--line); }
+.lcsc-info .mpn { font-weight: 700; font-size: 1.15rem; }
+.lcsc-info a { color: var(--mat); }
+.thumb.pick { cursor: pointer; }
+.thumb.pick.off img { opacity: .25; }
+.thumb.pick .tick {
+  position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--mat); color: #fff; display: grid; place-items: center; font-size: .9rem; font-weight: 700;
+}
+.thumb.pick.off .tick { background: rgba(20,26,34,.55); }
+.check { display: flex; gap: .6rem; align-items: flex-start; margin-top: 1rem; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin-top: .15rem; accent-color: var(--mat); flex: none; }
+
 .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
 .banner { background: var(--brass-soft); border: 1px solid var(--brass); border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-bottom: 1.25rem; }
 .banner p:last-child { margin: 0; }
@@ -421,6 +438,41 @@ textarea { min-height: 4rem; resize: vertical; }
       <span class="status" data-state="loading" role="status" data-model-status>Loading model</span>
     </div>
 
+    <!-- Quick add from LCSC -->
+    <div class="panel lcsc-panel">
+      <h3>Quick add from LCSC</h3>
+      <p class="muted" style="font-size:.95rem">Enter an LCSC part number to pull in the official product photos automatically.</p>
+      <div class="lcsc-search">
+        <div class="field" style="margin:0;flex:1">
+          <label for="lcscCode" class="sr-only">LCSC part number</label>
+          <input type="text" id="lcscCode" placeholder="C124378" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
+        </div>
+        <button class="btn btn-primary" id="lcscLookupBtn">Look up</button>
+      </div>
+      <p class="hint muted" style="font-size:.85rem;margin:.4rem 0 0">The <span class="mono">C</span> number shown as "LCSC Part #" on the product page, not the manufacturer part number.</p>
+
+      <div id="lcscResult" hidden>
+        <div class="lcsc-info" id="lcscInfo"></div>
+        <div class="field" style="margin-top:1rem">
+          <label for="lcscName">Save as</label>
+          <input type="text" id="lcscName" autocomplete="off">
+          <span class="hint">Edit the name if you like. If a connector with this part number already exists, the photos are added to it.</span>
+        </div>
+        <p style="font-weight:600;margin:.4rem 0 0">Photos to use</p>
+        <p class="hint muted" style="font-size:.85rem;margin:0">Tap a photo to leave it out, for example if it shows a different variant.</p>
+        <div class="queue" id="lcscImages"></div>
+        <label class="check">
+          <input type="checkbox" id="lcscAugment" checked>
+          <span>Also add rotated, mirrored and tilted copies <span class="muted">(6 training images per photo)</span></span>
+        </label>
+        <div class="save-bar">
+          <span id="lcscInfoCount" class="muted"></span>
+          <button class="btn btn-primary" id="lcscSaveBtn">Add to training set</button>
+        </div>
+        <div class="progress" id="lcscProgress" hidden><span></span></div>
+      </div>
+    </div>
+
     <!-- Step 1: choose connector -->
     <div class="panel">
       <h3>Connector</h3>
@@ -476,6 +528,14 @@ textarea { min-height: 4rem; resize: vertical; }
 
     <!-- Training set -->
     <h2 style="margin-top:2rem">Training set</h2>
+    <div class="banner" id="cleanupPanel" hidden>
+      <p id="cleanupText"></p>
+      <div class="btn-row" style="align-items:center">
+        <button class="btn btn-primary" id="cleanupBtn">Update photos</button>
+        <span class="muted" id="cleanupStatus" style="font-size:.9rem"></span>
+      </div>
+      <div class="progress" id="cleanupProgress" hidden><span></span></div>
+    </div>
     <div class="lib" id="library">
       <div class="empty">Loading connectors…</div>
     </div>
@@ -497,6 +557,13 @@ const MAX_SIDE = 512;       // photos are resized to this before upload
 const CONFIDENT_AT = 0.80;  // at or above: "This looks like..."
 const POSSIBLE_AT  = 0.65;  // between the two: "Possibly..."; below: "Not sure"
 const SHOW_MATCHES = 3;     // how many connectors to list
+
+// Image cleanup, applied identically to training photos and scans
+const PREPROCESS = true;    // set false to switch cleanup off
+const OUT_SIZE = 384;       // cleaned images are square, this many pixels
+const FG_THRESHOLD = 42;    // how different from the mat a pixel must be to count as connector
+const CROP_MARGIN = 0.12;   // space left around the connector, as a share of its size
+const PROCESSED_TAG = '.p.jpg'; // file ending that marks a cleaned image
 
 /* ===================== STATE ===================== */
 let db = null;
@@ -582,6 +649,7 @@ async function loadConnectors(selectId) {
   connectors = data.map(c => ({ ...c, count: c.training_images?.[0]?.count ?? 0 }));
   renderSelect(selectId);
   renderLibrary();
+  checkCleanup();
 }
 
 function renderSelect(selectId) {
@@ -744,12 +812,17 @@ function addFiles(fileList, source) {
   }
   if (skipped) toast(`${skipped} file${skipped > 1 ? 's' : ''} skipped. Use JPG, PNG or WebP images.`, true);
   renderQueue();
+  // Swap each thumbnail for its cleaned version so you can check the crop before saving
+  if (PREPROCESS) queue.filter(q => !q.preview).forEach(async q => {
+    try { q.preview = (await cleanImage(q.url)).toDataURL('image/jpeg', .85); if (!saving) renderQueue(); }
+    catch { /* keep the original thumbnail */ }
+  });
 }
 
 function renderQueue() {
   $('queue').innerHTML = queue.map(q => `
     <div class="thumb" data-state="${q.state}">
-      <img src="${q.url}" alt="">
+      <img src="${q.preview || q.url}" alt="">
       <span class="tag">${q.source === 'camera' ? 'Camera' : 'Upload'}</span>
       ${saving ? '' : `<button class="x" data-q="${q.id}" aria-label="Remove photo">×</button>`}
     </div>`).join('');
@@ -768,15 +841,17 @@ $('queue').addEventListener('click', e => {
 });
 
 function updateSaveState() {
+  if (lcsc) updateLcscCount();
   const ready = db && model && queue.length && $('connectorSelect').value && !saving;
   $('saveBtn').disabled = !ready;
   if (queue.length && !$('connectorSelect').value) $('queueInfo').textContent = 'Choose a connector above before saving.';
 }
 
 /* ===================== SAVE ===================== */
-function loadImage(url) {
+function loadImage(url, crossOrigin = false) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    if (crossOrigin) img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Image could not be read'));
     img.src = url;
@@ -797,29 +872,141 @@ function resizeToCanvas(img) {
 
 const canvasToBlob = (canvas) => new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.88));
 
-async function saveOne(item, connectorId) {
-  const img = await loadImage(item.url);
-  const canvas = resizeToCanvas(img);
+/* ===================== IMAGE CLEANUP =====================
+   1. Find the mat colour from the photo's edges.
+   2. Correct colour cast and stretch contrast so the mat becomes near-white.
+   3. Find the pixels that differ from the mat, crop to them with a margin, pad to a square. */
+const BG_OUT = 248;
 
-  // Fingerprint the photo
+function preprocess(src) {
+  if (!PREPROCESS) return src;
+  const w = src.width, h = src.height;
+  const px = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+
+  // Mat colour: median of a thin band around the edges
+  const band = Math.max(2, Math.round(Math.min(w, h) * 0.04));
+  const edge = [[], [], []];
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
+    if (x >= band && x < w - band && y >= band && y < h - band) continue;
+    const i = (y * w + x) * 4;
+    edge[0].push(px[i]); edge[1].push(px[i + 1]); edge[2].push(px[i + 2]);
+  }
+  const median = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  const bg = edge.map(median);
+
+  // Per-channel levels: darkest 0.5% -> black, mat -> near-white
+  const hist = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
+  for (let i = 0; i < px.length; i += 4) { hist[0][px[i]]++; hist[1][px[i + 1]]++; hist[2][px[i + 2]]++; }
+  const lowAt = (hc) => { let acc = 0; const t = w * h * 0.005; for (let v = 0; v < 256; v++) { acc += hc[v]; if (acc >= t) return v; } return 0; };
+  const lut = [0, 1, 2].map(c => {
+    const hi = Math.max(bg[c], 40);
+    const lo = Math.max(0, Math.min(lowAt(hist[c]), hi - 80));
+    const gain = Math.min(BG_OUT / Math.max(1, hi - lo), 3);   // cap so dark photos don't blow out
+    const t = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) t[v] = (v - lo) * gain;
+    return t;
+  });
+
+  const fixed = document.createElement('canvas');
+  fixed.width = w; fixed.height = h;
+  const fctx = fixed.getContext('2d', { willReadFrequently: true });
+  const out = fctx.createImageData(w, h);
+  for (let i = 0; i < px.length; i += 4) {
+    out.data[i] = lut[0][px[i]]; out.data[i + 1] = lut[1][px[i + 1]]; out.data[i + 2] = lut[2][px[i + 2]]; out.data[i + 3] = 255;
+  }
+  fctx.putImageData(out, 0, 0);
+  const bgFixed = [0, 1, 2].map(c => lut[c][bg[c]]);
+  const fill = `rgb(${bgFixed.join(',')})`;
+
+  // Connector mask on a small, smoothed copy (fine grid lines and dust blur away)
+  const sScale = Math.min(1, 128 / Math.max(w, h));
+  const sw = Math.max(1, Math.round(w * sScale)), sh = Math.max(1, Math.round(h * sScale));
+  const small = document.createElement('canvas');
+  small.width = sw; small.height = sh;
+  const sctx = small.getContext('2d', { willReadFrequently: true });
+  sctx.imageSmoothingQuality = 'high';
+  sctx.drawImage(fixed, 0, 0, sw, sh);
+  const sp = sctx.getImageData(0, 0, sw, sh).data;
+  const xs = [], ys = [];
+  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+    const i = (y * sw + x) * 4;
+    const d = Math.max(Math.abs(sp[i] - bgFixed[0]), Math.abs(sp[i + 1] - bgFixed[1]), Math.abs(sp[i + 2] - bgFixed[2]));
+    if (d > FG_THRESHOLD) { xs.push(x); ys.push(y); }
+  }
+
+  // Bounding box from percentiles, so a few stray specks don't stretch it
+  let cx = w / 2, cy = h / 2, side = Math.max(w, h);
+  if (xs.length > sw * sh * 0.003) {
+    xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
+    const q = (a, p) => a[Math.min(a.length - 1, Math.floor(a.length * p))];
+    const x0 = q(xs, .005) / sScale, x1 = (q(xs, .995) + 1) / sScale;
+    const y0 = q(ys, .005) / sScale, y1 = (q(ys, .995) + 1) / sScale;
+    const bw = x1 - x0, bh = y1 - y0;
+    if (bw * bh < w * h * 0.9) {           // only crop if the connector isn't already filling the photo
+      cx = (x0 + x1) / 2; cy = (y0 + y1) / 2;
+      side = Math.max(bw, bh) * (1 + 2 * CROP_MARGIN);
+      side = Math.max(side, Math.min(w, h) * 0.08); // don't zoom into a single speck
+    }
+  }
+
+  // Draw the crop onto a square, mat-coloured canvas
+  const res = document.createElement('canvas');
+  res.width = OUT_SIZE; res.height = OUT_SIZE;
+  const rctx = res.getContext('2d');
+  rctx.fillStyle = fill; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+  rctx.imageSmoothingQuality = 'high';
+  const k = OUT_SIZE / side;
+  rctx.drawImage(fixed, (side / 2 - cx) * k, (side / 2 - cy) * k, w * k, h * k);
+  return res;
+}
+
+// Load any image URL and return the cleaned square canvas
+async function cleanImage(url, crossOrigin = false) {
+  return preprocess(resizeToCanvas(await loadImage(url, crossOrigin)));
+}
+
+// Fingerprint a canvas, upload it, and record it against a connector
+async function saveCanvas(canvas, source, connectorId) {
   const t = model.infer(canvas, true);
   const embedding = Array.from(await t.data());
   t.dispose();
 
-  // Upload the photo
-  const path = `${connectorId}/${uuid()}.jpg`;
+  const path = `${connectorId}/${uuid()}${PREPROCESS ? PROCESSED_TAG : '.jpg'}`;
   const blob = await canvasToBlob(canvas);
   const up = await db.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
   if (up.error) throw up.error;
 
-  // Save the record
   const ins = await db.from('training_images').insert({
-    connector_id: connectorId, storage_path: path, source: item.source, embedding,
+    connector_id: connectorId, storage_path: path, source, embedding,
   });
   if (ins.error) {
     await db.storage.from(BUCKET).remove([path]);
     throw ins.error;
   }
+}
+
+async function saveOne(item, connectorId) {
+  await saveCanvas(await cleanImage(item.url), item.source, connectorId);
+}
+
+// Extra training copies of one catalog photo: rotations, a mirror, and a slight tilt
+function augmentCanvas(src) {
+  const w = src.width, h = src.height;
+  const make = (cw, ch, draw) => {
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const ctx = c.getContext('2d');
+    const [r, g, b] = src.getContext('2d').getImageData(1, 1, 1, 1).data;
+    ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(0, 0, cw, ch);
+    draw(ctx); return c;
+  };
+  return [
+    make(h, w, ctx => { ctx.translate(h, 0); ctx.rotate(Math.PI / 2); ctx.drawImage(src, 0, 0); }),
+    make(w, h, ctx => { ctx.translate(w, h); ctx.rotate(Math.PI); ctx.drawImage(src, 0, 0); }),
+    make(h, w, ctx => { ctx.translate(0, w); ctx.rotate(-Math.PI / 2); ctx.drawImage(src, 0, 0); }),
+    make(w, h, ctx => { ctx.translate(w, 0); ctx.scale(-1, 1); ctx.drawImage(src, 0, 0); }),
+    make(w, h, ctx => { ctx.translate(w / 2, h / 2); ctx.rotate(Math.PI / 12); ctx.scale(.85, .85); ctx.drawImage(src, -w / 2, -h / 2); }),
+  ];
 }
 
 $('saveBtn').addEventListener('click', async () => {
@@ -890,8 +1077,8 @@ async function runScan(file, source) {
     if (!model) await modelReady;
     if (!model) throw new Error('The recognition model failed to load. Reload the page and try again.');
 
-    const img = await loadImage(scan.url);
-    const canvas = resizeToCanvas(img);
+    const canvas = await cleanImage(scan.url);
+    if (PREPROCESS) $('scanPreview').src = canvas.toDataURL('image/jpeg', .9); // show what the model sees
     const t = model.infer(canvas, true);
     const embedding = Array.from(await t.data());
     t.dispose();
@@ -993,6 +1180,190 @@ $('scanResults').addEventListener('click', async e => {
       btn.textContent = 'This is it';
     }
   }
+});
+
+/* ===================== LCSC QUICK ADD ===================== */
+let lcsc = null;   // { code, mpn, brand, description, category, url, images: [{ url, on }] }
+
+$('lcscCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('lcscLookupBtn').click(); });
+
+$('lcscLookupBtn').addEventListener('click', async () => {
+  const code = $('lcscCode').value.trim().toUpperCase();
+  if (!/^C\d{1,9}$/.test(code)) {
+    toast('Enter an LCSC part number like C124378.', true);
+    $('lcscCode').focus();
+    return;
+  }
+  const btn = $('lcscLookupBtn');
+  btn.disabled = true; btn.textContent = 'Looking up…';
+  $('lcscResult').hidden = true;
+  try {
+    const res = await fetch(`/api/lcsc?code=${encodeURIComponent(code)}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Lookup failed (${res.status})`);
+    if (!data.images?.length) throw new Error(`LCSC has no photos for ${code}. Add your own photos below instead.`);
+    lcsc = { ...data, images: data.images.map(url => ({ url, on: true })) };
+    renderLcsc();
+  } catch (err) {
+    console.error(err);
+    const msg = location.protocol === 'file:'
+      ? 'The LCSC lookup only works on the deployed Netlify site, not when opening the file directly.'
+      : err.message;
+    toast(msg, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Look up';
+  }
+});
+
+function renderLcsc() {
+  $('lcscInfo').innerHTML = `
+    <div class="mpn">${esc(lcsc.mpn)} <span class="muted" style="font-weight:400">by ${esc(lcsc.brand || 'unknown brand')}</span></div>
+    <div class="muted">${esc(lcsc.description || '')}</div>
+    <div class="muted" style="font-size:.9rem;margin-top:.2rem">
+      ${esc(lcsc.category || '')} · <a href="${esc(lcsc.url)}" target="_blank" rel="noopener">${esc(lcsc.code)} on LCSC</a>
+    </div>`;
+  $('lcscName').value = [lcsc.category, lcsc.mpn].filter(Boolean).join(', ');
+  $('lcscImages').innerHTML = lcsc.images.map((im, i) => `
+    <div class="thumb pick${im.on ? '' : ' off'}" data-i="${i}" role="checkbox" aria-checked="${im.on}" tabindex="0" aria-label="Photo ${i + 1}">
+      <img src="${esc(im.url)}" alt="" crossorigin="anonymous">
+      <span class="tick" aria-hidden="true">${im.on ? '✓' : ''}</span>
+    </div>`).join('');
+  updateLcscCount();
+  $('lcscResult').hidden = false;
+}
+
+function toggleLcscImage(el) {
+  const im = lcsc.images[+el.dataset.i];
+  im.on = !im.on;
+  el.classList.toggle('off', !im.on);
+  el.setAttribute('aria-checked', im.on);
+  el.querySelector('.tick').textContent = im.on ? '✓' : '';
+  updateLcscCount();
+}
+$('lcscImages').addEventListener('click', e => { const el = e.target.closest('.pick'); if (el) toggleLcscImage(el); });
+$('lcscImages').addEventListener('keydown', e => {
+  const el = e.target.closest('.pick');
+  if (el && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); toggleLcscImage(el); }
+});
+$('lcscAugment').addEventListener('change', updateLcscCount);
+
+function updateLcscCount() {
+  const n = lcsc.images.filter(i => i.on).length;
+  const total = n * ($('lcscAugment').checked ? 6 : 1);
+  $('lcscInfoCount').textContent = n ? `${total} training image${total === 1 ? '' : 's'} will be added.` : 'Select at least one photo.';
+  $('lcscSaveBtn').disabled = !n || !db || !model;
+}
+
+async function findOrCreateConnector(name) {
+  const existing = connectors.find(c => c.part_number && c.part_number.toLowerCase() === lcsc.mpn.toLowerCase());
+  if (existing) return existing;
+  const description = [lcsc.description, `${lcsc.brand || ''} · LCSC ${lcsc.code}`.trim()].filter(Boolean).join('\n');
+  const { data, error } = await db.from('connectors')
+    .insert({ name, part_number: lcsc.mpn, description }).select().single();
+  if (error) {
+    if (error.code === '23505') throw new Error(`A connector called "${name}" already exists. Change the name and try again.`);
+    throw error;
+  }
+  return data;
+}
+
+$('lcscSaveBtn').addEventListener('click', async () => {
+  if (!db) { toast('Connect Supabase first.', true); return; }
+  if (!model) { toast('The model is still loading, try again in a moment.', true); return; }
+  const name = $('lcscName').value.trim();
+  if (!name) { toast('Give the connector a name.', true); $('lcscName').focus(); return; }
+  const picked = lcsc.images.filter(i => i.on);
+  const augment = $('lcscAugment').checked;
+
+  const btn = $('lcscSaveBtn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  const bar = $('lcscProgress'); const fill = bar.firstElementChild;
+  bar.hidden = false; fill.style.width = '0%';
+
+  let saved = 0, failed = 0;
+  try {
+    const conn = await findOrCreateConnector(name);
+    const total = picked.length * (augment ? 6 : 1);
+    for (const im of picked) {
+      let base;
+      try {
+        base = await cleanImage(im.url, true);
+      } catch { failed += augment ? 6 : 1; continue; }
+      const variants = augment ? [base, ...augmentCanvas(base)] : [base];
+      for (const canvas of variants) {
+        try { await saveCanvas(canvas, 'upload', conn.id); saved++; }
+        catch (err) { console.error(err); failed++; }
+        fill.style.width = `${((saved + failed) / total) * 100}%`;
+        $('lcscInfoCount').textContent = `Saving ${saved + failed} of ${total}…`;
+      }
+    }
+    if (failed) toast(`Added ${saved} images to "${conn.name}". ${failed} failed.`, true);
+    else toast(`Added ${saved} images to "${conn.name}"`);
+    await loadConnectors(conn.id);
+    $('lcscResult').hidden = true;
+    $('lcscCode').value = '';
+    lcsc = null;
+  } catch (err) {
+    console.error(err);
+    toast(err.message || 'Something went wrong.', true);
+    updateLcscCount();
+  } finally {
+    btn.textContent = 'Add to training set';
+    if (lcsc) btn.disabled = false;
+    setTimeout(() => { bar.hidden = true; }, 800);
+  }
+});
+
+/* ===================== UPDATE OLD PHOTOS ===================== */
+let outdated = [];
+
+async function listAllImages() {
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from('training_images')
+      .select('id, connector_id, storage_path, source').order('created_at').range(from, from + 999);
+    if (error) throw error;
+    rows.push(...data);
+    if (data.length < 1000) return rows;
+  }
+}
+
+async function checkCleanup() {
+  if (!db || !PREPROCESS) return;
+  try {
+    const all = await listAllImages();
+    outdated = all.filter(r => !r.storage_path.endsWith(PROCESSED_TAG));
+  } catch (err) { console.error(err); return; }
+  const n = outdated.length;
+  $('cleanupPanel').hidden = !n;
+  if (n) $('cleanupText').innerHTML = `<strong>${n} training photo${n === 1 ? ' was' : 's were'} saved before image cleanup was added.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are now processed. This takes a few seconds per photo; keep this page open until it finishes.`;
+}
+
+$('cleanupBtn').addEventListener('click', async () => {
+  if (!model) { toast('The model is still loading, try again in a moment.', true); return; }
+  const btn = $('cleanupBtn'); btn.disabled = true;
+  const bar = $('cleanupProgress'); const fill = bar.firstElementChild; bar.hidden = false;
+  const total = outdated.length;
+  let done = 0, failed = 0;
+  for (const r of outdated) {
+    $('cleanupStatus').textContent = `Updating ${done + failed + 1} of ${total}…`;
+    try {
+      const url = db.storage.from(BUCKET).getPublicUrl(r.storage_path).data.publicUrl;
+      const canvas = await cleanImage(url, true);
+      await saveCanvas(canvas, r.source, r.connector_id);       // new cleaned copy
+      const del = await db.from('training_images').delete().eq('id', r.id);  // then remove the old one
+      if (del.error) throw del.error;
+      await db.storage.from(BUCKET).remove([r.storage_path]);
+      done++;
+    } catch (err) { console.error(err); failed++; }
+    fill.style.width = `${((done + failed) / total) * 100}%`;
+  }
+  btn.disabled = false;
+  $('cleanupStatus').textContent = '';
+  setTimeout(() => { bar.hidden = true; }, 800);
+  if (failed) toast(`Updated ${done} photos. ${failed} failed; click Update photos to retry them.`, true);
+  else toast(`Updated ${done} photo${done === 1 ? '' : 's'}`);
+  await loadConnectors();
 });
 
 /* ===================== START ===================== */
