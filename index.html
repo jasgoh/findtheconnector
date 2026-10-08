@@ -308,12 +308,13 @@ textarea { min-height: 4rem; resize: vertical; }
 .cropper {
   position: fixed; inset: 0; z-index: 20; background: #0E1318; color: #fff;
   display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
 }
-.crop-head { padding: 1rem 1.25rem .5rem; text-align: center; }
+.crop-head { padding: .75rem 1.25rem .25rem; text-align: center; }
 .crop-head h3 { font-family: var(--font-display); font-size: 1.4rem; margin: 0; }
 .crop-head p { margin: .2rem 0 0; opacity: .75; font-size: .95rem; }
-.crop-area { flex: 1; min-height: 0; display: grid; place-items: center; padding: 1rem; }
+.crop-area { flex: 1; min-height: 0; display: grid; place-items: center; padding: 1.25rem 1.5rem 5rem; } /* bottom room keeps the photo clear of the Netlify badge */
 .crop-stage { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
 .crop-stage canvas { display: block; width: 100%; height: 100%; }
 .crop-box {
@@ -339,10 +340,11 @@ textarea { min-height: 4rem; resize: vertical; }
 .crop-handle[data-h="ne"] { right: 0; top: 0; cursor: nesw-resize; }
 .crop-handle[data-h="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
 .crop-handle[data-h="se"] { right: 0; bottom: 0; cursor: nwse-resize; }
-.crop-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; padding: .75rem 1rem 1rem; }
+.crop-actions { display: flex; justify-content: center; gap: .4rem; padding: .5rem .75rem 0; }
+.crop-actions .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding: .55rem .4rem; font-size: .95rem; max-width: 160px; }
 .crop-actions .btn { background: #1E2731; border-color: #34404D; color: #fff; }
 .crop-actions .btn-primary { background: var(--brass); border-color: var(--brass); color: #1B1408; }
-@media (max-width: 480px) { .crop-actions .btn { flex: 1 1 40%; justify-content: center; } }
+
 
 .thumb .crop-btn {
   position: absolute; right: 4px; bottom: 4px; border: 0; cursor: pointer;
@@ -592,7 +594,13 @@ textarea { min-height: 4rem; resize: vertical; }
 <div class="cropper" id="cropper" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
   <div class="crop-head">
     <h3 id="cropTitle">Crop the photo</h3>
-    <p>Drag the box or its corners so it frames the connector.</p>
+    <p>Drag the box or its corners to frame the connector.</p>
+  </div>
+  <div class="crop-actions">
+    <button class="btn" id="cropCancel">Cancel</button>
+    <button class="btn" id="cropAuto">Auto</button>
+    <button class="btn" id="cropAll">Whole</button>
+    <button class="btn btn-primary" id="cropUse">Use photo</button>
   </div>
   <div class="crop-area" id="cropArea">
     <div class="crop-stage" id="cropStage">
@@ -603,12 +611,6 @@ textarea { min-height: 4rem; resize: vertical; }
         <span class="crop-handle" data-h="sw"></span><span class="crop-handle" data-h="se"></span>
       </div>
     </div>
-  </div>
-  <div class="crop-actions">
-    <button class="btn" id="cropCancel">Cancel</button>
-    <button class="btn" id="cropAuto">Auto</button>
-    <button class="btn" id="cropAll">Whole photo</button>
-    <button class="btn btn-primary" id="cropUse">Use photo</button>
   </div>
 </div>
 
