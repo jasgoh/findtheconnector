@@ -380,6 +380,8 @@ textarea { min-height: 4rem; resize: vertical; }
 .settings-box { border-left: 4px solid var(--mat); background: var(--mat-soft); padding: .9rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .95rem; }
 .settings-box p:last-child { margin: 0; }
 
+.edit-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--line); }
+
 .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
 .banner { background: var(--brass-soft); border: 1px solid var(--brass); border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-bottom: 1.25rem; }
 .banner p:last-child { margin: 0; }
@@ -807,7 +809,28 @@ function renderLibrary() {
         </div>
         <div class="btn-row">
           <button class="btn btn-small" data-act="view" aria-expanded="false">View photos</button>
+          <button class="btn btn-small" data-act="edit" aria-expanded="false">Edit</button>
           <button class="btn btn-small btn-danger" data-act="delete">Delete</button>
+        </div>
+      </div>
+      <div class="edit-form" hidden>
+        <div class="row">
+          <div class="field">
+            <label for="en-${c.id}">Name</label>
+            <input type="text" id="en-${c.id}" data-f="name" value="${esc(c.name)}" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="ep-${c.id}">Part number <span class="muted">(optional)</span></label>
+            <input type="text" id="ep-${c.id}" data-f="part_number" value="${esc(c.part_number || '')}" autocomplete="off">
+          </div>
+        </div>
+        <div class="field">
+          <label for="ed-${c.id}">Notes <span class="muted">(optional)</span></label>
+          <textarea id="ed-${c.id}" data-f="description">${esc(c.description || '')}</textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-small" data-act="save-edit">Save changes</button>
+          <button class="btn btn-small" data-act="cancel-edit">Cancel</button>
         </div>
       </div>
       ${pinsHTML(c.count)}
@@ -821,6 +844,25 @@ $('library').addEventListener('click', async (e) => {
   const card = btn.closest('.conn');
   const id = card?.dataset.id;
   const c = connectors.find(x => x.id === id);
+
+  if (btn.dataset.act === 'edit' || btn.dataset.act === 'cancel-edit') {
+    const form = card.querySelector('.edit-form');
+    const open = btn.dataset.act === 'edit' ? form.hidden : false;
+    if (!open) {   // cancelling: put the original values back
+      form.querySelector('[data-f="name"]').value = c.name;
+      form.querySelector('[data-f="part_number"]').value = c.part_number || '';
+      form.querySelector('[data-f="description"]').value = c.description || '';
+    }
+    form.hidden = !open;
+    card.querySelector('[data-act="edit"]').setAttribute('aria-expanded', open);
+    if (open) form.querySelector('[data-f="name"]').focus();
+    return;
+  }
+
+  if (btn.dataset.act === 'save-edit') {
+    await saveConnectorEdit(card, c, btn);
+    return;
+  }
 
   if (btn.dataset.act === 'view') {
     const gallery = card.querySelector('.gallery');
@@ -872,6 +914,33 @@ async function deleteImage(imageId, path, connectorId) {
     gallery.hidden = false; viewBtn.textContent = 'Hide photos'; viewBtn.setAttribute('aria-expanded', true);
     await loadGallery(connectorId, gallery);
   }
+}
+
+async function saveConnectorEdit(card, c, btn) {
+  const form = card.querySelector('.edit-form');
+  const name = form.querySelector('[data-f="name"]').value.trim();
+  const part_number = form.querySelector('[data-f="part_number"]').value.trim() || null;
+  const description = form.querySelector('[data-f="description"]').value.trim() || null;
+  if (!name) { toast('The name can\'t be empty.', true); form.querySelector('[data-f="name"]').focus(); return; }
+  if (name === c.name && part_number === (c.part_number || null) && description === (c.description || null)) {
+    card.querySelector('[data-act="cancel-edit"]').click();   // nothing changed
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await db.from('connectors')
+    .update({ name, part_number, description }).eq('id', c.id).select();
+  btn.disabled = false; btn.textContent = 'Save changes';
+  if (error) {
+    toast(error.code === '23505' ? `A connector called "${name}" already exists. Pick a different name.` : `Couldn't save: ${error.message}`, true);
+    return;
+  }
+  if (!data?.length) {
+    // The update was blocked silently: the database doesn't allow edits yet
+    toast('Editing isn\'t enabled in Supabase yet. Run the "allow editing" SQL from the README, then try again.', true);
+    return;
+  }
+  toast(`Saved "${name}"`);
+  await loadConnectors();
 }
 
 async function deleteConnector(id) {
