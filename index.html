@@ -365,6 +365,8 @@ textarea { min-height: 4rem; resize: vertical; }
 .toast.show { transform: translateX(-50%) translateY(0); visibility: visible; }
 .toast.error { background: var(--danger); color: #fff; }
 
+.file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+label.btn { cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -412,11 +414,11 @@ textarea { min-height: 4rem; resize: vertical; }
         </div>
       </div>
       <div class="btn-row scan-actions">
-        <button class="btn btn-primary btn-big" id="scanCameraBtn">Take photo</button>
-        <button class="btn btn-big" id="scanUploadBtn">Upload image</button>
+        <label class="btn btn-primary btn-big" id="scanCameraBtn" for="scanCameraInput" role="button" tabindex="0">Take photo</label>
+        <label class="btn btn-big" id="scanUploadBtn" for="scanUploadInput" role="button" tabindex="0">Upload image</label>
       </div>
-      <input type="file" id="scanCameraInput" accept="image/*" capture="environment" hidden>
-      <input type="file" id="scanUploadInput" accept="image/*" hidden>
+      <input type="file" id="scanCameraInput" accept="image/*" capture="environment" class="file-input" tabindex="-1" aria-hidden="true">
+      <input type="file" id="scanUploadInput" accept="image/*" class="file-input" tabindex="-1" aria-hidden="true">
     </div>
 
     <div id="scanResults" aria-live="polite"></div>
@@ -558,11 +560,11 @@ textarea { min-height: 4rem; resize: vertical; }
         <p style="margin:0">Take photos with your camera, or upload images from your computer.</p>
         <p class="muted" style="margin:.2rem 0 0;font-size:.9rem">You can also drag images here.</p>
         <div class="btn-row">
-          <button class="btn btn-primary" id="cameraBtn">Take photo</button>
-          <button class="btn" id="uploadBtn">Upload images</button>
+          <label class="btn btn-primary" id="cameraBtn" for="cameraInput" role="button" tabindex="0">Take photo</label>
+          <label class="btn" id="uploadBtn" for="uploadInput" role="button" tabindex="0">Upload images</label>
         </div>
-        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-        <input type="file" id="uploadInput" accept="image/*" multiple hidden>
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" class="file-input" tabindex="-1" aria-hidden="true">
+        <input type="file" id="uploadInput" accept="image/*" multiple class="file-input" tabindex="-1" aria-hidden="true">
       </div>
 
       <div class="queue" id="queue" aria-live="polite"></div>
@@ -629,6 +631,7 @@ const MAX_SIDE = 512;       // photos are resized to this before upload
 const CONFIDENT_AT = 0.80;  // at or above: "This looks like..."
 const POSSIBLE_AT  = 0.65;  // between the two: "Possibly..."; below: "Not sure"
 const SHOW_MATCHES = 3;     // how many connectors to list
+const SCAN_ROTATIONS = 8;   // angles each scan is compared at (every 45°); 1 turns this off
 
 // Image cleanup (cropping only), applied identically to training photos and scans
 const PREPROCESS = true;    // set false to switch cleanup off
@@ -868,8 +871,6 @@ $('createBtn').addEventListener('click', async () => {
 $('connectorSelect').addEventListener('change', updateSaveState);
 
 /* ===================== PHOTO QUEUE ===================== */
-$('cameraBtn').addEventListener('click', () => $('cameraInput').click());
-$('uploadBtn').addEventListener('click', () => $('uploadInput').click());
 $('cameraInput').addEventListener('change', e => { addFiles(e.target.files, 'camera'); e.target.value = ''; });
 $('uploadInput').addEventListener('change', e => { addFiles(e.target.files, 'upload'); e.target.value = ''; });
 
@@ -1105,14 +1106,18 @@ function autoCrop(src) {
 }
 
 // Draw a square crop onto an OUT_SIZE canvas, padding anything outside the photo with the plate colour
-function renderCrop(src, { cx, cy, side, fill }) {
+// Optional angle (radians) rotates the photo around the crop centre, pulling in real plate at the corners
+function renderCrop(src, { cx, cy, side, fill }, angle = 0) {
   const res = document.createElement('canvas');
   res.width = OUT_SIZE; res.height = OUT_SIZE;
   const rctx = res.getContext('2d');
   rctx.fillStyle = fill; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
   rctx.imageSmoothingQuality = 'high';
   const k = OUT_SIZE / side;
-  rctx.drawImage(src, (side / 2 - cx) * k, (side / 2 - cy) * k, src.width * k, src.height * k);
+  rctx.translate(OUT_SIZE / 2, OUT_SIZE / 2);
+  rctx.rotate(angle);
+  rctx.scale(k, k);
+  rctx.drawImage(src, -cx, -cy);
   return res;
 }
 
@@ -1221,11 +1226,9 @@ $('saveBtn').addEventListener('click', async () => {
 });
 
 /* ===================== SCAN ===================== */
-let scan = null;          // { url, source, original, cleaned }
+let scan = null;          // { url, source, original, crop, cleaned }
 let modelReady = null;    // promise from loadModel()
 
-$('scanCameraBtn').addEventListener('click', () => $('scanCameraInput').click());
-$('scanUploadBtn').addEventListener('click', () => $('scanUploadInput').click());
 $('scanCameraInput').addEventListener('change', e => { runScan(e.target.files[0], 'camera'); e.target.value = ''; });
 $('scanUploadInput').addEventListener('change', e => { runScan(e.target.files[0], 'upload'); e.target.value = ''; });
 
@@ -1248,9 +1251,10 @@ async function runScan(file, source) {
   if (!crop) { URL.revokeObjectURL(url); return; }   // cancelled: keep the previous result on screen
 
   if (scan) URL.revokeObjectURL(scan.url);
-  scan = { url, source, original, cleaned: renderCrop(original, crop) };
+  scan = { url, source, original, crop, cleaned: renderCrop(original, crop) };
 
   $('scanPreview').src = scan.cleaned.toDataURL('image/jpeg', .9);   // show exactly what the model sees
+  $('scanFrame').scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('scanPreview').hidden = false;
   $('scanEmpty').hidden = true;
   $('scanFrame').classList.add('busy');
@@ -1261,13 +1265,23 @@ async function runScan(file, source) {
     if (!model) await modelReady;
     if (!model) throw new Error('The recognition model failed to load. Reload the page and try again.');
 
-    const canvas = scan.cleaned;
-    const t = model.infer(canvas, true);
-    const embedding = Array.from(await t.data());
-    t.dispose();
-
-    const { data, error } = await db.rpc('match_connectors', { query_embedding: embedding, match_count: 25 });
-    if (error) throw error;
+    // Compare the scan at several rotations; each connector keeps its best score.
+    // The connector can sit on the plate at any angle, so this covers angles the training photos missed.
+    const turns = Math.max(1, SCAN_ROTATIONS);
+    if (turns > 1) scanMessage('Identifying…', `Checking ${turns} angles`);
+    const views = Array.from({ length: turns }, (_, i) =>
+      i === 0 ? scan.cleaned : renderCrop(scan.original, scan.crop, (i * 2 * Math.PI) / turns));
+    const batch = tf.tidy(() => tf.stack(views.map(v => tf.browser.fromPixels(v))));  // fingerprint all angles in one pass
+    const out = model.infer(batch, true);
+    const flat = await out.data();
+    out.dispose(); batch.dispose();
+    const size = flat.length / turns;
+    const embeddings = views.map((_, i) => Array.from(flat.subarray(i * size, (i + 1) * size)));
+    const results = await Promise.all(embeddings.map(e =>
+      db.rpc('match_connectors', { query_embedding: e, match_count: 25 })));
+    const failedCall = results.find(r => r.error);
+    if (failedCall) throw failedCall.error;
+    const data = results.flatMap(r => r.data || []);
 
     if (!data?.length) {
       scanMessage('Nothing to compare against yet', 'Add connectors and photos in the Train the model tab first.');
@@ -1333,7 +1347,7 @@ async function renderMatches(matches) {
     <div class="verdict"><h3>${esc(title)}</h3>${sub ? `<p>${esc(sub)}</p>` : ''}</div>
     ${cards}
     <div class="btn-row" style="justify-content:center;margin-top:1rem">
-      <button class="btn btn-primary" data-act="again">Scan another</button>
+      <label class="btn btn-primary" for="scanCameraInput" role="button" tabindex="0" data-file-label>Scan another</label>
     </div>
   </div>`;
 }
@@ -1342,10 +1356,6 @@ $('scanResults').addEventListener('click', async e => {
   const btn = e.target.closest('button');
   if (!btn) return;
 
-  if (btn.dataset.act === 'again') {
-    $('scanCameraInput').click();
-    return;
-  }
 
   if (btn.dataset.act === 'confirm' && scan) {
     const card = btn.closest('.match');
@@ -1698,6 +1708,12 @@ $('cropAll').addEventListener('click', () => {
 $('cropUse').addEventListener('click', () => {
   if (!cropState) return;
   cropState.finish(boxToCrop(cropState.box, cropState.fill));
+});
+
+// Labels act as buttons for the file pickers; let Enter and Space open them too
+document.addEventListener('keydown', e => {
+  const lab = e.target.closest?.('label[for][role="button"]');
+  if (lab && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); $(lab.htmlFor).click(); }
 });
 
 /* ===================== START ===================== */
