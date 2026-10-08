@@ -352,6 +352,34 @@ textarea { min-height: 4rem; resize: vertical; }
   padding: .2rem .45rem; border-radius: 4px;
 }
 
+/* Health check */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .6rem; margin: 1.2rem 0 .4rem; }
+.stat { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .8rem; background: var(--bg); }
+.stat b { display: block; font-family: var(--font-display); font-size: 1.9rem; line-height: 1; color: var(--mat); }
+.stat span { font-size: .85rem; color: var(--muted); }
+.stat.warn b { color: var(--danger); }
+.health-section { margin-top: 1.6rem; }
+.health-section h4 { margin: 0 0 .3rem; font-size: 1.05rem; }
+.health-section > p { font-size: .9rem; color: var(--muted); margin: 0 0 .6rem; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.htable { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 480px; }
+.htable th, .htable td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.htable th { font-weight: 600; color: var(--muted); font-size: .82rem; background: var(--bg); }
+.htable tr:last-child td { border-bottom: 0; }
+.htable td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pill { display: inline-block; font-size: .75rem; font-weight: 600; padding: .1rem .45rem; border-radius: 999px; background: var(--brass-soft); color: var(--ink); margin: .1rem .2rem .1rem 0; }
+.pill.bad { background: var(--danger); color: #fff; }
+.pill.ok { background: var(--ok); color: #fff; }
+.review { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; }
+.review-card { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); display: flex; flex-direction: column; }
+.review-card img { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--bg); }
+.review-card .body { padding: .55rem .6rem; font-size: .85rem; display: flex; flex-direction: column; gap: .3rem; flex: 1; }
+.review-card .why { color: var(--muted); }
+.review-card .btn { margin-top: auto; align-self: flex-start; }
+.review-card.gone { opacity: .4; }
+.settings-box { border-left: 4px solid var(--mat); background: var(--mat-soft); padding: .9rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .95rem; }
+.settings-box p:last-child { margin: 0; }
+
 .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
 .banner { background: var(--brass-soft); border: 1px solid var(--brass); border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-bottom: 1.25rem; }
 .banner p:last-child { margin: 0; }
@@ -574,6 +602,22 @@ label.btn { cursor: pointer; }
         <button class="btn btn-primary" id="saveBtn" disabled>Save to training set</button>
       </div>
       <div class="progress" id="progress" hidden><span></span></div>
+    </div>
+
+    <!-- Model health check -->
+    <div class="panel" id="healthPanel">
+      <h3>Model health check</h3>
+      <p class="muted" style="font-size:.95rem">Tests the model using your own training photos: each photo is treated as a scan and matched against all the others. Shows how accurate recognition is, which connectors get mixed up, and which photos may be hurting results.</p>
+      <label class="check" style="margin-top:.4rem">
+        <input type="checkbox" id="healthBlur">
+        <span>Also look for blurry photos <span class="muted">(downloads every photo, slower on mobile data)</span></span>
+      </label>
+      <div class="btn-row" style="margin-top:1rem;align-items:center">
+        <button class="btn btn-primary" id="healthRunBtn">Run check</button>
+        <span class="muted" id="healthStatus" style="font-size:.9rem"></span>
+      </div>
+      <div class="progress" id="healthProgress" hidden><span></span></div>
+      <div id="healthResults"></div>
     </div>
 
     <!-- Training set -->
@@ -1714,6 +1758,307 @@ $('cropUse').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   const lab = e.target.closest?.('label[for][role="button"]');
   if (lab && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); $(lab.htmlFor).click(); }
+});
+
+/* ===================== MODEL HEALTH CHECK ===================== */
+const DUPLICATE_AT = 0.998;  // fingerprints this similar are the same photo saved twice
+const NEAR_COPY_AT = 0.97;   // ignored as "other photos" when testing, so copies don't inflate the score
+
+const sleep = () => new Promise(r => setTimeout(r, 0));
+
+async function fetchAllFingerprints(onProgress) {
+  const rows = [];
+  const PAGE = 250;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db.from('training_images')
+      .select('id, connector_id, storage_path, created_at, embedding')
+      .order('created_at').range(from, from + PAGE - 1);
+    if (error) throw error;
+    for (const r of data) {
+      const e = typeof r.embedding === 'string' ? JSON.parse(r.embedding) : r.embedding;
+      rows.push({ ...r, embedding: e });
+    }
+    onProgress?.(rows.length);
+    if (data.length < PAGE) return rows;
+  }
+}
+
+// Full similarity matrix (cosine), computed in chunks on the GPU when available
+async function similarityMatrix(rows, onProgress) {
+  const n = rows.length, d = rows[0].embedding.length;
+  const flat = new Float32Array(n * d);
+  rows.forEach((r, i) => {
+    let norm = 0; for (const v of r.embedding) norm += v * v;
+    norm = Math.sqrt(norm) || 1;
+    for (let j = 0; j < d; j++) flat[i * d + j] = r.embedding[j] / norm;
+  });
+  const all = tf.tensor2d(flat, [n, d]);
+  const sims = new Float32Array(n * n);
+  const CHUNK = 256;
+  for (let i = 0; i < n; i += CHUNK) {
+    const rowsN = Math.min(CHUNK, n - i);
+    const part = tf.tidy(() => tf.matMul(all.slice([i, 0], [rowsN, d]), all, false, true));
+    sims.set(await part.data(), i * n);
+    part.dispose();
+    onProgress?.(Math.min(1, (i + rowsN) / n));
+    await sleep();
+  }
+  all.dispose();
+  return sims;
+}
+
+function suggestThresholds(preds) {
+  // preds: [{ score, correct }] for each test photo's top answer
+  if (preds.length < 20) return null;
+  const at = (t) => {
+    const above = preds.filter(p => p.score >= t);
+    return { n: above.length, precision: above.length ? above.filter(p => p.correct).length / above.length : 0 };
+  };
+  let confident = null, possible = null;
+  for (let t = 0.40; t <= 0.99; t += 0.01) {
+    const r = at(t);
+    if (r.n < 5) break;
+    if (possible === null && r.precision >= 0.75) possible = +t.toFixed(2);
+    if (confident === null && r.precision >= 0.95) confident = +t.toFixed(2);
+  }
+  if (confident === null || possible === null) return null;
+  return { confident, possible: Math.max(0.5, Math.min(possible, confident - 0.05)) };
+}
+
+// Blur score: variance of the Laplacian on a small greyscale copy (low = blurry)
+async function blurScore(url) {
+  const img = await loadImage(url, true);
+  const S = 128, c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, S, S);
+  const p = ctx.getImageData(0, 0, S, S).data;
+  const g = new Float32Array(S * S);
+  for (let i = 0; i < S * S; i++) g[i] = .299 * p[i * 4] + .587 * p[i * 4 + 1] + .114 * p[i * 4 + 2];
+  let sum = 0, sum2 = 0, n = 0;
+  for (let y = 1; y < S - 1; y++) for (let x = 1; x < S - 1; x++) {
+    const i = y * S + x;
+    const l = g[i - 1] + g[i + 1] + g[i - S] + g[i + S] - 4 * g[i];
+    sum += l; sum2 += l * l; n++;
+  }
+  return sum2 / n - (sum / n) ** 2;
+}
+
+$('healthRunBtn').addEventListener('click', runHealthCheck);
+
+async function runHealthCheck() {
+  if (!db) { toast('Connect Supabase first.', true); return; }
+  const btn = $('healthRunBtn'), status = $('healthStatus');
+  const bar = $('healthProgress'), fill = bar.firstElementChild;
+  btn.disabled = true; bar.hidden = false; fill.style.width = '0%';
+  $('healthResults').innerHTML = '';
+  try {
+    status.textContent = 'Downloading fingerprints…';
+    const rows = await fetchAllFingerprints(n => { status.textContent = `Downloading fingerprints… ${n}`; });
+    const names = Object.fromEntries(connectors.map(c => [c.id, c.name]));
+    const perConn = {};
+    rows.forEach(r => { (perConn[r.connector_id] ??= []).push(r); });
+    const testable = Object.values(perConn).filter(list => list.length >= 2).length;
+    if (rows.length < 4 || testable < 2) {
+      $('healthResults').innerHTML = '<p class="muted" style="margin-top:1rem">Not enough data yet. The check needs at least 2 connectors with 2 or more photos each.</p>';
+      return;
+    }
+
+    status.textContent = 'Comparing every photo with every other…';
+    const sims = await similarityMatrix(rows, f => { fill.style.width = `${Math.round(f * 70)}%`; });
+    const n = rows.length;
+
+    // ---- Leave-one-out test ----
+    const preds = [];           // { score, correct }
+    const stats = {};           // per connector
+    const confusions = {};      // "a|b" -> { count, sims }
+    const review = [];          // photos to look at
+    const dupOf = new Map();
+    for (const id of Object.keys(perConn)) stats[id] = { photos: perConn[id].length, tested: 0, top1: 0, top3: 0, mixedWith: {} };
+
+    for (let i = 0; i < n; i++) {
+      const me = rows[i];
+      const best = {};          // connector -> best similarity (excluding self and near-copies)
+      let bestSame = -1, bestOther = -1, bestOtherConn = null;
+      for (let j = 0; j < n; j++) {
+        if (j === i) continue;
+        const sim = sims[i * n + j];
+        if (sim >= DUPLICATE_AT && rows[j].connector_id === me.connector_id && j < i && !dupOf.has(i)) dupOf.set(i, j);
+        if (sim >= NEAR_COPY_AT && rows[j].connector_id === me.connector_id) continue;
+        const c = rows[j].connector_id;
+        if (!(c in best) || sim > best[c]) best[c] = sim;
+      }
+      for (const [c, v] of Object.entries(best)) {
+        if (c === me.connector_id) bestSame = v;
+        else if (v > bestOther) { bestOther = v; bestOtherConn = c; }
+      }
+      // Skip testing photos whose connector has no other usable photo
+      if (bestSame < 0) continue;
+
+      const ranked = Object.entries(best).sort((a, b) => b[1] - a[1]);
+      const rank = ranked.findIndex(([c]) => c === me.connector_id);
+      const st = stats[me.connector_id];
+      st.tested++;
+      if (rank === 0) st.top1++;
+      if (rank > -1 && rank < 3) st.top3++;
+      preds.push({ score: ranked[0][1], correct: rank === 0 });
+      if (rank !== 0) {
+        const other = ranked[0][0];
+        st.mixedWith[other] = (st.mixedWith[other] || 0) + 1;
+        const key = [me.connector_id, other].sort().join('|');
+        (confusions[key] ??= { a: key.split('|')[0], b: key.split('|')[1], count: 0 }).count++;
+      }
+      // Looks more like a different connector than its own
+      if (bestOtherConn && bestOther - bestSame > 0.05 && bestOther > 0.6) {
+        review.push({ row: me, why: `Looks more like <b>${esc(names[bestOtherConn] || 'another connector')}</b> than its own connector. Check it's saved under the right name.`, kind: 'label', order: bestOther - bestSame });
+      }
+      if (i % 50 === 0) { fill.style.width = `${70 + Math.round((i / n) * 15)}%`; await sleep(); }
+    }
+    for (const [i] of dupOf) review.push({ row: rows[i], why: 'Identical or nearly identical to another photo of this connector, so it adds nothing. The extra copy can be deleted.', kind: 'dup', order: 0 });
+
+    // ---- Optional blur check ----
+    if ($('healthBlur').checked) {
+      const scores = new Array(n).fill(null);
+      let done = 0;
+      const urlOf = r => db.storage.from(BUCKET).getPublicUrl(r.storage_path).data.publicUrl;
+      const worker = async (start) => {
+        for (let i = start; i < n; i += 6) {
+          try { scores[i] = await blurScore(urlOf(rows[i])); } catch { /* skip unreadable */ }
+          done++;
+          status.textContent = `Checking sharpness… ${done} of ${n}`;
+          fill.style.width = `${85 + Math.round((done / n) * 15)}%`;
+        }
+      };
+      await Promise.all([0, 1, 2, 3, 4, 5].map(worker));
+      // Compare each photo only with photos of the same connector: smooth parts naturally score lower
+      const byConn = {};
+      scores.forEach((v, i) => { if (v !== null) (byConn[rows[i].connector_id] ??= []).push(v); });
+      const medianOf = {};
+      for (const [c, list] of Object.entries(byConn)) {
+        if (list.length >= 4) { list.sort((a, b) => a - b); medianOf[c] = list[list.length >> 1]; }
+      }
+      scores.forEach((v, i) => {
+        const median = medianOf[rows[i].connector_id];
+        if (v !== null && median && v < median * 0.35) review.push({ row: rows[i], why: 'Blurry compared with your other photos. A sharper retake would help.', kind: 'blur', order: 1 - v / median });
+      });
+    }
+    fill.style.width = '100%';
+
+    renderHealth({ rows, preds, stats, confusions, review, names });
+    status.textContent = `Checked ${n} photos.`;
+  } catch (err) {
+    console.error(err);
+    toast(`Health check failed: ${err.message}`, true);
+    status.textContent = '';
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { bar.hidden = true; }, 800);
+  }
+}
+
+function renderHealth({ rows, preds, stats, confusions, review, names }) {
+  const tested = preds.length;
+  const top1 = preds.filter(p => p.correct).length;
+  const top3 = Object.values(stats).reduce((a, s) => a + s.top3, 0);
+  const pct = (a, b) => b ? Math.round((a / b) * 100) : 0;
+  const untested = Object.values(stats).filter(s => s.photos < 2).length;
+
+  // Connectors needing attention: worst accuracy first, then fewest photos
+  const conns = Object.entries(stats).map(([id, s]) => ({ id, ...s, acc: s.tested ? s.top1 / s.tested : null }))
+    .sort((a, b) => (a.acc ?? -1) - (b.acc ?? -1) || a.photos - b.photos);
+  const tableRows = conns.map(c => {
+    const mixed = Object.entries(c.mixedWith).sort((a, b) => b[1] - a[1]).slice(0, 2)
+      .map(([o, k]) => `${esc(names[o] || '?')} <span class="muted">(${k}×)</span>`).join('<br>') || '<span class="muted">none</span>';
+    let flag;
+    if (c.acc === null) flag = '<span class="pill">Add photos to test</span>';
+    else if (c.acc < 0.8) flag = '<span class="pill bad">Needs more photos</span>';
+    else if (c.photos < TARGET_PHOTOS) flag = '<span class="pill">More photos would help</span>';
+    else flag = '<span class="pill ok">Good</span>';
+    return `<tr>
+      <td>${esc(names[c.id] || 'Unknown connector')}<br>${flag}</td>
+      <td class="num">${c.photos}</td>
+      <td class="num">${c.acc === null ? '–' : pct(c.top1, c.tested) + '%'}</td>
+      <td>${mixed}</td>
+    </tr>`;
+  }).join('');
+
+  const pairs = Object.values(confusions).sort((a, b) => b.count - a.count).slice(0, 8);
+  const pairList = pairs.length
+    ? `<div class="table-wrap"><table class="htable" style="min-width:0"><thead><tr><th>These get mixed up</th><th>Times</th></tr></thead><tbody>${
+        pairs.map(p => `<tr><td>${esc(names[p.a] || '?')} ↔ ${esc(names[p.b] || '?')}</td><td class="num">${p.count}</td></tr>`).join('')
+      }</tbody></table></div>`
+    : '<p class="muted">No connectors were mixed up in this test.</p>';
+
+  const sugg = suggestThresholds(preds);
+  const settings = sugg
+    ? `<div class="settings-box">
+        <p>Based on your data, these settings are a good starting point for the result headlines:</p>
+        <p class="mono" style="margin:.5rem 0">CONFIDENT_AT = ${sugg.confident.toFixed(2)} <span class="muted">(now ${CONFIDENT_AT.toFixed(2)})</span><br>POSSIBLE_AT&nbsp;&nbsp;= ${sugg.possible.toFixed(2)} <span class="muted">(now ${POSSIBLE_AT.toFixed(2)})</span></p>
+        <p class="muted" style="font-size:.88rem">Change these in the CONFIG block of index.html. In this test, answers above the first value were right about 95% of the time. Real scans check 8 angles and score a little higher, so treat these as a starting point and adjust after trying some scans.</p>
+      </div>`
+    : '<p class="muted">Add more photos across more connectors to get suggested confidence settings (needs at least 20 testable photos).</p>';
+
+  review.sort((a, b) => ({ label: 0, blur: 1, dup: 2 }[a.kind] - { label: 0, blur: 1, dup: 2 }[b.kind]) || b.order - a.order);
+  const shown = review.slice(0, 60);
+  const reviewHTML = shown.length
+    ? `<div class="review">${shown.map(r => `
+        <div class="review-card" data-id="${r.row.id}" data-path="${esc(r.row.storage_path)}">
+          <img src="${esc(db.storage.from(BUCKET).getPublicUrl(r.row.storage_path).data.publicUrl)}" alt="" loading="lazy">
+          <div class="body">
+            <b>${esc(names[r.row.connector_id] || 'Unknown')}</b>
+            <span class="why">${r.why}</span>
+            <button class="btn btn-small btn-danger" data-act="review-del">Delete photo</button>
+          </div>
+        </div>`).join('')}</div>${review.length > shown.length ? `<p class="muted" style="margin-top:.5rem">Showing ${shown.length} of ${review.length}. Run the check again after cleaning these up.</p>` : ''}`
+    : '<p class="muted">Nothing flagged. Your training photos look consistent.</p>';
+
+  $('healthResults').innerHTML = `
+    <div class="stats">
+      <div class="stat${pct(top1, tested) < 80 ? ' warn' : ''}"><b>${pct(top1, tested)}%</b><span>right connector ranked first</span></div>
+      <div class="stat"><b>${pct(top3, tested)}%</b><span>right connector in top 3</span></div>
+      <div class="stat"><b>${tested}</b><span>photos tested</span></div>
+      <div class="stat"><b>${review.length}</b><span>photos to review</span></div>
+    </div>
+    <p class="muted" style="font-size:.85rem;margin:0">Each photo is tested against all the others, at one angle. Real scans also check 8 angles, so they usually do a little better. Copies made by the "rotated, mirrored and tilted" option can make results look slightly better than they are.${untested ? ` ${untested} connector${untested === 1 ? ' has' : 's have'} only one photo and couldn't be tested.` : ''}</p>
+
+    <div class="health-section">
+      <h4>Connectors, worst first</h4>
+      <p>Accuracy is how often that connector's photos were matched correctly. Focus new photos on the ones at the top.</p>
+      <div class="table-wrap"><table class="htable">
+        <thead><tr><th>Connector</th><th>Photos</th><th>Accuracy</th><th>Mistaken for</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="health-section">
+      <h4>Most often confused</h4>
+      <p>For these pairs, add close-ups of whatever tells them apart: pin face, keying, latch, or thread.</p>
+      ${pairList}
+    </div>
+
+    <div class="health-section">
+      <h4>Suggested confidence settings</h4>
+      ${settings}
+    </div>
+
+    <div class="health-section">
+      <h4>Photos to review</h4>
+      <p>Photos that may be mislabelled, blurry, or saved twice. Deleting the bad ones usually improves accuracy.</p>
+      ${reviewHTML}
+    </div>`;
+}
+
+$('healthResults').addEventListener('click', async e => {
+  const btn = e.target.closest('[data-act="review-del"]');
+  if (!btn) return;
+  const card = btn.closest('.review-card');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  const { error } = await db.from('training_images').delete().eq('id', card.dataset.id);
+  if (error) { toast(`Couldn't delete: ${error.message}`, true); btn.disabled = false; btn.textContent = 'Delete photo'; return; }
+  await db.storage.from(BUCKET).remove(withOriginals([card.dataset.path]));
+  card.classList.add('gone');
+  btn.textContent = 'Deleted';
+  loadConnectors();
 });
 
 /* ===================== START ===================== */
