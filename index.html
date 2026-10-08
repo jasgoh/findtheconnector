@@ -360,7 +360,7 @@ textarea { min-height: 4rem; resize: vertical; }
         <img id="scanPreview" alt="Your scanned photo" hidden>
         <div class="scan-empty" id="scanEmpty">
           <div class="reticle" aria-hidden="true"></div>
-          <p>Fill the frame with the connector.<br>Pins facing the camera works best.</p>
+          <p>Place the connector on the plate and fit the whole plate in the photo.<br>The site crops to it automatically.</p>
         </div>
       </div>
       <div class="btn-row scan-actions">
@@ -386,7 +386,7 @@ textarea { min-height: 4rem; resize: vertical; }
     <ol class="steps">
       <li>
         <h3>Set up the scanning spot</h3>
-        <p>Use the lab's standard background every time, ideally a plain white or light grey mat. Keep it free of other parts, tools and labels.</p>
+        <p>Place the connector on the lab's 3D-printed plate, roughly in the middle, with nothing else on it. The whole plate should be in the photo; the site crops away the bench around it automatically.</p>
       </li>
       <li>
         <h3>Create the connector type</h3>
@@ -562,9 +562,10 @@ const SHOW_MATCHES = 3;     // how many connectors to list
 // Image cleanup (cropping only), applied identically to training photos and scans
 const PREPROCESS = true;    // set false to switch cleanup off
 const OUT_SIZE = 384;       // cleaned images are square, this many pixels
-const FG_THRESHOLD = 42;    // how different from the plate a pixel must be to count as connector
+const FG_THRESHOLD = 42;    // how different from the plate colour a pixel must be to count as not-plate
 const CROP_MARGIN = 0.12;   // space left around the connector, as a share of its size
-const PROCESSED_TAG = '.c.jpg'; // file ending that marks a cropped image
+const CROP_TO = 'connector'; // 'connector' = zoom to the part; 'plate' = keep the whole plate (keeps real size)
+const PROCESSED_TAG = '.c2.jpg'; // file ending that marks an image cropped by the current method
 const OLD_COLOUR_TAG = '.p.jpg'; // earlier colour-corrected images (originals not kept)
 
 /* ===================== STATE ===================== */
@@ -743,7 +744,7 @@ async function loadGallery(connectorId, gallery) {
 async function deleteImage(imageId, path, connectorId) {
   const { error } = await db.from('training_images').delete().eq('id', imageId);
   if (error) { toast(`Couldn't delete photo: ${error.message}`, true); return; }
-  await db.storage.from(BUCKET).remove([path]);
+  await db.storage.from(BUCKET).remove(withOriginals([path]));
   toast('Photo deleted');
   await loadConnectors();
   const card = document.querySelector(`.conn[data-id="${connectorId}"]`);
@@ -759,7 +760,7 @@ async function deleteConnector(id) {
   const { data: imgs } = await db.from('training_images').select('storage_path').eq('connector_id', id);
   const { error } = await db.from('connectors').delete().eq('id', id);
   if (error) { toast(`Couldn't delete connector: ${error.message}`, true); await loadConnectors(); return; }
-  if (imgs?.length) await db.storage.from(BUCKET).remove(imgs.map(i => i.storage_path));
+  if (imgs?.length) await db.storage.from(BUCKET).remove(withOriginals(imgs.map(i => i.storage_path)));
   toast('Connector deleted');
   await loadConnectors();
 }
@@ -861,10 +862,11 @@ function loadImage(url, crossOrigin = false) {
 }
 
 function resizeToCanvas(img) {
-  const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const scale = Math.min(1, MAX_SIDE / Math.max(iw, ih));
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(img.naturalWidth * scale);
-  canvas.height = Math.round(img.naturalHeight * scale);
+  canvas.width = Math.round(iw * scale);
+  canvas.height = Math.round(ih * scale);
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff'; // flatten transparent PNGs onto white
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -876,26 +878,16 @@ const canvasToBlob = (canvas) => new Promise(r => canvas.toBlob(r, 'image/jpeg',
 
 /* ===================== IMAGE CLEANUP =====================
    Crop only, no colour changes:
-   1. Find the plate colour from the photo's edges.
-   2. Find the pixels that differ from the plate, crop to them with a margin, pad to a square. */
+   1. Find the 3D-printed plate: the large area around the middle of the photo that shares one colour.
+   2. Ignore everything outside the plate (bench, tools, hands).
+   3. Find the connector as whatever sits on the plate but isn't plate-coloured.
+   4. Crop to the connector (or to the whole plate, see CROP_TO) and pad to a square. */
 function preprocess(src) {
   if (!PREPROCESS) return src;
   const w = src.width, h = src.height;
-  const px = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
 
-  // Plate colour: median of a thin band around the edges
-  const band = Math.max(2, Math.round(Math.min(w, h) * 0.04));
-  const edge = [[], [], []];
-  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
-    if (x >= band && x < w - band && y >= band && y < h - band) continue;
-    const i = (y * w + x) * 4;
-    edge[0].push(px[i]); edge[1].push(px[i + 1]); edge[2].push(px[i + 2]);
-  }
-  const median = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
-  const bg = edge.map(median);
-
-  // Connector mask on a small, smoothed copy (print lines, grid lines and dust blur away)
-  const sScale = Math.min(1, 128 / Math.max(w, h));
+  // Work on a small, smoothed copy: print lines and dust blur away, and it's fast
+  const sScale = Math.min(1, 160 / Math.max(w, h));
   const sw = Math.max(1, Math.round(w * sScale)), sh = Math.max(1, Math.round(h * sScale));
   const small = document.createElement('canvas');
   small.width = sw; small.height = sh;
@@ -903,33 +895,113 @@ function preprocess(src) {
   sctx.imageSmoothingQuality = 'high';
   sctx.drawImage(src, 0, 0, sw, sh);
   const sp = sctx.getImageData(0, 0, sw, sh).data;
-  const xs = [], ys = [];
-  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+  const N = sw * sh;
+  const diff = (i, c) => Math.max(Math.abs(sp[i * 4] - c[0]), Math.abs(sp[i * 4 + 1] - c[1]), Math.abs(sp[i * 4 + 2] - c[2]));
+
+  // 1. Plate colour: median of the middle 60% of the photo (the connector covers only part of it)
+  const mid = [[], [], []];
+  for (let y = Math.floor(sh * .2); y < sh * .8; y++) for (let x = Math.floor(sw * .2); x < sw * .8; x++) {
     const i = (y * sw + x) * 4;
-    const d = Math.max(Math.abs(sp[i] - bg[0]), Math.abs(sp[i + 1] - bg[1]), Math.abs(sp[i + 2] - bg[2]));
-    if (d > FG_THRESHOLD) { xs.push(x); ys.push(y); }
+    mid[0].push(sp[i]); mid[1].push(sp[i + 1]); mid[2].push(sp[i + 2]);
+  }
+  const median = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  const plateColour = mid.map(median);
+
+  // 2. Largest connected plate-coloured region
+  const isPlate = new Uint8Array(N);
+  for (let i = 0; i < N; i++) isPlate[i] = diff(i, plateColour) <= FG_THRESHOLD ? 1 : 0;
+  const comp = new Int32Array(N).fill(-1);
+  const queue = new Int32Array(N);
+  let best = -1, bestSize = 0;
+  for (let start = 0, label = 0; start < N; start++) {
+    if (!isPlate[start] || comp[start] !== -1) continue;
+    let head = 0, tail = 0, size = 0;
+    queue[tail++] = start; comp[start] = label;
+    while (head < tail) {
+      const i = queue[head++]; size++;
+      const x = i % sw, y = (i - x) / sw;
+      const nb = [x > 0 ? i - 1 : -1, x < sw - 1 ? i + 1 : -1, y > 0 ? i - sw : -1, y < sh - 1 ? i + sw : -1];
+      for (const j of nb) if (j >= 0 && isPlate[j] && comp[j] === -1) { comp[j] = label; queue[tail++] = j; }
+    }
+    if (size > bestSize) { bestSize = size; best = label; }
+    label++;
   }
 
-  // Bounding box from percentiles, so a few stray specks don't stretch it
-  let cx = w / 2, cy = h / 2, side = Math.max(w, h);
-  if (xs.length > sw * sh * 0.003) {
+  // Plate box (whole photo if no clear plate was found)
+  let px0 = 0, py0 = 0, px1 = sw, py1 = sh;
+  const plateFound = bestSize > N * 0.15;
+  if (plateFound) {
+    px0 = sw; py0 = sh; px1 = 0; py1 = 0;
+    for (let i = 0; i < N; i++) if (comp[i] === best) {
+      const x = i % sw, y = (i - x) / sw;
+      if (x < px0) px0 = x; if (x > px1) px1 = x; if (y < py0) py0 = y; if (y > py1) py1 = y;
+    }
+    px1++; py1++;
+  }
+
+  // 3. Connector: non-plate pixels inside the plate box that are enclosed by plate.
+  //    Non-plate pixels connected to the box edge are background showing round the plate's corners.
+  const inBox = (x, y) => x >= px0 && x < px1 && y >= py0 && y < py1;
+  const notPlate = i => !(plateFound ? comp[i] === best : isPlate[i]);
+  const outside = new Uint8Array(N);
+  let head = 0, tail = 0;
+  for (let y = py0; y < py1; y++) for (let x = px0; x < px1; x++) {
+    if (x !== px0 && x !== px1 - 1 && y !== py0 && y !== py1 - 1) continue;
+    const i = y * sw + x;
+    if (notPlate(i) && !outside[i]) { outside[i] = 1; queue[tail++] = i; }
+  }
+  while (head < tail) {
+    const i = queue[head++];
+    const x = i % sw, y = (i - x) / sw;
+    for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+      if (!inBox(nx, ny)) continue;
+      const j = ny * sw + nx;
+      if (!outside[j] && notPlate(j)) { outside[j] = 1; queue[tail++] = j; }
+    }
+  }
+  let xs = [], ys = [];
+  const collect = (keep) => {
+    xs = []; ys = [];
+    for (let y = py0; y < py1; y++) for (let x = px0; x < px1; x++) {
+      const i = y * sw + x;
+      if (keep(i)) { xs.push(x); ys.push(y); }
+    }
+  };
+  collect(i => notPlate(i) && !outside[i]);
+  const boxArea = (px1 - px0) * (py1 - py0);
+  // Connector touching the plate edge or trailing a cable off it: fall back to anything not plate-coloured
+  // (inset from the box edges so the bench showing at the plate's corners is mostly left out)
+  if (xs.length < boxArea * 0.003) {
+    const ix = (px1 - px0) * 0.08, iy = (py1 - py0) * 0.08;
+    collect(i => {
+      const x = i % sw, y = (i - x) / sw;
+      return notPlate(i) && x >= px0 + ix && x < px1 - ix && y >= py0 + iy && y < py1 - iy;
+    });
+  }
+
+  // 4. Choose the crop
+  let cx, cy, side;
+  const plateCrop = () => {
+    cx = (px0 + px1) / 2 / sScale; cy = (py0 + py1) / 2 / sScale;
+    side = Math.max(px1 - px0, py1 - py0) / sScale;
+  };
+  if (CROP_TO === 'plate' || xs.length < boxArea * 0.003) {
+    plateCrop();
+  } else {
     xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
     const q = (a, p) => a[Math.min(a.length - 1, Math.floor(a.length * p))];
     const x0 = q(xs, .005) / sScale, x1 = (q(xs, .995) + 1) / sScale;
     const y0 = q(ys, .005) / sScale, y1 = (q(ys, .995) + 1) / sScale;
-    const bw = x1 - x0, bh = y1 - y0;
-    if (bw * bh < w * h * 0.9) {           // only crop if the connector isn't already filling the photo
-      cx = (x0 + x1) / 2; cy = (y0 + y1) / 2;
-      side = Math.max(bw, bh) * (1 + 2 * CROP_MARGIN);
-      side = Math.max(side, Math.min(w, h) * 0.08); // don't zoom into a single speck
-    }
+    cx = (x0 + x1) / 2; cy = (y0 + y1) / 2;
+    side = Math.max(x1 - x0, y1 - y0) * (1 + 2 * CROP_MARGIN);
+    side = Math.max(side, Math.min(w, h) * 0.08); // don't zoom into a single speck
   }
 
-  // Draw the crop onto a square canvas, padding with the plate colour
+  // Draw onto a square canvas, padding with the plate colour
   const res = document.createElement('canvas');
   res.width = OUT_SIZE; res.height = OUT_SIZE;
   const rctx = res.getContext('2d');
-  rctx.fillStyle = `rgb(${bg.join(',')})`; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+  rctx.fillStyle = `rgb(${plateColour.join(',')})`; rctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
   rctx.imageSmoothingQuality = 'high';
   const k = OUT_SIZE / side;
   rctx.drawImage(src, (side / 2 - cx) * k, (side / 2 - cy) * k, w * k, h * k);
@@ -941,28 +1013,35 @@ async function cleanImage(url, crossOrigin = false) {
   return preprocess(resizeToCanvas(await loadImage(url, crossOrigin)));
 }
 
-// Fingerprint a canvas, upload it, and record it against a connector
-async function saveCanvas(canvas, source, connectorId) {
+// Every cleaned image is stored next to its uncropped original, so it can be reprocessed later
+const originalPathFor = (path) => path.replace(/(\.[a-z0-9]+)?\.jpg$/i, '.orig.jpg');
+const withOriginals = (paths) => paths.flatMap(p => [p, originalPathFor(p)]);
+
+// Fingerprint a cleaned canvas, upload it (plus the original), and record it against a connector
+async function saveCanvas(canvas, source, connectorId, original = null) {
   const t = model.infer(canvas, true);
   const embedding = Array.from(await t.data());
   t.dispose();
 
   const path = `${connectorId}/${uuid()}${PREPROCESS ? PROCESSED_TAG : '.jpg'}`;
-  const blob = await canvasToBlob(canvas);
-  const up = await db.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+  const up = await db.storage.from(BUCKET).upload(path, await canvasToBlob(canvas), { contentType: 'image/jpeg' });
   if (up.error) throw up.error;
+  if (original && original !== canvas) {
+    await db.storage.from(BUCKET).upload(originalPathFor(path), await canvasToBlob(original), { contentType: 'image/jpeg' });
+  }
 
   const ins = await db.from('training_images').insert({
     connector_id: connectorId, storage_path: path, source, embedding,
   });
   if (ins.error) {
-    await db.storage.from(BUCKET).remove([path]);
+    await db.storage.from(BUCKET).remove(withOriginals([path]));
     throw ins.error;
   }
 }
 
 async function saveOne(item, connectorId) {
-  await saveCanvas(await cleanImage(item.url), item.source, connectorId);
+  const original = resizeToCanvas(await loadImage(item.url));
+  await saveCanvas(preprocess(original), item.source, connectorId, original);
 }
 
 // Extra training copies of one catalog photo: rotations, a mirror, and a slight tilt
@@ -1263,11 +1342,11 @@ $('lcscSaveBtn').addEventListener('click', async () => {
     for (const im of picked) {
       let base;
       try {
-        base = await cleanImage(im.url, true);
+        base = resizeToCanvas(await loadImage(im.url, true));
       } catch { failed += augment ? 6 : 1; continue; }
       const variants = augment ? [base, ...augmentCanvas(base)] : [base];
-      for (const canvas of variants) {
-        try { await saveCanvas(canvas, 'upload', conn.id); saved++; }
+      for (const original of variants) {
+        try { await saveCanvas(preprocess(original), 'upload', conn.id, original); saved++; }
         catch (err) { console.error(err); failed++; }
         fill.style.width = `${((saved + failed) / total) * 100}%`;
         $('lcscInfoCount').textContent = `Saving ${saved + failed} of ${total}…`;
@@ -1317,7 +1396,7 @@ async function checkCleanup() {
   $('cleanupBtn').hidden = !n;
   $('whitenedBtn').hidden = !m;
   const parts = [];
-  if (n) parts.push(`<strong>${n} photo${n === 1 ? ' hasn\'t' : 's haven\'t'} been cropped yet.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are processed.`);
+  if (n) parts.push(`<strong>${n} photo${n === 1 ? ' uses' : 's use'} an older cropping method.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are now processed.`);
   if (m) parts.push(`<strong>${m} photo${m === 1 ? ' was' : 's were'} saved with the earlier colour correction.</strong> The originals weren't kept, so ${m === 1 ? 'it' : 'they'} can't be repaired and may be hurting recognition. Delete ${m === 1 ? 'it' : 'them'}, then retake or re-import from LCSC.`);
   $('cleanupText').innerHTML = parts.join('<br><br>');
 }
@@ -1349,12 +1428,15 @@ $('cleanupBtn').addEventListener('click', async () => {
   for (const r of outdated) {
     $('cleanupStatus').textContent = `Updating ${done + failed + 1} of ${total}…`;
     try {
-      const url = db.storage.from(BUCKET).getPublicUrl(r.storage_path).data.publicUrl;
-      const canvas = await cleanImage(url, true);
-      await saveCanvas(canvas, r.source, r.connector_id);       // new cleaned copy
+      const urlOf = (pth) => db.storage.from(BUCKET).getPublicUrl(pth).data.publicUrl;
+      let img;
+      try { img = await loadImage(urlOf(originalPathFor(r.storage_path)) + '?v=1', true); }   // uncropped original, if kept
+      catch { img = await loadImage(urlOf(r.storage_path), true); }                          // otherwise the stored image
+      const original = resizeToCanvas(img);
+      await saveCanvas(preprocess(original), r.source, r.connector_id, original);   // new cleaned copy
       const del = await db.from('training_images').delete().eq('id', r.id);  // then remove the old one
       if (del.error) throw del.error;
-      await db.storage.from(BUCKET).remove([r.storage_path]);
+      await db.storage.from(BUCKET).remove(withOriginals([r.storage_path]));
       done++;
     } catch (err) { console.error(err); failed++; }
     fill.style.width = `${((done + failed) / total) * 100}%`;

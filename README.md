@@ -46,9 +46,21 @@ documented API, so it could change without notice; if lookups start failing, tha
 to check. It only works on the deployed site, not when opening index.html directly from your computer.
 
 ## Image cleanup
-Every training photo and every scan is cropped the same way before fingerprinting: the plate
-colour is detected from the photo's edges, the connector is found as whatever differs from it,
-and the image is cropped to the connector with a margin and padded to a square. Colours are
-not changed. Settings live in the CONFIG block of index.html (PREPROCESS, FG_THRESHOLD,
-CROP_MARGIN). Cropped files end in `.c.jpg`; the Train tab offers to crop older photos and to
-delete photos saved by the earlier colour-correcting version (`.p.jpg`), which can't be repaired.
+Every training photo and every scan is cropped the same way before fingerprinting. Colours are
+never changed.
+1. The 3D-printed plate is found as the large single-colour area around the middle of the photo.
+2. Everything outside the plate (bench, tools) is ignored.
+3. The connector is found as whatever sits on the plate but isn't plate-coloured.
+4. The image is cropped to the connector with a margin and padded to a square.
+
+Settings live in the CONFIG block of index.html:
+- CROP_TO: 'connector' zooms to the part (default); 'plate' keeps the whole plate, which
+  preserves the connector's real size relative to the plate.
+- FG_THRESHOLD: how different from the plate colour a pixel must be to count as connector.
+- CROP_MARGIN: space left around the connector.
+
+Each cropped image (`.c2.jpg`) is stored next to its uncropped original (`.orig.jpg`), so if the
+cropping method changes later, photos can be reprocessed from the original. If you change these
+settings, rename PROCESSED_TAG (for example to '.c3.jpg') and the Train tab will offer to update
+every photo. Photos from the earlier colour-correcting version (`.p.jpg`) can't be repaired and
+the Train tab offers to delete them.
