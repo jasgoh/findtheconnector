@@ -685,8 +685,8 @@ const SCAN_ROTATIONS = 8;   // angles each scan is compared at (every 45°); 1 t
 
 // Size measurement. Run add-size.sql in Supabase first, then enter the size of the area
 // users crop to (the jig's inner edges), in millimetres. Leave as null to keep it switched off.
-const JIG_WIDTH_MM  = null;
-const JIG_HEIGHT_MM = null;
+const JIG_WIDTH_MM  = 25;
+const JIG_HEIGHT_MM = 25;
 const SIZE_TOLERANCE = 0.12;        // size differences up to 12% are ignored...
 const SIZE_MIN_TOLERANCE_MM = 1.0;  // ...or up to 1 mm, whichever is larger (small parts measure less precisely)
 const SIZE_PENALTY = 0.6;           // how strongly a size mismatch lowers a match's score
