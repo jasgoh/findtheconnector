@@ -286,6 +286,9 @@ textarea { min-height: 4rem; resize: vertical; }
 .meter-bar span { display: block; height: 100%; background: var(--mat); }
 .match .btn-row { margin-top: .5rem; }
 .confirmed { color: var(--ok); font-weight: 600; font-size: .95rem; }
+.size-ok { color: var(--ok); font-weight: 600; }
+.size-bad { color: var(--danger); font-weight: 600; }
+.verdict .measured { margin-top: .5rem; color: var(--ink); }
 
 /* LCSC quick add */
 .lcsc-panel { border-color: var(--mat); }
@@ -466,7 +469,7 @@ label.btn { cursor: pointer; }
     <ol class="steps">
       <li>
         <h3>Set up the scanning spot</h3>
-        <p>Place the connector on the lab's 3D-printed plate, roughly in the middle, with nothing else on it. The whole plate should be in the photo; the site crops away the bench around it automatically.</p>
+        <p>Place the connector on the lab's 3D-printed plate, roughly in the middle, with nothing else on it. The whole plate should be in the photo; the site crops away the bench around it automatically. If size measurement is switched on, line the crop box up with the jig's inner edges: the site uses the jig's known size to measure the part, which helps tell apart parts that look alike but differ in size.</p>
       </li>
       <li>
         <h3>Create the connector type</h3>
@@ -629,6 +632,7 @@ label.btn { cursor: pointer; }
       <div class="btn-row" style="align-items:center">
         <button class="btn btn-primary" id="cleanupBtn">Update photos</button>
         <button class="btn btn-danger" id="whitenedBtn" hidden>Delete colour-corrected photos</button>
+        <button class="btn btn-primary" id="measureBtn" hidden>Measure sizes</button>
         <span class="muted" id="cleanupStatus" style="font-size:.9rem"></span>
       </div>
       <div class="progress" id="cleanupProgress" hidden><span></span></div>
@@ -642,7 +646,7 @@ label.btn { cursor: pointer; }
 <div class="cropper" id="cropper" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
   <div class="crop-head">
     <h3 id="cropTitle">Crop the photo</h3>
-    <p>Drag the box or its corners to frame the connector.</p>
+    <p id="cropHint">Drag the box or its corners to frame the connector.</p>
   </div>
   <div class="crop-actions">
     <button class="btn" id="cropCancel">Cancel</button>
@@ -671,13 +675,23 @@ label.btn { cursor: pointer; }
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlhb3N5Zm5tdXZkYXdqY2RrY2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNDg2MTgsImV4cCI6MjEwNjkyNDYxOH0.wc6UaOnO2niw6vWYhXaoDyE4sy43bkKLGCWqBN8liQw';
 const BUCKET = 'connector-images';
 const TARGET_PHOTOS = 30;   // pins shown per connector
-const MAX_SIDE = 512;       // photos are resized to this before upload
+let MAX_SIDE = 512;         // photos are resized to this before upload (1024 when measuring sizes)
 
 // Scan tuning. Similarity runs 0–1; adjust these after testing with your own connectors.
 const CONFIDENT_AT = 0.80;  // at or above: "This looks like..."
 const POSSIBLE_AT  = 0.65;  // between the two: "Possibly..."; below: "Not sure"
 const SHOW_MATCHES = 3;     // how many connectors to list
 const SCAN_ROTATIONS = 8;   // angles each scan is compared at (every 45°); 1 turns this off
+
+// Size measurement. Run add-size.sql in Supabase first, then enter the size of the area
+// users crop to (the jig's inner edges), in millimetres. Leave as null to keep it switched off.
+const JIG_WIDTH_MM  = null;
+const JIG_HEIGHT_MM = null;
+const SIZE_TOLERANCE = 0.12;        // size differences up to 12% are ignored...
+const SIZE_MIN_TOLERANCE_MM = 1.0;  // ...or up to 1 mm, whichever is larger (small parts measure less precisely)
+const SIZE_PENALTY = 0.6;           // how strongly a size mismatch lowers a match's score
+const SIZE_ON = JIG_WIDTH_MM > 0 && JIG_HEIGHT_MM > 0;
+if (SIZE_ON) MAX_SIDE = 1024;   // more pixels per mm for measuring small parts
 
 // Image cleanup (cropping only), applied identically to training photos and scans
 const PREPROCESS = true;    // set false to switch cleanup off
@@ -1015,7 +1029,9 @@ async function addFiles(fileList, source) {
   added.forEach(async q => {
     try {
       const original = resizeToCanvas(await loadImage(q.url));
-      q.preview = (PREPROCESS ? preprocess(original) : original).toDataURL('image/jpeg', .85);
+      const r = processPhoto(original);
+      q.preview = r.cleaned.toDataURL('image/jpeg', .85);
+      q.size = r.size;
       if (!saving) renderQueue();
     } catch { /* keep the original thumbnail */ }
   });
@@ -1026,10 +1042,12 @@ async function cropQueueItem(q) {
   let original;
   try { original = resizeToCanvas(await loadImage(q.url)); }
   catch { toast('That photo couldn\'t be read.', true); return false; }
-  const crop = await openCropper(original, q.crop || null);
-  if (!crop) return false;
-  q.crop = crop;
-  q.preview = renderCrop(original, crop).toDataURL('image/jpeg', .85);
+  const box = await openCropper(original, q.box || null);
+  if (!box) return false;
+  q.box = box;
+  const r = processPhoto(original, box);
+  q.preview = r.cleaned.toDataURL('image/jpeg', .85);
+  q.size = r.size;
   return true;
 }
 
@@ -1037,7 +1055,7 @@ function renderQueue() {
   $('queue').innerHTML = queue.map(q => `
     <div class="thumb" data-state="${q.state}">
       <img src="${q.preview || q.url}" alt="">
-      <span class="tag">${q.source === 'camera' ? 'Camera' : 'Upload'}</span>
+      <span class="tag">${q.size ? `${q.size.length_mm}×${q.size.width_mm} mm` : (q.source === 'camera' ? 'Camera' : 'Upload')}</span>
       ${saving ? '' : `<button class="x" data-q="${q.id}" aria-label="Remove photo">×</button>
       <button class="crop-btn" data-crop="${q.id}">Crop</button>`}
     </div>`).join('');
@@ -1215,7 +1233,10 @@ function autoCrop(src) {
     side = Math.max(side, Math.min(w, h) * 0.08); // don't zoom into a single speck
   }
 
-  return { cx, cy, side, fill: `rgb(${plateColour.join(',')})` };
+  const plate = plateFound
+    ? { x: px0 / sScale, y: py0 / sScale, w: (px1 - px0) / sScale, h: (py1 - py0) / sScale }
+    : null;
+  return { cx, cy, side, fill: `rgb(${plateColour.join(',')})`, plate };
 }
 
 // Draw a square crop onto an OUT_SIZE canvas, padding anything outside the photo with the plate colour
@@ -1241,6 +1262,103 @@ const cropToBox = (c, w, h) => {
   return { x, y, w: Math.min(w, c.cx + c.side / 2) - x, h: Math.min(h, c.cy + c.side / 2) - y };
 };
 
+/* ===================== SIZE MEASUREMENT =====================
+   The photo is cropped to the jig, whose real size is known, so each pixel is a known number of mm.
+   The connector is everything that differs from the jig colour; its length and width are measured
+   along its own long axis, so the result doesn't depend on how it's rotated. */
+
+// Copy an exact box out of a photo (no squaring, no padding)
+function cropRegion(src, b) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(b.w)); c.height = Math.max(1, Math.round(b.h));
+  c.getContext('2d').drawImage(src, b.x, b.y, b.w, b.h, 0, 0, c.width, c.height);
+  return c;
+}
+
+function measureSize(region) {
+  if (!SIZE_ON) return null;
+  const k = Math.min(1, 640 / Math.max(region.width, region.height));
+  const w = Math.max(1, Math.round(region.width * k)), h = Math.max(1, Math.round(region.height * k));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(region, 0, 0, w, h);
+  const p = ctx.getImageData(0, 0, w, h).data;
+
+  // mm per pixel; if the jig is rectangular, match the box's long side to the jig's long side
+  const [jw, jh] = (w >= h) === (JIG_WIDTH_MM >= JIG_HEIGHT_MM) ? [JIG_WIDTH_MM, JIG_HEIGHT_MM] : [JIG_HEIGHT_MM, JIG_WIDTH_MM];
+  const mx = jw / w, my = jh / h;
+
+  // Jig colour: median of the region (the connector covers only a small part of it)
+  const ch = [[], [], []];
+  for (let i = 0; i < p.length; i += 8) { ch[0].push(p[i]); ch[1].push(p[i + 1]); ch[2].push(p[i + 2]); }
+  const med = a => { a.sort((x, y) => x - y); return a[a.length >> 1]; };
+  const bg = ch.map(med);
+
+  // Connector pixels, in millimetres, ignoring a thin band at the jig's edges
+  const m = Math.round(Math.min(w, h) * 0.04);
+  const X = [], Y = [];
+  for (let y = m; y < h - m; y++) for (let x = m; x < w - m; x++) {
+    const i = (y * w + x) * 4;
+    if (Math.max(Math.abs(p[i] - bg[0]), Math.abs(p[i + 1] - bg[1]), Math.abs(p[i + 2] - bg[2])) > FG_THRESHOLD) {
+      X.push((x + .5) * mx); Y.push((y + .5) * my);
+    }
+  }
+  if (X.length < Math.max(25, w * h * 0.00025)) return null;   // nothing clearly on the jig
+
+  // Tightest rectangle at any angle (works for long parts and square ones alike)
+  const n = X.length, step = Math.max(1, Math.floor(n / 4000));
+  const px = [], py = [];
+  for (let i = 0; i < n; i += step) { px.push(X[i]); py.push(Y[i]); }
+  const cnt = px.length, A = new Float32Array(cnt), B = new Float32Array(cnt);
+  const q = (arr, f) => arr[Math.min(cnt - 1, Math.floor(cnt * f))];
+  let best = null;
+  for (let deg = 0; deg < 90; deg += 1) {
+    const t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    for (let i = 0; i < cnt; i++) { A[i] = px[i] * c + py[i] * s; B[i] = -px[i] * s + py[i] * c; }
+    A.sort(); B.sort();
+    const e1 = q(A, .995) - q(A, .005), e2 = q(B, .995) - q(B, .005);
+    if (!best || e1 * e2 < best.area) best = { area: e1 * e2, e1, e2 };
+  }
+  const pad = (mx + my) / 2;   // pixel edges: a span between pixel centres is one pixel short
+  const e1 = best.e1 + pad, e2 = best.e2 + pad;
+  return { length_mm: +Math.max(e1, e2).toFixed(1), width_mm: +Math.min(e1, e2).toFixed(1) };
+}
+
+const fmtSize = s => s ? `${s.length_mm} × ${s.width_mm} mm` : '';
+
+// One place that turns a photo (plus an optional box the user drew) into everything we need:
+// base = the image rotations are drawn from, crop = connector crop within it, cleaned = model input, size
+function processPhoto(original, box = null) {
+  if (SIZE_ON) {
+    const jig = box || autoCrop(original).plate;
+    if (jig) {
+      const base = cropRegion(original, jig);
+      const crop = autoCrop(base);
+      return { base, crop, cleaned: PREPROCESS ? renderCrop(base, crop) : base, size: measureSize(base) };
+    }
+  }
+  const auto = autoCrop(original);
+  if (box) {
+    const crop = boxToCrop(box, auto.fill);
+    return { base: original, crop, cleaned: renderCrop(original, crop), size: null };
+  }
+  if (!PREPROCESS) {
+    const crop = { cx: original.width / 2, cy: original.height / 2, side: Math.max(original.width, original.height), fill: auto.fill };
+    return { base: original, crop, cleaned: original, size: null };
+  }
+  return { base: original, crop: auto, cleaned: renderCrop(original, auto), size: null };
+}
+
+// How much to lower a match's score when its training photo's size disagrees with the scan
+function sizePenalty(m, r) {
+  if (!m || r.length_mm == null || r.width_mm == null) return { penalty: 0, checked: false, ok: true };
+  const excess = (meas, ref) => Math.max(0, Math.abs(meas - ref) - Math.max(SIZE_MIN_TOLERANCE_MM, SIZE_TOLERANCE * ref)) / Math.max(ref, 0.5);
+  const rel = Math.max(excess(m.length_mm, r.length_mm), excess(m.width_mm, r.width_mm));
+  return { penalty: Math.min(0.35, SIZE_PENALTY * rel), checked: true, ok: rel === 0 };
+}
+
 function preprocess(src) {
   if (!PREPROCESS) return src;
   return renderCrop(src, autoCrop(src));
@@ -1256,7 +1374,7 @@ const originalPathFor = (path) => path.replace(/(\.[a-z0-9]+)?\.jpg$/i, '.orig.j
 const withOriginals = (paths) => paths.flatMap(p => [p, originalPathFor(p)]);
 
 // Fingerprint a cleaned canvas, upload it (plus the original), and record it against a connector
-async function saveCanvas(canvas, source, connectorId, original = null) {
+async function saveCanvas(canvas, source, connectorId, original = null, size = null) {
   const t = model.infer(canvas, true);
   const embedding = Array.from(await t.data());
   t.dispose();
@@ -1268,9 +1386,9 @@ async function saveCanvas(canvas, source, connectorId, original = null) {
     await db.storage.from(BUCKET).upload(originalPathFor(path), await canvasToBlob(original), { contentType: 'image/jpeg' });
   }
 
-  const ins = await db.from('training_images').insert({
-    connector_id: connectorId, storage_path: path, source, embedding,
-  });
+  const row = { connector_id: connectorId, storage_path: path, source, embedding };
+  if (SIZE_ON && size) Object.assign(row, size);   // length_mm, width_mm
+  const ins = await db.from('training_images').insert(row);
   if (ins.error) {
     await db.storage.from(BUCKET).remove(withOriginals([path]));
     throw ins.error;
@@ -1279,8 +1397,8 @@ async function saveCanvas(canvas, source, connectorId, original = null) {
 
 async function saveOne(item, connectorId) {
   const original = resizeToCanvas(await loadImage(item.url));
-  const cleaned = item.crop ? renderCrop(original, item.crop) : preprocess(original);
-  await saveCanvas(cleaned, item.source, connectorId, original);
+  const { cleaned, size } = processPhoto(original, item.box || null);
+  await saveCanvas(cleaned, item.source, connectorId, original, size);
 }
 
 // Extra training copies of one catalog photo: rotations, a mirror, and a slight tilt
@@ -1339,7 +1457,7 @@ $('saveBtn').addEventListener('click', async () => {
 });
 
 /* ===================== SCAN ===================== */
-let scan = null;          // { url, source, original, crop, cleaned }
+let scan = null;          // { url, source, original, base, crop, cleaned, size }
 let modelReady = null;    // promise from loadModel()
 
 $('scanCameraInput').addEventListener('change', e => { runScan(e.target.files[0], 'camera'); e.target.value = ''; });
@@ -1360,11 +1478,11 @@ async function runScan(file, source) {
   let original;
   try { original = resizeToCanvas(await loadImage(url)); }
   catch { URL.revokeObjectURL(url); toast('That photo couldn\'t be read. Try again.', true); return; }
-  const crop = await openCropper(original);
-  if (!crop) { URL.revokeObjectURL(url); return; }   // cancelled: keep the previous result on screen
+  const box = await openCropper(original);
+  if (!box) { URL.revokeObjectURL(url); return; }   // cancelled: keep the previous result on screen
 
   if (scan) URL.revokeObjectURL(scan.url);
-  scan = { url, source, original, crop, cleaned: renderCrop(original, crop) };
+  scan = { url, source, original, ...processPhoto(original, box) };   // adds base, crop, cleaned, size
 
   $('scanPreview').src = scan.cleaned.toDataURL('image/jpeg', .9);   // show exactly what the model sees
   $('scanFrame').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1383,7 +1501,7 @@ async function runScan(file, source) {
     const turns = Math.max(1, SCAN_ROTATIONS);
     if (turns > 1) scanMessage('Identifying…', `Checking ${turns} angles`);
     const views = Array.from({ length: turns }, (_, i) =>
-      i === 0 ? scan.cleaned : renderCrop(scan.original, scan.crop, (i * 2 * Math.PI) / turns));
+      i === 0 ? scan.cleaned : renderCrop(scan.base, scan.crop, (i * 2 * Math.PI) / turns));
     const batch = tf.tidy(() => tf.stack(views.map(v => tf.browser.fromPixels(v))));  // fingerprint all angles in one pass
     const out = model.infer(batch, true);
     const flat = await out.data();
@@ -1391,7 +1509,7 @@ async function runScan(file, source) {
     const size = flat.length / turns;
     const embeddings = views.map((_, i) => Array.from(flat.subarray(i * size, (i + 1) * size)));
     const results = await Promise.all(embeddings.map(e =>
-      db.rpc('match_connectors', { query_embedding: e, match_count: 25 })));
+      db.rpc('match_connectors', { query_embedding: e, match_count: SIZE_ON ? 40 : 25 })));
     const failedCall = results.find(r => r.error);
     if (failedCall) throw failedCall.error;
     const data = results.flatMap(r => r.data || []);
@@ -1400,7 +1518,7 @@ async function runScan(file, source) {
       scanMessage('Nothing to compare against yet', 'Add connectors and photos in the Train the model tab first.');
       return;
     }
-    await renderMatches(groupMatches(data));
+    await renderMatches(groupMatches(data, scan.size));
   } catch (err) {
     console.error(err);
     scanMessage('Scan failed', err.message || 'Something went wrong. Try again.');
@@ -1410,11 +1528,18 @@ async function runScan(file, source) {
 }
 
 // Several training photos of the same connector can match; keep each connector's best score.
-function groupMatches(rows) {
+// With a measured size, each training photo's score is lowered if its own size disagrees,
+// so a part that looks the same but is the wrong size drops down the list.
+function groupMatches(rows, size = null) {
   const byId = new Map();
   for (const r of rows) {
-    const g = byId.get(r.connector_id) || { id: r.connector_id, name: r.name, part_number: r.part_number, score: 0, hits: 0 };
-    g.score = Math.max(g.score, r.similarity);
+    const g = byId.get(r.connector_id) || { id: r.connector_id, name: r.name, part_number: r.part_number, score: -1, hits: 0 };
+    const sp = sizePenalty(size, r);
+    const score = r.similarity - sp.penalty;
+    if (score > g.score) {
+      g.score = score;
+      g.ref = sp.checked ? { length_mm: r.length_mm, width_mm: r.width_mm, ok: sp.ok } : null;
+    }
     g.hits++;
     byId.set(r.connector_id, g);
   }
@@ -1450,6 +1575,7 @@ async function renderMatches(matches) {
         <div class="match-name">${esc(m.name)}</div>
         ${m.part_number ? `<div class="match-meta mono">${esc(m.part_number)}</div>` : ''}
         ${info?.description ? `<div class="match-meta">${esc(info.description)}</div>` : ''}
+        ${m.ref ? `<div class="match-meta ${m.ref.ok ? 'size-ok' : 'size-bad'}">${m.ref.ok ? '✓ Size matches' : '⚠ Size differs'}: ${fmtSize(m.ref)}</div>` : ''}
         <div class="meter"><div class="meter-bar"><span style="width:${pct}%"></span></div>${pct}% match</div>
         <div class="btn-row"><button class="btn btn-small" data-act="confirm">This is it</button></div>
       </div>
@@ -1457,7 +1583,8 @@ async function renderMatches(matches) {
   }).join('');
 
   $('scanResults').innerHTML = `<div class="results">
-    <div class="verdict"><h3>${esc(title)}</h3>${sub ? `<p>${esc(sub)}</p>` : ''}</div>
+    <div class="verdict"><h3>${esc(title)}</h3>${sub ? `<p>${esc(sub)}</p>` : ''}
+      ${SIZE_ON ? `<p class="measured">${scan?.size ? `Measured size: <b>${fmtSize(scan.size)}</b>` : 'Size couldn\'t be measured. Check the box lines up with the jig.'}</p>` : ''}</div>
     ${cards}
     <div class="btn-row" style="justify-content:center;margin-top:1rem">
       <label class="btn btn-primary" for="scanCameraInput" role="button" tabindex="0" data-file-label>Scan another</label>
@@ -1476,7 +1603,7 @@ $('scanResults').addEventListener('click', async e => {
     $('scanResults').querySelectorAll('[data-act="confirm"]').forEach(b => b.disabled = true);
     btn.textContent = 'Adding…';
     try {
-      await saveCanvas(scan.cleaned, scan.source, id, scan.original);   // keep the user's crop
+      await saveCanvas(scan.cleaned, scan.source, id, scan.original, scan.size);   // keep the user's crop and size
       btn.parentElement.innerHTML = '<span class="confirmed">Added to the training set. Thanks!</span>';
       loadConnectors();
     } catch (err) {
@@ -1635,6 +1762,12 @@ async function listAllImages() {
   }
 }
 
+let unmeasured = [];  // photos without a size yet (size measurement on)
+// Photos already tried where no jig was found; remembered on this device so they aren't offered again
+const skippedSizes = new Set((() => { try { return JSON.parse(localStorage.getItem('sizeSkipped') || '[]'); } catch { return []; } })());
+const rememberSkipped = () => { try { localStorage.setItem('sizeSkipped', JSON.stringify([...skippedSizes])); } catch { /* storage unavailable */ } };
+let sizeSetupNeeded = false;
+
 async function checkCleanup() {
   if (!db || !PREPROCESS) return;
   try {
@@ -1642,15 +1775,52 @@ async function checkCleanup() {
     whitened = all.filter(r => r.storage_path.endsWith(OLD_COLOUR_TAG));
     outdated = all.filter(r => !r.storage_path.endsWith(PROCESSED_TAG) && !r.storage_path.endsWith(OLD_COLOUR_TAG));
   } catch (err) { console.error(err); return; }
-  const n = outdated.length, m = whitened.length;
-  $('cleanupPanel').hidden = !n && !m;
+  unmeasured = []; sizeSetupNeeded = false;
+  if (SIZE_ON) {
+    const res = await db.from('training_images').select('id, storage_path').is('length_mm', null).limit(5000);
+    if (res.error) sizeSetupNeeded = true;    // the size columns don't exist yet
+    else unmeasured = res.data.filter(r => r.storage_path.endsWith(PROCESSED_TAG) && !skippedSizes.has(r.id));
+  }
+  const n = outdated.length, m = whitened.length, u = unmeasured.length;
+  $('cleanupPanel').hidden = !n && !m && !u && !sizeSetupNeeded;
   $('cleanupBtn').hidden = !n;
   $('whitenedBtn').hidden = !m;
+  $('measureBtn').hidden = !u;
   const parts = [];
+  if (sizeSetupNeeded) parts.push(`<strong>Size measurement is switched on, but the database isn't ready for it.</strong> Run <span class="mono">add-size.sql</span> in the Supabase SQL Editor, then reload this page. Until then, new photos can't be saved.`);
   if (n) parts.push(`<strong>${n} photo${n === 1 ? ' uses' : 's use'} an older cropping method.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are now processed.`);
   if (m) parts.push(`<strong>${m} photo${m === 1 ? ' was' : 's were'} saved with the earlier colour correction.</strong> The originals weren't kept, so ${m === 1 ? 'it' : 'they'} can't be repaired and may be hurting recognition. Delete ${m === 1 ? 'it' : 'them'}, then retake or re-import from LCSC.`);
+  if (u) parts.push(`<strong>${u} photo${u === 1 ? ' has' : 's have'} no size yet.</strong> Measure sizes to find the jig in each original photo and record the part's size. Photos where the jig can't be found (such as LCSC images) are skipped and still match on looks alone.`);
   $('cleanupText').innerHTML = parts.join('<br><br>');
 }
+
+$('measureBtn').addEventListener('click', async () => {
+  const btn = $('measureBtn'); btn.disabled = true;
+  const bar = $('cleanupProgress'), fill = bar.firstElementChild; bar.hidden = false;
+  const total = unmeasured.length;
+  let measured = 0, skipped = 0, failed = 0;
+  for (const r of unmeasured) {
+    $('cleanupStatus').textContent = `Measuring ${measured + skipped + failed + 1} of ${total}…`;
+    try {
+      const url = db.storage.from(BUCKET).getPublicUrl(originalPathFor(r.storage_path)).data.publicUrl;
+      let img;
+      try { img = await loadImage(url + '?v=1', true); } catch { skipped++; skippedSizes.add(r.id); continue; }   // no original kept
+      const original = resizeToCanvas(img);
+      const jig = autoCrop(original).plate;
+      const size = jig ? measureSize(cropRegion(original, jig)) : null;
+      if (!size) { skipped++; skippedSizes.add(r.id); continue; }
+      const up = await db.from('training_images').update(size).eq('id', r.id).select('id');
+      if (up.error || !up.data?.length) throw up.error || new Error('update blocked');
+      measured++;
+    } catch (err) { console.error(err); failed++; }
+    finally { fill.style.width = `${((measured + skipped + failed) / total) * 100}%`; }
+  }
+  rememberSkipped();
+  btn.disabled = false; $('cleanupStatus').textContent = '';
+  setTimeout(() => { bar.hidden = true; }, 800);
+  toast(`Measured ${measured} photo${measured === 1 ? '' : 's'}${skipped ? `, skipped ${skipped} (jig not found)` : ''}${failed ? `, ${failed} failed` : ''}.`, failed > 0);
+  await checkCleanup();
+});
 
 $('whitenedBtn').addEventListener('click', async () => {
   const m = whitened.length;
@@ -1684,7 +1854,8 @@ $('cleanupBtn').addEventListener('click', async () => {
       try { img = await loadImage(urlOf(originalPathFor(r.storage_path)) + '?v=1', true); }   // uncropped original, if kept
       catch { img = await loadImage(urlOf(r.storage_path), true); }                          // otherwise the stored image
       const original = resizeToCanvas(img);
-      await saveCanvas(preprocess(original), r.source, r.connector_id, original);   // new cleaned copy
+      const pr = processPhoto(original);
+      await saveCanvas(pr.cleaned, r.source, r.connector_id, original, pr.size);   // new cleaned copy
       const del = await db.from('training_images').delete().eq('id', r.id);  // then remove the old one
       if (del.error) throw del.error;
       await db.storage.from(BUCKET).remove(withOriginals([r.storage_path]));
@@ -1701,20 +1872,27 @@ $('cleanupBtn').addEventListener('click', async () => {
 });
 
 /* ===================== CROP EDITOR ===================== */
-// openCropper(photoCanvas) -> resolves to { cx, cy, side, fill } or null if cancelled
+// openCropper(photoCanvas, initialBox?) -> resolves to a box { x, y, w, h } or null if cancelled.
+// With size measurement on, users frame the jig; otherwise they frame the connector.
 let cropState = null;
 
-function openCropper(src, initialCrop = null) {
+function openCropper(src, initialBox = null) {
   return new Promise(resolve => {
-    const auto = autoCrop(src);
-    const fill = auto.fill;
     const W = src.width, H = src.height;
+    const found = autoCrop(src);
+    const fill = found.fill;
+    // The "Auto" box: the detected jig when measuring sizes, otherwise the detected connector
+    const auto = SIZE_ON ? (found.plate || { x: 0, y: 0, w: W, h: H }) : cropToBox(found, W, H);
+    $('cropTitle').textContent = SIZE_ON ? 'Line up with the jig' : 'Crop the photo';
+    $('cropHint').textContent = SIZE_ON
+      ? 'Drag the corners onto the inner edges of the jig, so sizes can be measured.'
+      : 'Drag the box or its corners to frame the connector.';
     const cv = $('cropCanvas');
     cv.width = W; cv.height = H;
     cv.getContext('2d').drawImage(src, 0, 0);
     cropState = {
       W, H, fill, auto, scale: 1,
-      box: cropToBox(initialCrop || auto, W, H),
+      box: { ...(initialBox || auto) },
       finish(result) {
         $('cropper').hidden = true;
         document.body.style.overflow = '';
@@ -1810,7 +1988,7 @@ function cropKeys(e) {
 $('cropCancel').addEventListener('click', () => cropState?.finish(null));
 $('cropAuto').addEventListener('click', () => {
   if (!cropState) return;
-  cropState.box = cropToBox(cropState.auto, cropState.W, cropState.H);
+  cropState.box = { ...cropState.auto };
   drawCropBox();
 });
 $('cropAll').addEventListener('click', () => {
@@ -1820,7 +1998,7 @@ $('cropAll').addEventListener('click', () => {
 });
 $('cropUse').addEventListener('click', () => {
   if (!cropState) return;
-  cropState.finish(boxToCrop(cropState.box, cropState.fill));
+  cropState.finish({ ...cropState.box });
 });
 
 // Labels act as buttons for the file pickers; let Enter and Space open them too
