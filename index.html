@@ -286,6 +286,19 @@ textarea { min-height: 4rem; resize: vertical; }
 .meter-bar span { display: block; height: 100%; background: var(--mat); }
 .match .btn-row { margin-top: .5rem; }
 .confirmed { color: var(--ok); font-weight: 600; font-size: .95rem; }
+.none-box { margin-top: .4rem; text-align: center; }
+.pick { text-align: left; margin-top: .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface); }
+.pick h4 { margin: 0 0 .2rem; font-size: 1.05rem; }
+.pick > p { font-size: .9rem; margin: 0 0 .7rem; }
+.pick input[type="search"] { width: 100%; padding: .65rem .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); }
+.pick-list { max-height: 260px; overflow-y: auto; margin: .5rem 0 .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.pick-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: none; padding: .65rem .8rem; cursor: pointer; min-height: 44px; }
+.pick-item:last-child { border-bottom: 0; }
+.pick-item:hover { background: var(--bg); }
+.pick-item[aria-selected="true"] { background: var(--mat-soft); box-shadow: inset 4px 0 0 var(--mat); font-weight: 600; }
+.pick-item .mono { color: var(--muted); font-weight: 400; margin-left: .3rem; }
+.pick-empty { padding: .8rem; color: var(--muted); font-size: .9rem; }
+.pick-new { margin-top: .7rem; }
 .size-ok { color: var(--ok); font-weight: 600; }
 .size-bad { color: var(--danger); font-weight: 600; }
 .verdict .measured { margin-top: .5rem; color: var(--ink); }
@@ -685,8 +698,8 @@ const SCAN_ROTATIONS = 8;   // angles each scan is compared at (every 45°); 1 t
 
 // Size measurement. Run add-size.sql in Supabase first, then enter the size of the area
 // users crop to (the jig's inner edges), in millimetres. Leave as null to keep it switched off.
-const JIG_WIDTH_MM  = 25;
-const JIG_HEIGHT_MM = 25;
+const JIG_WIDTH_MM  = null;
+const JIG_HEIGHT_MM = null;
 const SIZE_TOLERANCE = 0.12;        // size differences up to 12% are ignored...
 const SIZE_MIN_TOLERANCE_MM = 1.0;  // ...or up to 1 mm, whichever is larger (small parts measure less precisely)
 const SIZE_PENALTY = 0.6;           // how strongly a size mismatch lowers a match's score
@@ -1586,30 +1599,140 @@ async function renderMatches(matches) {
     <div class="verdict"><h3>${esc(title)}</h3>${sub ? `<p>${esc(sub)}</p>` : ''}
       ${SIZE_ON ? `<p class="measured">${scan?.size ? `Measured size: <b>${fmtSize(scan.size)}</b>` : 'Size couldn\'t be measured. Check the box lines up with the jig.'}</p>` : ''}</div>
     ${cards}
+    <div class="none-box" id="noneBox">
+      <button class="btn" data-act="none" aria-expanded="false" aria-controls="pickPanel">None of these</button>
+      <div class="pick" id="pickPanel" hidden>
+        <h4>Which connector is it?</h4>
+        <p class="muted">Pick the right one and this photo is added to its training set, so the model learns from the mistake.</p>
+        ${connectors.length ? `
+          <label for="pickSearch" class="sr-only">Search connectors</label>
+          <input type="search" id="pickSearch" placeholder="Search by name or part number" autocomplete="off">
+          <div class="pick-list" id="pickList" role="listbox" aria-label="Connectors"></div>` : ''}
+        <button class="toggle-link" data-act="pick-new" aria-expanded="${connectors.length ? 'false' : 'true'}">It's not in the list: add a new connector</button>
+        <div class="pick-new" id="pickNew" ${connectors.length ? 'hidden' : ''}>
+          <div class="row">
+            <div class="field"><label for="pickNewName">Name</label><input type="text" id="pickNewName" placeholder="SMA female, panel mount" autocomplete="off"></div>
+            <div class="field"><label for="pickNewPart">Part number <span class="muted">(optional)</span></label><input type="text" id="pickNewPart" autocomplete="off"></div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:.8rem">
+          <button class="btn btn-primary" data-act="pick-save" disabled>Add photo to training set</button>
+          <button class="btn" data-act="pick-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
     <div class="btn-row" style="justify-content:center;margin-top:1rem">
       <label class="btn btn-primary" for="scanCameraInput" role="button" tabindex="0" data-file-label>Scan another</label>
     </div>
   </div>`;
+  picked = null;
+  renderPickList('');
+}
+
+// "None of these": let the user pick (or create) the right connector for this photo
+let picked = null;   // connector id, or 'new'
+
+function renderPickList(filter) {
+  const list = $('pickList');
+  if (!list) return;
+  const f = filter.trim().toLowerCase();
+  const items = connectors.filter(c => !f || c.name.toLowerCase().includes(f) || (c.part_number || '').toLowerCase().includes(f));
+  list.innerHTML = items.length
+    ? items.map(c => `<button class="pick-item" role="option" data-pick="${c.id}" aria-selected="${picked === c.id}">${esc(c.name)}${c.part_number ? `<span class="mono">${esc(c.part_number)}</span>` : ''}</button>`).join('')
+    : '<div class="pick-empty">No connector matches that search. You can add it as a new connector below.</div>';
+}
+
+function updatePickSave() {
+  const btn = $('scanResults').querySelector('[data-act="pick-save"]');
+  if (!btn) return;
+  const newName = $('pickNewName')?.value.trim();
+  btn.disabled = !(picked && picked !== 'new') && !(picked === 'new' && newName);
+}
+
+$('scanResults').addEventListener('input', e => {
+  if (e.target.id === 'pickSearch') renderPickList(e.target.value);
+  if (e.target.id === 'pickNewName') { picked = 'new'; markPicked(); updatePickSave(); }
+});
+
+function markPicked() {
+  $('scanResults').querySelectorAll('.pick-item').forEach(b => b.setAttribute('aria-selected', b.dataset.pick === picked));
+}
+
+// Only one way of saving per scan, so the photo is never added twice
+function lockScanSaving(doneHTML, where) {
+  $('scanResults').querySelectorAll('[data-act="confirm"], [data-act="none"]').forEach(b => b.disabled = true);
+  if (where) where.innerHTML = doneHTML;
 }
 
 $('scanResults').addEventListener('click', async e => {
+  const item = e.target.closest('.pick-item');
+  if (item) {
+    picked = item.dataset.pick;
+    markPicked();
+    if ($('pickNew')) { $('pickNew').hidden = true; $('scanResults').querySelector('[data-act="pick-new"]').setAttribute('aria-expanded', 'false'); }
+    updatePickSave();
+    return;
+  }
   const btn = e.target.closest('button');
   if (!btn) return;
+
+  if (btn.dataset.act === 'none' || btn.dataset.act === 'pick-cancel') {
+    const panel = $('pickPanel');
+    const open = btn.dataset.act === 'none' ? panel.hidden : false;
+    panel.hidden = !open;
+    $('scanResults').querySelector('[data-act="none"]').setAttribute('aria-expanded', open);
+    if (open) ($('pickSearch') || $('pickNewName'))?.focus();
+    return;
+  }
+
+  if (btn.dataset.act === 'pick-new') {
+    const form = $('pickNew');
+    form.hidden = !form.hidden;
+    btn.setAttribute('aria-expanded', !form.hidden);
+    if (!form.hidden) { picked = 'new'; markPicked(); $('pickNewName').focus(); }
+    else if (picked === 'new') picked = null;
+    updatePickSave();
+    return;
+  }
+
+  if (btn.dataset.act === 'pick-save' && scan) {
+    btn.disabled = true; btn.textContent = 'Adding…';
+    try {
+      let target = connectors.find(c => c.id === picked);
+      if (picked === 'new') {
+        const name = $('pickNewName').value.trim();
+        const { data, error } = await db.from('connectors')
+          .insert({ name, part_number: $('pickNewPart').value.trim() || null }).select().single();
+        if (error) throw (error.code === '23505' ? new Error(`A connector called "${name}" already exists. Pick it from the list instead.`) : error);
+        target = data;
+      }
+      await saveCanvas(scan.cleaned, scan.source, target.id, scan.original, scan.size);
+      lockScanSaving(`<p class="confirmed" style="margin:0">Added to <b>${esc(target.name)}</b>. Thanks, the model will learn from this one.</p>`, $('pickPanel'));
+      loadConnectors();
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Couldn\'t add the photo.', true);
+      btn.textContent = 'Add photo to training set';
+      updatePickSave();
+    }
+    return;
+  }
 
 
   if (btn.dataset.act === 'confirm' && scan) {
     const card = btn.closest('.match');
     const id = card.dataset.id;
-    $('scanResults').querySelectorAll('[data-act="confirm"]').forEach(b => b.disabled = true);
+    $('scanResults').querySelectorAll('[data-act="confirm"], [data-act="none"]').forEach(b => b.disabled = true);
     btn.textContent = 'Adding…';
     try {
       await saveCanvas(scan.cleaned, scan.source, id, scan.original, scan.size);   // keep the user's crop and size
       btn.parentElement.innerHTML = '<span class="confirmed">Added to the training set. Thanks!</span>';
+      lockScanSaving();
       loadConnectors();
     } catch (err) {
       console.error(err);
       toast(`Couldn't add the photo: ${err.message}`, true);
-      $('scanResults').querySelectorAll('[data-act="confirm"]').forEach(b => b.disabled = false);
+      $('scanResults').querySelectorAll('[data-act="confirm"], [data-act="none"]').forEach(b => b.disabled = false);
       btn.textContent = 'This is it';
     }
   }
