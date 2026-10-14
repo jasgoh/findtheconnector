@@ -385,6 +385,15 @@ textarea { min-height: 4rem; resize: vertical; }
 .clf-status { font-size: .95rem; }
 .clf-status .clf-line { margin: .25rem 0; }
 .clf-status .stats { margin-top: .8rem; }
+/* Training set switcher */
+.set-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-bottom: 1.5rem; }
+.set-bar-label { font-weight: 600; font-size: .95rem; color: var(--muted); }
+.set-tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.set-tab { appearance: none; border: 0; background: none; cursor: pointer; padding: .5rem 1.1rem; border-radius: 999px; font-weight: 600; color: var(--muted); min-height: 40px; }
+.set-tab:hover { color: var(--ink); }
+.set-tab[aria-checked="true"] { background: var(--brass); color: #1B1408; }
+.set-badge { display: inline-block; vertical-align: middle; font-family: var(--font); font-size: .8rem; font-weight: 700; letter-spacing: .02em;
+  padding: .15rem .6rem; border-radius: 999px; background: var(--brass-soft); color: var(--ink); border: 1px solid var(--brass); margin-left: .3rem; }
 .edit-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--line); }
 
 .empty { text-align: center; padding: 2rem 1rem; color: var(--muted); }
@@ -429,12 +438,16 @@ label.btn { cursor: pointer; }
 </header>
 
 <main class="wrap">
+  <div class="set-bar" id="setBar">
+    <span class="set-bar-label" id="setBarLabel">Training set</span>
+    <div class="set-tabs" id="setTabs" role="radiogroup" aria-labelledby="setBarLabel"></div>
+  </div>
 
   <!-- ============ TAB 0: SCAN ============ -->
   <section role="tabpanel" id="panel-scan" aria-labelledby="tab-scan">
     <div class="train-head">
       <div>
-        <h2>Identify a connector</h2>
+        <h2>Identify a connector <span class="set-badge" data-set-name></span></h2>
         <p class="muted" style="margin:0">Place it on the plate, take a photo, then frame the connector.</p>
       </div>
       <span class="status" data-state="loading" role="status" data-model-status>Loading model</span>
@@ -464,6 +477,13 @@ label.btn { cursor: pointer; }
     <h2>Scanning a connector</h2>
     <p class="lead">Open <strong>Scan me</strong>, place the connector on the plate and take a photo. A crop box appears around the connector; drag it or its corners if it isn't framed well, then tap <strong>Use photo</strong>. You'll see the closest matches with their part numbers. If the top answer is right, tap <strong>This is it</strong> and your photo is added to the training set, so the next scan gets a little better.</p>
     <p class="muted" style="max-width:70ch;margin-bottom:2.5rem">If the result says it isn't sure, retake the photo closer, with the pins facing the camera and no glare. If it still can't tell, the connector may not have been trained yet.</p>
+
+    <h2>Crimped, uncrimped and housings</h2>
+    <p class="lead">The <strong>Training set</strong> switch at the top of Scan me and Train the model chooses between three completely separate sets: <strong>Crimped</strong> terminals with wire attached, <strong>Uncrimped</strong> terminals, and connector <strong>Housings</strong>. Each has its own connectors, photos and classifier, and a scan only compares against the set that's selected, so pick the right one before scanning.</p>
+    <ul style="max-width:70ch;margin:0 0 2.5rem;padding-left:1.2rem">
+      <li><strong>Crimped:</strong> trim the wire to a short stub of the same length every time and keep it on the jig.</li>
+      <li><strong>Housings:</strong> photograph them on the same face each time (for example, mating face up). A housing must fit inside the jig's grey area for its size to be measured.</li>
+    </ul>
 
     <h2>Teaching the site a new connector</h2>
     <p class="lead">The model learns from example photos. Each photo you add becomes a reference it compares against, so better photos mean better recognition. No coding or retraining needed.</p>
@@ -513,7 +533,7 @@ label.btn { cursor: pointer; }
 
     <div class="train-head">
       <div>
-        <h2>Train the model</h2>
+        <h2>Train the model <span class="set-badge" data-set-name></span></h2>
         <p class="muted" style="margin:0">Pick a connector, add photos, save them to the training set.</p>
       </div>
       <span class="status" data-state="loading" role="status" data-model-status>Loading model</span>
@@ -609,6 +629,7 @@ label.btn { cursor: pointer; }
         <button class="btn btn-primary" id="cleanupBtn">Update photos</button>
         <button class="btn btn-danger" id="whitenedBtn" hidden>Delete colour-corrected photos</button>
         <button class="btn btn-primary" id="measureBtn" hidden>Measure sizes</button>
+        <button class="btn btn-primary" id="remeasureBtn" hidden>Re-measure all sizes</button>
         <button class="btn" id="noJigBtn" hidden>Review photos without a jig</button>
         <span class="muted" id="cleanupStatus" style="font-size:.9rem"></span>
       </div>
@@ -666,6 +687,8 @@ const SCAN_ROTATIONS = 8;   // angles each scan is compared at (every 45°); 1 t
 const JIG_WIDTH_MM  = 25;
 const JIG_HEIGHT_MM = 25;
 const SIZE_TOLERANCE = 0.12;        // size differences up to 12% are ignored...
+const TILT_TOLERANCE = 0.25;        // ...but a part may measure up to 25% SHORTER: a part tilted up off the jig
+                                    //    (up to about 40°) looks shorter from above, never longer
 const SIZE_MIN_TOLERANCE_MM = 1.0;  // ...or up to 1 mm, whichever is larger (small parts measure less precisely)
 const SIZE_PENALTY = 0.6;           // how strongly a size mismatch lowers a match's score
 const SIZE_ON = JIG_WIDTH_MM > 0 && JIG_HEIGHT_MM > 0;
@@ -674,7 +697,16 @@ if (SIZE_ON) MAX_SIDE = 1024;   // more pixels per mm for measuring small parts
 // Trained classifier (Train tab > Classifier). Learns which fingerprint features separate your connectors.
 const CLASSIFIER_MIN_PHOTOS = 5;    // connectors need this many photos to be included
 const CLASSIFIER_WEIGHT = 0.6;      // share of the final score from the classifier; the rest is photo matching
-const MODEL_DIR = 'models';         // where the trained model is stored in the photo bucket
+const MODEL_DIR = 'models';         // where the trained models are stored in the photo bucket (one folder per training set)
+
+// Training sets: completely separate connectors, photos, classifier and health check.
+const TRAINING_SETS = [
+  { id: 'crimped',   label: 'Crimped' },
+  { id: 'uncrimped', label: 'Uncrimped' },
+  { id: 'housing',   label: 'Housing' },
+];
+// Everything saved before sets existed (connectors and the old classifier) belongs to this set
+const LEGACY_SET = 'uncrimped';
 
 // Image cleanup (cropping only), applied identically to training photos and scans
 const PREPROCESS = true;    // set false to switch cleanup off
@@ -689,6 +721,9 @@ const OLD_COLOUR_TAG = '.p.jpg'; // earlier colour-corrected images (originals n
 let db = null;
 let model = null;
 let connectors = [];
+let currentSet = (() => { try { return localStorage.getItem('trainingSet'); } catch { return null; } })();
+if (!TRAINING_SETS.some(t => t.id === currentSet)) currentSet = LEGACY_SET;
+const setLabel = () => TRAINING_SETS.find(t => t.id === currentSet).label;
 let queue = [];             // { id, file, url, source, state }
 let saving = false;
 
@@ -706,6 +741,7 @@ function selectTab(tab) {
     $(t.getAttribute('aria-controls')).hidden = !on;
   });
   history.replaceState(null, '', '#' + tab.dataset.hash);
+  $('setBar').hidden = tab.dataset.hash === 'guide';
 }
 tabs.forEach((t, i) => {
   t.addEventListener('click', () => selectTab(t));
@@ -760,10 +796,15 @@ async function loadConnectors(selectId) {
   const { data, error } = await db
     .from('connectors')
     .select('id, name, part_number, description, training_images(count)')
+    .eq('training_set', currentSet)
     .order('name');
   if (error) {
     console.error(error);
-    $('library').innerHTML = `<div class="empty">Couldn't load connectors: ${esc(error.message)}. Check that supabase-setup.sql has been run.</div>`;
+    const needsSql = /training_set/.test(error.message || '');
+    $('library').innerHTML = needsSql
+      ? `<div class="empty"><strong>Training sets aren't set up in the database yet.</strong> Run <span class="mono">add-sets.sql</span> in the Supabase SQL Editor, then reload this page.</div>`
+      : `<div class="empty">Couldn't load connectors: ${esc(error.message)}. Check that supabase-setup.sql has been run.</div>`;
+    connectors = []; renderSelect(); renderClassifierStatus();
     return;
   }
   connectors = data.map(c => ({ ...c, count: c.training_images?.[0]?.count ?? 0 }));
@@ -967,10 +1008,11 @@ $('createBtn').addEventListener('click', async () => {
     name,
     part_number: $('newPart').value.trim() || null,
     description: $('newDesc').value.trim() || null,
+    training_set: currentSet,
   }).select().single();
   $('createBtn').disabled = false;
   if (error) {
-    toast(error.code === '23505' ? `A connector called "${name}" already exists.` : `Couldn't add connector: ${error.message}`, true);
+    toast(error.code === '23505' ? `A connector called "${name}" already exists in the ${setLabel()} set.` : `Couldn't add connector: ${error.message}`, true);
     return;
   }
   $('newName').value = ''; $('newPart').value = ''; $('newDesc').value = '';
@@ -1309,14 +1351,161 @@ function measureSize(region) {
   return { length_mm: +Math.max(e1, e2).toFixed(1), width_mm: +Math.min(e1, e2).toFixed(1) };
 }
 
-// Is an automatically detected "jig" believable? It must have the jig's proportions and must not
-// simply be the whole photo (as happens with catalog photos on plain paper).
-function jigLooksValid(p, W, H) {
-  if (!p) return false;
-  const aspect = Math.max(p.w, p.h) / Math.max(1, Math.min(p.w, p.h));
-  const jigAspect = Math.max(JIG_WIDTH_MM, JIG_HEIGHT_MM) / Math.min(JIG_WIDTH_MM, JIG_HEIGHT_MM);
-  const fillsPhoto = p.w > W * 0.95 && p.h > H * 0.95;
-  return Math.abs(aspect / jigAspect - 1) < 0.2 && !fillsPhoto;
+/* ---- Finding the jig's exact corners ----
+   Instead of an upright box, find the four corners of the jig's inner area, even when the jig is
+   rotated or the phone is held at a slight angle, then "unwarp" it into a perfect rectangle so
+   every pixel is the same number of millimetres. */
+
+// Optional search area: the rough box the user drew (grown slightly so the edges are inside it)
+function findJigQuad(src, area = null) {
+  const R = area || { x: 0, y: 0, w: src.width, h: src.height };
+  const k = Math.min(1, 480 / Math.max(R.w, R.h));
+  const w = Math.max(8, Math.round(R.w * k)), h = Math.max(8, Math.round(R.h * k));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, R.x, R.y, R.w, R.h, 0, 0, w, h);
+  const p = ctx.getImageData(0, 0, w, h).data;
+
+  // Jig colour: median of the middle 40% (the part covers only some of it)
+  const ch = [[], [], []];
+  for (let y = Math.floor(h * .3); y < h * .7; y++) for (let x = Math.floor(w * .3); x < w * .7; x++) {
+    const i = (y * w + x) * 4; ch[0].push(p[i]); ch[1].push(p[i + 1]); ch[2].push(p[i + 2]);
+  }
+  const med = a => { a.sort((u, v) => u - v); return a[a.length >> 1]; };
+  const bg = ch.map(med);
+  const isJig = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    isJig[i] = Math.max(Math.abs(p[i * 4] - bg[0]), Math.abs(p[i * 4 + 1] - bg[1]), Math.abs(p[i * 4 + 2] - bg[2])) <= FG_THRESHOLD ? 1 : 0;
+  }
+
+  // The connected jig area nearest the middle
+  let seed = -1, bestD = Infinity;
+  for (let y = Math.floor(h * .3); y < h * .7; y++) for (let x = Math.floor(w * .3); x < w * .7; x++) {
+    const i = y * w + x, d = (x - w / 2) ** 2 + (y - h / 2) ** 2;
+    if (isJig[i] && d < bestD) { bestD = d; seed = i; }
+  }
+  if (seed < 0) return null;
+  const inComp = new Uint8Array(w * h), queue = new Int32Array(w * h);
+  let head = 0, tail = 0; queue[tail++] = seed; inComp[seed] = 1;
+  while (head < tail) {
+    const i = queue[head++], x = i % w, y = (i - x) / w;
+    if (x > 0 && isJig[i - 1] && !inComp[i - 1]) { inComp[i - 1] = 1; queue[tail++] = i - 1; }
+    if (x < w - 1 && isJig[i + 1] && !inComp[i + 1]) { inComp[i + 1] = 1; queue[tail++] = i + 1; }
+    if (y > 0 && isJig[i - w] && !inComp[i - w]) { inComp[i - w] = 1; queue[tail++] = i - w; }
+    if (y < h - 1 && isJig[i + w] && !inComp[i + w]) { inComp[i + w] = 1; queue[tail++] = i + w; }
+  }
+  if (tail < w * h * 0.08) return null;
+
+  // Its outline points
+  const pts = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!inComp[i]) continue;
+    if (x === 0 || y === 0 || x === w - 1 || y === h - 1 || !inComp[i - 1] || !inComp[i + 1] || !inComp[i - w] || !inComp[i + w]) pts.push([x, y]);
+  }
+  // Its angle: the rotation giving the tightest box
+  let bestT = 0, bestA = Infinity;
+  for (let deg = 0; deg < 90; deg += 1) {
+    const t = deg * Math.PI / 180, cs = Math.cos(t), sn = Math.sin(t);
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const [x, y] of pts) { const u = x * cs + y * sn, v = -x * sn + y * cs; if (u < u0) u0 = u; if (u > u1) u1 = u; if (v < v0) v0 = v; if (v > v1) v1 = v; }
+    const area = (u1 - u0) * (v1 - v0);
+    if (area < bestA) { bestA = area; bestT = t; }
+  }
+  // Corners: the outline points furthest along each diagonal, in the jig's own orientation
+  const cs = Math.cos(bestT), sn = Math.sin(bestT);
+  const corner = (score) => {
+    const ranked = pts.map(q => [score(q[0] * cs + q[1] * sn, -q[0] * sn + q[1] * cs), q]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    const mx = ranked.reduce((a, r) => a + r[1][0], 0) / ranked.length, my = ranked.reduce((a, r) => a + r[1][1], 0) / ranked.length;
+    return { x: R.x + (mx + .5) / k, y: R.y + (my + .5) / k };
+  };
+  return [corner((u, v) => -(u + v)), corner((u, v) => u - v), corner((u, v) => u + v), corner((u, v) => v - u)];  // TL, TR, BR, BL
+}
+
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// Believable jig? Right proportions, four similar-length opposite sides, convex, and not the whole photo
+function quadLooksValid(q, W, H) {
+  if (!q) return false;
+  const top = dist(q[0], q[1]), right = dist(q[1], q[2]), bottom = dist(q[2], q[3]), left = dist(q[3], q[0]);
+  if (Math.min(top, right, bottom, left) < 20) return false;
+  if (Math.max(top, bottom) / Math.min(top, bottom) > 1.25 || Math.max(left, right) / Math.min(left, right) > 1.25) return false;
+  const aspect = ((top + bottom) / 2) / ((left + right) / 2);
+  const jigAspect = JIG_WIDTH_MM / JIG_HEIGHT_MM;
+  const ratio = Math.max(aspect, 1 / aspect) / Math.max(jigAspect, 1 / jigAspect);
+  if (Math.abs(ratio - 1) > 0.2) return false;
+  let sign = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4];
+    const cross = Math.sign((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x));
+    if (sign && cross !== sign) return false;
+    sign = cross;
+  }
+  const xs = q.map(v => v.x), ys = q.map(v => v.y);
+  return !((Math.max(...xs) - Math.min(...xs)) > W * 0.95 && (Math.max(...ys) - Math.min(...ys)) > H * 0.95);
+}
+
+// Perspective transform from the output rectangle back into the photo (solved from the 4 corners)
+function homography(from, to) {
+  const A = [], bvec = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = from[i], [u, v] = to[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); bvec.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); bvec.push(v);
+  }
+  for (let col = 0; col < 8; col++) {           // Gaussian elimination
+    let piv = col;
+    for (let r = col + 1; r < 8; r++) if (Math.abs(A[r][col]) > Math.abs(A[piv][col])) piv = r;
+    [A[col], A[piv]] = [A[piv], A[col]]; [bvec[col], bvec[piv]] = [bvec[piv], bvec[col]];
+    for (let r = 0; r < 8; r++) {
+      if (r === col) continue;
+      const f = A[r][col] / A[col][col];
+      for (let c2 = col; c2 < 8; c2++) A[r][c2] -= f * A[col][c2];
+      bvec[r] -= f * bvec[col];
+    }
+  }
+  return bvec.map((v, i) => v / A[i][i]);       // h11..h32 (h33 = 1)
+}
+
+// Straighten the jig into a flat rectangle
+function warpQuad(src, q) {
+  const wq = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2, hq = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2;
+  const s = Math.min(1.5, 900 / Math.max(wq, hq));
+  const W = Math.max(8, Math.round(wq * s)), H = Math.max(8, Math.round(hq * s));
+  const m = homography([[0, 0], [W, 0], [W, H], [0, H]], q.map(v => [v.x, v.y]));
+  const sw = src.width, sh = src.height;
+  const sp = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  const octx = out.getContext('2d');
+  const img = octx.createImageData(W, H), d = img.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const X = x + .5, Y = y + .5, den = m[6] * X + m[7] * Y + 1;
+    const fx = Math.min(sw - 1.001, Math.max(0, (m[0] * X + m[1] * Y + m[2]) / den - .5));
+    const fy = Math.min(sh - 1.001, Math.max(0, (m[3] * X + m[4] * Y + m[5]) / den - .5));
+    const x0 = fx | 0, y0 = fy | 0, ax = fx - x0, ay = fy - y0;
+    const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4, o = (y * W + x) * 4;
+    for (let c = 0; c < 3; c++) {
+      d[o + c] = (sp[i00 + c] * (1 - ax) + sp[i10 + c] * ax) * (1 - ay) + (sp[i01 + c] * (1 - ax) + sp[i11 + c] * ax) * ay;
+    }
+    d[o + 3] = 255;
+  }
+  octx.putImageData(img, 0, 0);
+  return out;
+}
+
+// The straightened jig for a photo, or null if no believable jig is found
+function straightenedJig(original, box = null) {
+  let area = null;
+  if (box) {
+    const gx = box.w * 0.06, gy = box.h * 0.06;
+    const x = Math.max(0, box.x - gx), y = Math.max(0, box.y - gy);
+    area = { x, y, w: Math.min(original.width, box.x + box.w + gx) - x, h: Math.min(original.height, box.y + box.h + gy) - y };
+  }
+  const q = findJigQuad(original, area);
+  return quadLooksValid(q, original.width, original.height) ? warpQuad(original, q) : null;
 }
 
 const fmtSize = s => s ? `${s.length_mm} × ${s.width_mm} mm` : '';
@@ -1325,10 +1514,9 @@ const fmtSize = s => s ? `${s.length_mm} × ${s.width_mm} mm` : '';
 // base = the image rotations are drawn from, crop = connector crop within it, cleaned = model input, size
 function processPhoto(original, box = null) {
   if (SIZE_ON) {
-    const found = box ? null : autoCrop(original).plate;
-    const jig = box || (jigLooksValid(found, original.width, original.height) ? found : null);
-    if (jig) {
-      const base = cropRegion(original, jig);
+    // Exact jig corners if they can be found; otherwise the box the user drew
+    const base = straightenedJig(original, box) || (box ? cropRegion(original, box) : null);
+    if (base) {
       const crop = autoCrop(base);
       return { base, crop, cleaned: PREPROCESS ? renderCrop(base, crop) : base, size: measureSize(base) };
     }
@@ -1348,9 +1536,12 @@ function processPhoto(original, box = null) {
 // How much to lower a match's score when its training photo's size disagrees with the scan
 function sizePenalty(m, r) {
   if (!m || r.length_mm == null || r.width_mm == null) return { penalty: 0, checked: false, ok: true };
-  const excess = (meas, ref) => Math.max(0, Math.abs(meas - ref) - Math.max(SIZE_MIN_TOLERANCE_MM, SIZE_TOLERANCE * ref)) / Math.max(ref, 0.5);
-  const rel = Math.max(excess(m.length_mm, r.length_mm), excess(m.width_mm, r.width_mm));
-  return { penalty: Math.min(0.35, SIZE_PENALTY * rel), checked: true, ok: rel === 0 };
+  const excess = (meas, ref, tol) => Math.max(0, Math.abs(meas - ref) - Math.max(SIZE_MIN_TOLERANCE_MM, tol * ref)) / Math.max(ref, 0.5);
+  // Length: generous when shorter (the part may be tilted up off the jig), strict when longer
+  const lenTol = m.length_mm < r.length_mm ? TILT_TOLERANCE : SIZE_TOLERANCE;
+  const rel = Math.max(excess(m.length_mm, r.length_mm, lenTol), excess(m.width_mm, r.width_mm, SIZE_TOLERANCE));
+  const tilted = rel === 0 && excess(m.length_mm, r.length_mm, SIZE_TOLERANCE) > 0;   // only fits thanks to the tilt allowance
+  return { penalty: Math.min(0.35, SIZE_PENALTY * rel), checked: true, ok: rel === 0, tilted };
 }
 
 function preprocess(src) {
@@ -1483,7 +1674,7 @@ async function runScan(file, source) {
     const size = flat.length / turns;
     const embeddings = views.map((_, i) => Array.from(flat.subarray(i * size, (i + 1) * size)));
     const results = await Promise.all(embeddings.map(e =>
-      db.rpc('match_connectors', { query_embedding: e, match_count: SIZE_ON ? 40 : 25 })));
+      db.rpc('match_connectors', { query_embedding: e, match_count: SIZE_ON ? 40 : 25, set_name: currentSet })));
     const failedCall = results.find(r => r.error);
     if (failedCall) throw failedCall.error;
     const data = results.flatMap(r => r.data || []);
@@ -1514,7 +1705,7 @@ function groupMatches(rows, size = null) {
     if (score > g.score) {
       g.score = score;
       g.penalty = sp.penalty;
-      g.ref = sp.checked ? { length_mm: r.length_mm, width_mm: r.width_mm, ok: sp.ok } : null;
+      g.ref = sp.checked ? { length_mm: r.length_mm, width_mm: r.width_mm, ok: sp.ok, tilted: sp.tilted } : null;
     }
     g.hits++;
     byId.set(r.connector_id, g);
@@ -1551,7 +1742,7 @@ async function renderMatches(matches) {
         <div class="match-name">${esc(m.name)}</div>
         ${m.part_number ? `<div class="match-meta mono">${esc(m.part_number)}</div>` : ''}
         ${info?.description ? `<div class="match-meta">${esc(info.description)}</div>` : ''}
-        ${m.ref ? `<div class="match-meta ${m.ref.ok ? 'size-ok' : 'size-bad'}">${m.ref.ok ? '✓ Size matches' : '⚠ Size differs'}: ${fmtSize(m.ref)}</div>` : ''}
+        ${m.ref ? `<div class="match-meta ${m.ref.ok ? 'size-ok' : 'size-bad'}">${m.ref.ok ? (m.ref.tilted ? '✓ Size fits if tilted' : '✓ Size matches') : '⚠ Size differs'}: ${fmtSize(m.ref)}</div>` : ''}
         <div class="meter"><div class="meter-bar"><span style="width:${pct}%"></span></div>${pct}% match</div>
         ${m.prob != null ? `<div class="match-meta" style="font-size:.82rem">Classifier ${Math.round(m.prob * 100)}% · photo match ${Math.max(0, Math.round(m.match * 100))}%</div>` : ''}
         <div class="btn-row"><button class="btn btn-small" data-act="confirm">This is it</button></div>
@@ -1561,6 +1752,7 @@ async function renderMatches(matches) {
 
   $('scanResults').innerHTML = `<div class="results">
     <div class="verdict"><h3>${esc(title)}</h3>${sub ? `<p>${esc(sub)}</p>` : ''}
+      <p style="font-size:.85rem">Compared with the <b>${esc(setLabel())}</b> training set.</p>
       ${SIZE_ON ? `<p class="measured">${scan?.size ? `Measured size: <b>${fmtSize(scan.size)}</b>` : 'Size couldn\'t be measured. Check the box lines up with the jig.'}</p>` : ''}</div>
     ${cards}
     <div class="none-box" id="noneBox">
@@ -1666,7 +1858,7 @@ $('scanResults').addEventListener('click', async e => {
       if (picked === 'new') {
         const name = $('pickNewName').value.trim();
         const { data, error } = await db.from('connectors')
-          .insert({ name, part_number: $('pickNewPart').value.trim() || null }).select().single();
+          .insert({ name, part_number: $('pickNewPart').value.trim() || null, training_set: currentSet }).select().single();
         if (error) throw (error.code === '23505' ? new Error(`A connector called "${name}" already exists. Pick it from the list instead.`) : error);
         target = data;
       }
@@ -1723,25 +1915,36 @@ const skippedSizes = new Set((() => { try { return JSON.parse(localStorage.getIt
 const rememberSkipped = () => { try { localStorage.setItem('sizeSkipped', JSON.stringify([...skippedSizes])); } catch { /* storage unavailable */ } };
 let sizeSetupNeeded = false;
 let noJig = [];       // photos already checked where no jig was found (old catalog or non-jig photos)
+let oldSizes = [];    // sizes measured with the earlier, less precise method
 
 async function checkCleanup() {
   if (!db || !PREPROCESS) return;
   try {
-    const all = await listAllImages();
+    const inSet = new Set(connectors.map(c => c.id));
+    const all = (await listAllImages()).filter(r => inSet.has(r.connector_id));   // this training set only
     whitened = all.filter(r => r.storage_path.endsWith(OLD_COLOUR_TAG));
     outdated = all.filter(r => !r.storage_path.endsWith(PROCESSED_TAG) && !r.storage_path.endsWith(OLD_COLOUR_TAG));
   } catch (err) { console.error(err); return; }
-  unmeasured = []; noJig = []; sizeSetupNeeded = false;
+  unmeasured = []; noJig = []; oldSizes = []; sizeSetupNeeded = false;
   if (SIZE_ON) {
-    const res = await db.from('training_images').select('id, storage_path').is('length_mm', null).limit(5000);
+    const inSet = new Set(connectors.map(c => c.id));
+    const res = await db.from('training_images').select('id, connector_id, storage_path').is('length_mm', null).limit(5000);
     if (res.error) sizeSetupNeeded = true;    // the size columns don't exist yet
     else {
+      res.data = res.data.filter(r => inSet.has(r.connector_id));
       unmeasured = res.data.filter(r => r.storage_path.endsWith(PROCESSED_TAG) && !skippedSizes.has(r.id));
       noJig = res.data.filter(r => skippedSizes.has(r.id));
+      let method = null; try { method = localStorage.getItem('sizeMethod'); } catch { /* storage unavailable */ }
+      if (method !== SIZE_METHOD) {
+        const done = await db.from('training_images').select('id, connector_id, storage_path').not('length_mm', 'is', null).limit(5000);
+        if (!done.error) oldSizes = done.data.filter(r => inSet.has(r.connector_id));
+        if (!oldSizes.length) { try { localStorage.setItem('sizeMethod', SIZE_METHOD); } catch { /* storage unavailable */ } }
+      }
     }
   }
-  const n = outdated.length, m = whitened.length, u = unmeasured.length, j = noJig.length;
-  $('cleanupPanel').hidden = !n && !m && !u && !j && !sizeSetupNeeded;
+  const n = outdated.length, m = whitened.length, u = unmeasured.length, j = noJig.length, o = oldSizes.length;
+  $('cleanupPanel').hidden = !n && !m && !u && !j && !o && !sizeSetupNeeded;
+  $('remeasureBtn').hidden = !o;
   $('noJigBtn').hidden = !j;
   if (!j) $('noJigReview').hidden = true;
   $('cleanupBtn').hidden = !n;
@@ -1752,6 +1955,7 @@ async function checkCleanup() {
   if (n) parts.push(`<strong>${n} photo${n === 1 ? ' uses' : 's use'} an older cropping method.</strong> Update ${n === 1 ? 'it' : 'them'} so ${n === 1 ? 'it matches' : 'they match'} how scans are now processed.`);
   if (m) parts.push(`<strong>${m} photo${m === 1 ? ' was' : 's were'} saved with the earlier colour correction.</strong> The originals weren't kept, so ${m === 1 ? 'it' : 'they'} can't be repaired and may be hurting recognition. Delete ${m === 1 ? 'it' : 'them'}, then retake ${m === 1 ? 'it' : 'them'} on the jig.`);
   if (u) parts.push(`<strong>${u} photo${u === 1 ? ' has' : 's have'} no size yet.</strong> Measure sizes to find the jig in each original photo and record the part's size. Photos where the jig can't be found are skipped; you can then review and delete them.`);
+  if (o) parts.push(`<strong>Size measuring has been improved.</strong> It now finds the jig's exact corners and corrects for a rotated jig or angled phone. Re-measure the ${o} photo${o === 1 ? '' : 's'} measured with the older method so ${o === 1 ? 'its size is' : 'their sizes are'} comparable with new scans.`);
   if (j) parts.push(`<strong>${j} photo${j === 1 ? ' was' : 's were'} taken without the jig</strong> (or the jig couldn't be found), such as old catalog images. They have no size, so they can't be checked for size when scanning. Review them, and delete them once each connector has enough jig photos.`);
   $('cleanupText').innerHTML = parts.join('<br><br>');
 }
@@ -1797,23 +2001,23 @@ $('cleanupPanel').addEventListener('click', async e => {
   await loadConnectors();
 });
 
-$('measureBtn').addEventListener('click', async () => {
-  const btn = $('measureBtn'); btn.disabled = true;
+// Measure (or re-measure) photos from their kept originals, using the jig's exact corners
+async function measureRows(list, btn) {
+  btn.disabled = true;
   const bar = $('cleanupProgress'), fill = bar.firstElementChild; bar.hidden = false;
-  const total = unmeasured.length;
+  const total = list.length;
   let measured = 0, skipped = 0, failed = 0;
-  for (const r of unmeasured) {
+  for (const r of list) {
     $('cleanupStatus').textContent = `Measuring ${measured + skipped + failed + 1} of ${total}…`;
     try {
       const url = db.storage.from(BUCKET).getPublicUrl(originalPathFor(r.storage_path)).data.publicUrl;
       let img;
       try { img = await loadImage(url + '?v=1', true); } catch { skipped++; skippedSizes.add(r.id); continue; }   // no original kept
-      const original = resizeToCanvas(img);
-      const jig = autoCrop(original).plate;
-      const size = jigLooksValid(jig, original.width, original.height) ? measureSize(cropRegion(original, jig)) : null;
+      const size = processPhoto(resizeToCanvas(img)).size;
       if (!size) { skipped++; skippedSizes.add(r.id); continue; }
       const up = await db.from('training_images').update(size).eq('id', r.id).select('id');
       if (up.error || !up.data?.length) throw up.error || new Error('update blocked');
+      skippedSizes.delete(r.id);
       measured++;
     } catch (err) { console.error(err); failed++; }
     finally { fill.style.width = `${((measured + skipped + failed) / total) * 100}%`; }
@@ -1822,6 +2026,19 @@ $('measureBtn').addEventListener('click', async () => {
   btn.disabled = false; $('cleanupStatus').textContent = '';
   setTimeout(() => { bar.hidden = true; }, 800);
   toast(`Measured ${measured} photo${measured === 1 ? '' : 's'}${skipped ? `, skipped ${skipped} (jig not found)` : ''}${failed ? `, ${failed} failed` : ''}.`, failed > 0);
+  return failed === 0;
+}
+
+$('measureBtn').addEventListener('click', async () => {
+  await measureRows(unmeasured, $('measureBtn'));
+  await checkCleanup();
+});
+
+// One-time: sizes measured before exact jig corners were used read slightly small when the jig was rotated
+const SIZE_METHOD = '2';
+$('remeasureBtn').addEventListener('click', async () => {
+  const ok = await measureRows(oldSizes, $('remeasureBtn'));
+  if (ok) { try { localStorage.setItem('sizeMethod', SIZE_METHOD); } catch { /* storage unavailable */ } }
   await checkCleanup();
 });
 
@@ -1888,7 +2105,7 @@ function openCropper(src, initialBox = null) {
     const auto = SIZE_ON ? (found.plate || { x: 0, y: 0, w: W, h: H }) : cropToBox(found, W, H);
     $('cropTitle').textContent = SIZE_ON ? 'Line up with the jig' : 'Crop the photo';
     $('cropHint').textContent = SIZE_ON
-      ? 'Drag the corners onto the inner edges of the jig, so sizes can be measured.'
+      ? 'Frame the jig. The site then finds its exact corners and straightens it to measure the part.'
       : 'Drag the box or its corners to frame the connector.';
     const cv = $('cropCanvas');
     cv.width = W; cv.height = H;
@@ -2104,7 +2321,9 @@ async function runHealthCheck() {
   $('healthResults').innerHTML = '';
   try {
     status.textContent = 'Downloading fingerprints…';
-    const rows = await fetchAllFingerprints(n => { status.textContent = `Downloading fingerprints… ${n}`; });
+    const inSet = new Set(connectors.map(c => c.id));
+    const rows = (await fetchAllFingerprints(n => { status.textContent = `Downloading fingerprints… ${n}`; }))
+      .filter(r => inSet.has(r.connector_id));                      // this training set only
     const names = Object.fromEntries(connectors.map(c => [c.id, c.name]));
     const perConn = {};
     rows.forEach(r => { (perConn[r.connector_id] ??= []).push(r); });
@@ -2318,7 +2537,10 @@ $('healthResults').addEventListener('click', async e => {
    Storage so every device uses the same one. */
 let classifier = null;   // { model, meta: { version, classes: [connector ids], trainedAt, photos, holdout } }
 
-const modelUrl = (path) => db.storage.from(BUCKET).getPublicUrl(`${MODEL_DIR}/${path}`).data.publicUrl;
+// Each training set keeps its classifier in models/<set>/. Models saved before sets existed sit
+// directly in models/ and belong to LEGACY_SET; they're still loaded until it's retrained.
+const setModelDir = () => `${MODEL_DIR}/${currentSet}`;
+const storageUrl = (path) => db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 
 function normalizeRows(arrs) {
   return arrs.map(a => {
@@ -2331,11 +2553,20 @@ function normalizeRows(arrs) {
 async function loadClassifier() {
   if (!db) return;
   try {
-    const res = await fetch(modelUrl('latest.json') + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) { classifier = null; return; }
-    const meta = await res.json();
-    const model = await tf.loadLayersModel(modelUrl(`${meta.version}/model.json`));
-    classifier = { model, meta };
+    const forSet = currentSet;
+    const dirs = [setModelDir()];
+    if (currentSet === LEGACY_SET) dirs.push(MODEL_DIR);               // older, pre-sets location
+    let loaded = null;
+    for (const dir of dirs) {
+      const res = await fetch(storageUrl(`${dir}/latest.json`) + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) continue;
+      const meta = await res.json();
+      meta.dir = dir;
+      loaded = { model: await tf.loadLayersModel(storageUrl(`${dir}/${meta.version}/model.json`)), meta };
+      break;
+    }
+    if (forSet !== currentSet) { loaded?.model.dispose(); return; }   // the set was switched while loading
+    classifier = loaded;
   } catch (err) {
     console.warn('No classifier loaded:', err);
     classifier = null;
@@ -2447,16 +2678,22 @@ async function trainClassifier() {
     const modelJson = { modelTopology: art.modelTopology, format: art.format, generatedBy: art.generatedBy,
       convertedBy: art.convertedBy, weightsManifest: [{ paths: ['weights.bin'], weights: art.weightSpecs }] };
     const store = db.storage.from(BUCKET);
-    let r = await store.upload(`${MODEL_DIR}/${version}/weights.bin`, new Blob([weights], { type: 'application/octet-stream' }));
+    const dir = setModelDir();
+    let r = await store.upload(`${dir}/${version}/weights.bin`, new Blob([weights], { type: 'application/octet-stream' }));
     if (r.error) throw r.error;
-    r = await store.upload(`${MODEL_DIR}/${version}/model.json`, new Blob([JSON.stringify(modelJson)], { type: 'application/json' }));
+    r = await store.upload(`${dir}/${version}/model.json`, new Blob([JSON.stringify(modelJson)], { type: 'application/json' }));
     if (r.error) throw r.error;
-    const meta = { version, classes, trainedAt: new Date().toISOString(), photos: X.length, holdout };
-    await store.remove([`${MODEL_DIR}/latest.json`]);
-    r = await store.upload(`${MODEL_DIR}/latest.json`, new Blob([JSON.stringify(meta)], { type: 'application/json' }), { cacheControl: '0' });
+    const meta = { version, classes, trainedAt: new Date().toISOString(), photos: X.length, holdout, set: currentSet };
+    await store.remove([`${dir}/latest.json`]);
+    r = await store.upload(`${dir}/latest.json`, new Blob([JSON.stringify(meta)], { type: 'application/json' }), { cacheControl: '0' });
     if (r.error) throw r.error;
-    const old = classifier?.meta?.version;
-    if (old && old !== version) await store.remove([`${MODEL_DIR}/${old}/model.json`, `${MODEL_DIR}/${old}/weights.bin`]);
+    meta.dir = dir;
+    const old = classifier?.meta;
+    if (old && !(old.dir === dir && old.version === version)) {
+      const gone = [`${old.dir}/${old.version}/model.json`, `${old.dir}/${old.version}/weights.bin`];
+      if (old.dir !== dir) gone.push(`${old.dir}/latest.json`);       // retire a model from the old location
+      await store.remove(gone);
+    }
 
     classifier?.model?.dispose();
     classifier = { model: finalModel, meta };
@@ -2474,9 +2711,9 @@ async function trainClassifier() {
 
 async function removeClassifier() {
   if (!classifier) return;
-  if (!confirm('Stop using the classifier? Scans will use photo matching only. You can train a new one at any time.')) return;
-  const v = classifier.meta.version;
-  await db.storage.from(BUCKET).remove([`${MODEL_DIR}/latest.json`, `${MODEL_DIR}/${v}/model.json`, `${MODEL_DIR}/${v}/weights.bin`]);
+  if (!confirm(`Stop using the ${setLabel()} classifier? Scans in this set will use photo matching only. You can train a new one at any time.`)) return;
+  const { version: v, dir } = classifier.meta;
+  await db.storage.from(BUCKET).remove([`${dir}/latest.json`, `${dir}/${v}/model.json`, `${dir}/${v}/weights.bin`]);
   classifier.model.dispose();
   classifier = null;
   renderClassifierStatus();
@@ -2549,6 +2786,46 @@ function blendWithClassifier(groups, embeddings, rows) {
 
 $('clfTrainBtn').addEventListener('click', trainClassifier);
 $('clfRemoveBtn').addEventListener('click', removeClassifier);
+
+/* ===================== TRAINING SETS ===================== */
+function renderSetTabs() {
+  $('setTabs').innerHTML = TRAINING_SETS.map(t =>
+    `<button class="set-tab" role="radio" aria-checked="${t.id === currentSet}" data-set="${t.id}" tabindex="${t.id === currentSet ? 0 : -1}">${esc(t.label)}</button>`).join('');
+  document.querySelectorAll('[data-set-name]').forEach(el => { el.textContent = setLabel(); });
+}
+
+async function switchSet(id) {
+  if (id === currentSet || cropState) return;
+  currentSet = id;
+  try { localStorage.setItem('trainingSet', id); } catch { /* storage unavailable */ }
+  renderSetTabs();
+  // Nothing from the other set carries over
+  if (scan) URL.revokeObjectURL(scan.url);
+  scan = null;
+  $('scanResults').innerHTML = '';
+  $('scanPreview').hidden = true; $('scanEmpty').hidden = false;
+  $('healthResults').innerHTML = ''; $('healthStatus').textContent = '';
+  $('noJigReview').hidden = true;
+  classifier?.model?.dispose();
+  classifier = null;
+  renderClassifierStatus();
+  toast(`Switched to the ${setLabel()} training set`);
+  await loadConnectors();
+  if (model) loadClassifier();
+}
+
+$('setTabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-set]');
+  if (b) switchSet(b.dataset.set);
+});
+$('setTabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const i = TRAINING_SETS.findIndex(t => t.id === currentSet);
+  const next = TRAINING_SETS[(i + (e.key === 'ArrowRight' ? 1 : -1) + TRAINING_SETS.length) % TRAINING_SETS.length];
+  switchSet(next.id).then(() => $('setTabs').querySelector(`[data-set="${next.id}"]`)?.focus());
+});
+renderSetTabs();
+$('setBar').hidden = location.hash === '#guide';
 
 /* ===================== START ===================== */
 if (isConfigured()) {
