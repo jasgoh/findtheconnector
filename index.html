@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Connector Recognizer</title>
+<title>Tool Room</title>
 <script>
   // Dark by default (same as Stockroom); the header toggle remembers the choice in this browser.
   try { document.documentElement.dataset.theme = localStorage.getItem('ftc-theme') || 'dark'; }
   catch (e) { document.documentElement.dataset.theme = 'dark'; }
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔌</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -470,6 +470,11 @@ label.btn { cursor: pointer; }
 .eq-term-part { font-weight: 600; }
 .eq-term-dies { margin-left: auto; font-size: .8rem; color: var(--ok); font-weight: 600; }
 .eq-term-info { margin-top: .7rem; font-size: .93rem; }
+.eq-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .6rem; }
+.eq-chip { appearance: none; border: 1px solid var(--line); background: var(--field); color: var(--ink); border-radius: 999px; padding: .3rem .7rem; font-size: .85rem; font-weight: 600; cursor: pointer; min-height: 32px; }
+.eq-chip:hover { border-color: var(--muted); }
+.eq-chip[aria-pressed="true"] { background: var(--mat); border-color: var(--mat); color: var(--on-accent); }
+.eq-term-meta { font-size: .82rem; color: var(--muted); margin-top: .1rem; }
 .eq-term-info p { margin: .3rem 0 .5rem; }
 .eq-term-note { color: var(--muted); font-size: .88rem; }
 .eq-term-sel b { font-size: 1rem; }
@@ -500,7 +505,10 @@ label.btn { cursor: pointer; }
 .eq-mat line.major { stroke-width: 1.6; }
 .eq-pin { filter: drop-shadow(0 0 1.6px rgba(255, 255, 255, .75)) drop-shadow(0 1.5px 2px rgba(0, 0, 0, .55)); }
 .eq-lock-rim { fill: none; stroke: #6A7078; stroke-width: 1; opacity: .7; }
-.eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .14em; fill: #B5560E; }
+.eq-real .eq-term polygon { stroke: rgba(70, 56, 14, .45); stroke-width: .35; }
+.eq-real .eq-term .eq-barrel-hot polygon { stroke: var(--mat); stroke-width: 1.2; }
+.eq-badge { fill: none; stroke: #FFB27A; stroke-width: 1.2; }
+.eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .14em; fill: #FFB27A; }
 .eq-ticks line { stroke: #C9CED4; stroke-width: .8; opacity: .75; }
 .eq-glow-dash { stroke-dasharray: 5 4; }
 .eq-engrave { font-family: var(--font); fill: #C9CED4; opacity: .82; letter-spacing: .02em; }
@@ -575,8 +583,8 @@ label.btn { cursor: pointer; }
     <div class="brand">
       <div class="brand-mark" aria-hidden="true"></div>
       <div>
-        <h1>Connector Recognizer</h1>
-        <p>Point a camera at a connector, find out what it is.</p>
+        <h1>Tool Room</h1>
+        <p>Learn the tools, identify the parts.</p>
       </div>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g id="themeIcon"></g></svg>
@@ -822,6 +830,7 @@ label.btn { cursor: pointer; }
             <input type="search" id="eqTermSearch" placeholder="Part number or series, e.g. SPH-002T, PicoBlade" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="eqTermList">
             <div class="eq-term-list pick-list" id="eqTermList" role="listbox" aria-label="Matching terminals" hidden></div>
           </div>
+          <div class="eq-chips" id="eqTermChips" aria-label="Lab terminals"></div>
           <div class="eq-term-info" id="eqTermInfo" aria-live="polite"></div>
         </div>
         <div class="eq-step" aria-live="polite">
@@ -1059,6 +1068,7 @@ const PAD11 = (() => {
   const OXIDE = { l: '#5D636B', m: '#3B4047', d: '#1E2126' };
   const DIE = { l: '#666C74', m: '#454A51', d: '#25282D' };
   const TPR = { l: '#FFAE6B', m: '#F07A22', d: '#A84B0B' };
+  M.tinDark = { l: '#B9A86A', m: '#9C8B50', d: '#6B5E33' };
   const BOLT = { l: '#70767E', m: '#4A4F56', d: '#2A2D32' };
   const RED = { l: '#F07A6E', m: '#D23C2E', d: '#7E1F17' };
 
@@ -1070,7 +1080,7 @@ const PAD11 = (() => {
   const dieX = i => { const a = Math.floor(Math.max(0, Math.min(4.999, i))), t = i - a; return lerp(DIES[a].x, DIES[a + 1].x, t); };
   const OPEN_ANGLE = 15 * Math.PI / 180;
   const FRONT = 10;                                // front face of the die plates (y)
-  const KT = 2.6;                                  // terminal drawn 2.6× real size
+  let KT = 2.1;                                    // terminal drawn larger than life so it matches the drawn dies
 
   const rotP = ([x, z], a) => [x * Math.cos(a) - z * Math.sin(a), x * Math.sin(a) + z * Math.cos(a)];
   const arcPts = (cx, cz, r, a0, a1, n = 8) => Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
@@ -1079,6 +1089,44 @@ const PAD11 = (() => {
     for (let i = 0; i <= seg; i++) { const a = Math.PI / 2 - Math.PI * i / seg; out.push([B[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw1, B[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw1]); }
     for (let i = 0; i <= seg; i++) { const a = -Math.PI / 2 - Math.PI * i / seg; out.push([A[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw0, A[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw0]); }
     return out;
+  }
+
+  /* ----- terminals: dimensions in mm (contact at y = 0, wire end at the far y) ----- */
+  // Approximate geometry from each maker's datasheet outline dimensions and wire range.
+  const TERM_SPECS = {
+    micro: { name: 'Micro-Fit terminal', Lc: 6.0, W: 2.7, H: 2.6, Lt: .9, Lb: 1.9, g: .8, Li: 2.0, cond: .64, od: 1.6, shoulder: true },
+    nano:  { name: 'Nano-Fit terminal', Lc: 4.6, W: 1.9, H: 1.9, Lt: .7, Lb: 1.4, g: .6, Li: 1.6, cond: .40, od: 1.15 },
+    df11:  { name: 'DF11 terminal', Lc: 4.2, W: 1.7, H: 1.6, Lt: .6, Lb: 1.3, g: .5, Li: 1.5, cond: .40, od: 1.1 },
+    pico:  { name: 'PicoBlade terminal', Lc: 3.4, W: 1.1, H: 1.0, Lt: .5, Lb: 1.1, g: .45, Li: 1.25, cond: .32, od: .95 },
+    gh:    { name: 'GH terminal', Lc: 2.9, W: 1.0, H: .95, Lt: .45, Lb: 1.0, g: .4, Li: 1.1, cond: .32, od: .9 },
+    sh:    { name: 'SH terminal', Lc: 2.4, W: .85, H: .8, Lt: .4, Lb: .9, g: .35, Li: .95, cond: .25, od: .6 },
+    rcy:   { name: 'RCY socket', Lc: 5.8, W: 1.7, H: 1.7, Lt: .8, Lb: 1.8, g: .7, Li: 1.9, cond: .51, od: 1.4 },
+  };
+  // For terminals without a model: proportions from the die sizes
+  const genericSpec = (c, i) => ({ Lc: 2.2 * c + 1.4, W: c * 1.1, H: c * 1.05, Lt: .3 + .3 * c, Lb: .5 + .8 * c, g: .2 + .3 * c, Li: .5 + .85 * i, cond: Math.max(.22, c * .33), od: Math.min(i * .9, Math.max(.6, i * .75)) });
+  let SPEC = null, GEO = null;
+  function geometry(sp, c, i) {
+    const t = Math.max(.07, sp.W * .045);                        // sheet thickness
+    const bwC = c * .95, bwI = i * .95;                           // barrel widths match the dies
+    const cb0 = sp.Lc + sp.Lt, cb1 = cb0 + sp.Lb, ib0 = cb1 + sp.g, ib1 = ib0 + sp.Li;
+    const tip = cb0 - .25, insStart = cb1 + sp.g * .5;
+    return { ...sp, t, bwC, bwI, cb0, cb1, ib0, ib1, L: ib1, tip, insStart, strip: insStart - tip,
+             zc: t + sp.cond / 2, zi: t + sp.od / 2, hwC: sp.cond + bwC * .95, hwI: sp.od * 1.15 + t };
+  }
+  // cross-sections (x across, z up, z = 0 is the underside of the barrel floor)
+  const arc = (cx, cz, r, a0, a1, n) => Array.from({ length: n + 1 }, (_, k) => { const a = (a0 + (a1 - a0) * k / n) * Math.PI / 180; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
+  function profU(w, h, t) {
+    const R = w / 2;
+    return [[-R, h], ...arc(0, R, R, 180, 360, 10), [R, h], [R - t, h], ...arc(0, R, R - t, 360, 180, 10), [-R + t, h]];
+  }
+  function profB(w, h) {                                          // F-crimp: two curled wings meeting in the middle
+    const R = w / 2, lob = w / 4, zm = h * .46;
+    const bottom = Array.from({ length: 11 }, (_, k) => { const a = (180 + 18 * k) * Math.PI / 180; return [R * Math.cos(a), zm + zm * Math.sin(a)]; });
+    return [...bottom, [R, h * .62], ...arc(lob, h * .62, lob * .98, 0, 180, 7), [0, h * .5], ...arc(-lob, h * .62, lob * .98, 0, 180, 7)];
+  }
+  function profO(r, t) {                                          // insulation barrel wrapped round the wire, overlap seam on top
+    const c = r + t, R = r + t;
+    return [...arc(0, c, R, -80, 250, 18), [-R * .32, c + R * 1.02], [R * .36, c + R * 1.12], [R * .44, c + R * .96]];
   }
 
   /* ----- the two halves of the tool, in the closed position (proportions from Engineer's product photos) ----- */
@@ -1137,11 +1185,12 @@ const PAD11 = (() => {
     const S = R / 4.2;                                     // px per mm inside the magnifier
     const dieW = DIES[kind === 'cond' ? SEL.c : SEL.i].w;
     const W = dieW * S;                                      // die width
-    const q = dieW / (kind === 'cond' ? 1.6 : 1.9);         // wire scales with the die
+    const gq = GEO || geometry(genericSpec(1.6, 1.9), 1.6, 1.9);
+    const rWire = (kind === 'cond' ? gq.cond : gq.od) / 2 * S; // real wire size against the die
     const floorY = cy + 1.3 * S;
     // lower die (anvil) and upper die (punch)
     const anvil = `<path stroke="rgba(0,0,0,.35)" stroke-width="1" d="M${f(cx - R)} ${f(floorY + .25 * S)} L${f(cx - W / 2 - .5 * S)} ${f(floorY + .25 * S)} Q${f(cx - W / 2 - .2 * S)} ${f(floorY + .25 * S)} ${f(cx - W / 2)} ${f(floorY)} Q${f(cx)} ${f(floorY + .55 * S)} ${f(cx + W / 2)} ${f(floorY)} Q${f(cx + W / 2 + .2 * S)} ${f(floorY + .25 * S)} ${f(cx + W / 2 + .5 * S)} ${f(floorY + .25 * S)} L${f(cx + R)} ${f(floorY + .25 * S)} L${f(cx + R)} ${f(cy + R)} L${f(cx - R)} ${f(cy + R)}Z" fill="url(#pad-die-cut)"/>`;
-    const archH = (kind === 'cond' ? 1.35 : 1.55) * S * q;    // how high the wings rise before curling
+    const archH = kind === 'cond' ? rWire * 1.75 + .12 * S : rWire * 1.55;   // how high the wings rise before curling
     const pr = W / 4;
     const closedFace = floorY + .25 * S;
     const faceY = lerp(closedFace - 3.2 * S, closedFace, press);
@@ -1152,14 +1201,14 @@ const PAD11 = (() => {
     // wire: strands (and red insulation for the insulation barrel)
     const curl = kind === 'cond' ? st.crimpC : st.crimpI;
     let wire = '';
-    const wireCY = floorY - (kind === 'cond' ? .55 : .9) * S * q;
+    const wireCY = floorY - .1 * S - rWire;
     if (st.insetWire > .02) {
-      const squash = kind === 'cond' ? lerp(1, .7, curl) : lerp(1, .9, curl);
+      const squash = kind === 'cond' ? lerp(1, .78, curl) : lerp(1, .92, curl);
       if (kind === 'ins') {
-        const ri = .85 * S * q;
+        const ri = rWire;
         wire += `<ellipse cx="${f(cx)}" cy="${f(wireCY)}" rx="${f(ri * lerp(1, 1.06, curl))}" ry="${f(ri * squash)}" fill="#D23C2E" stroke="#7E1F17" stroke-width="1"/>`;
       }
-      const sr = .14 * S * q, ring = [[0, 0], ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3) * 2, Math.sin(i * Math.PI / 3) * 2])];
+      const sr = (kind === 'cond' ? rWire : gq.cond / 2 * S) / (kind === 'cond' ? 4.5 : 3), ring = [[0, 0], ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3) * 2, Math.sin(i * Math.PI / 3) * 2])];
       const strandsAt = kind === 'cond' ? [...ring, ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3 + Math.PI / 6) * 3.5, Math.sin(i * Math.PI / 3 + Math.PI / 6) * 3.5])] : ring;
       wire += strandsAt.map(([a, b]) => `<circle cx="${f(cx + a * sr * lerp(1, 1.12, kind === 'cond' ? curl : 0))}" cy="${f(wireCY + b * sr * squash)}" r="${f(sr)}" fill="#E39A5A" stroke="#8E5426" stroke-width=".8"/>`).join('');
       wire = `<g opacity="${f(st.insetWire)}">${wire}</g>`;
@@ -1215,49 +1264,61 @@ const PAD11 = (() => {
     const beta = st.insp * Math.PI / 2;                       // turn side-on for inspection
     const Ay = [Math.sin(beta), Math.cos(beta), 0], Ax = [Math.cos(beta), -Math.sin(beta), 0], Az = [0, 0, 1];
     const nest = RB([dieX(st.die), -.6]);
-    const seatO = [nest[0], st.ty * KT / 1.6, nest[1] - .5 * KT];
+    const dwNow = lerp(DIES[Math.floor(Math.min(4.999, st.die))].dw, DIES[Math.min(5, Math.floor(st.die) + 1)].dw, st.die % 1);
+    const seatO = [nest[0], st.ty, nest[1] - dwNow * .7];
     const O = [lerp(seatO[0], st.ix, st.insp), lerp(seatO[1], st.iy, st.insp), lerp(seatO[2], st.iz, st.insp)];
     const W = ([x, y, z]) => [O[0] + (Ax[0] * x + Ay[0] * y) * k, O[1] + (Ax[1] * x + Ay[1] * y) * k, O[2] + z * k];
     const frame = { o: O, U: Ax.map(v => v * k), V: Az.map(v => v * k), W: Ay.map(v => v * k) };
     function assembly(front) {
-      // split at the die plates' front face: parts behind it are drawn before the tool
-      const ky = Ay[1] * k;
-      const cut = -1e9;                 // drawn in front of the die plate so it's easy to see
+      // split at the die plates' front face: parts behind it are drawn before the (see-through) plates
+      const g = GEO, ky = Ay[1] * k;
+      const cut = Math.abs(ky) < 1e-3 ? (O[1] >= FRONT ? -1e9 : 1e9) : (FRONT - O[1]) / ky;
       const yMin = front ? cut : -1e9, yMax = front ? 1e9 : cut;
       const clip = (a, b) => [Math.max(a, yMin), Math.min(b, yMax)];
-      const bx = (x0, z0, x1, z1, y0, y1, m) => { const [a, b] = clip(y0, y1); return b > a ? prism([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], frame, a, b, m) : ''; };
-      const oct = (r, h) => Array.from({ length: 8 }, (_, i) => { const a = (i + .5) / 8 * 2 * Math.PI; return [r * Math.cos(a), h * Math.sin(a)]; });
-      const rd = (r, h, y0, y1, m) => { const [a, b] = clip(y0, y1); return b > a ? prism(oct(r, h), frame, a, b, m) : ''; };
-      const tb = (y0, y1, d, m, z = 0) => { const [a, b] = clip(y0, y1); return b > a ? tube([W([0, a, z]), W([0, b, z])], d * k * K, m, 'butt') : ''; };
+      const piece = (prof, y0, y1, m = M.tin) => { const [a, b] = clip(y0, y1); return b > a ? prism(prof, frame, a, b, m) : ''; };
+      const rect = (x0, z0, x1, z1) => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+      const tb = (y0, y1, d, m, z) => { const [a, b] = clip(y0, y1); return b > a ? tube([W([0, a, z]), W([0, b, z])], d * k * K, m, 'butt') : ''; };
       let s = '';
+      // contact, transition and open barrels
       if (st.termOn > .01) {
-        let t = bx(-.85, -.85, .85, .85, 0, 4.4, M.tin) + bx(-.3, .85, .3, 1.2, 1, 3.4, M.tin);
-        if (st.crimpC < .5) t += bx(-.78, -.95, -.6, .95, 4.9, 6.9, M.tin) + bx(-.78, -.95, .78, -.75, 4.4, 6.9, M.tin);
-        if (st.crimpI < .5) t += bx(-1.05, -.95, -.85, 1.45, 7.3, 9.4, M.tin) + bx(-1.05, -.95, 1.05, -.75, 6.9, 9.4, M.tin);
-        s += `<g opacity="${f(st.termOn)}">${t}</g>`;
+        const w = g.W, h = g.H;
+        let t = piece(rect(-w / 2 * .92, .04, w / 2 * .92, h * .96), 0, .35);                          // entry
+        t += piece(rect(-w / 2, 0, w / 2, h), .35, g.Lc);                                             // box
+        if (g.shoulder) t += piece(rect(-w / 2 - .18, 0, w / 2 + .18, h * .7), g.Lc * .72, g.Lc);
+        t += piece([[-w * .22, h], [w * .22, h], [w * .16, h + .22], [-w * .16, h + .22]], g.Lc * .3, g.Lc * .62);   // locking lance
+        t += piece(rect(-w * .03, h, w * .03, h + .015), .4, g.Lc - .2, M.tinDark);                  // seam
+        t += piece(rect(-w / 2 - .012, h * .28, -w / 2, h * .72), g.Lc * .14, g.Lc * .46, M.tinDark);  // spring window
+        t += piece(profU(Math.min(g.bwC, w) * .9, g.t * 2.2, g.t), g.Lc, g.cb0);                     // transition strip
+        if (st.crimpC < .5) t += `<g class="${st.hotC > .5 ? 'eq-barrel-hot' : ''}">${piece(profU(g.bwC, g.hwC, g.t), g.cb0, g.cb1)}</g>`;
+        t += piece(profU(g.bwC * .9, g.t * 2.2, g.t), g.cb1, g.ib0);                                  // gap
+        if (st.crimpI < .5) t += `<g class="${st.hotI > .5 ? 'eq-barrel-hot' : ''}">${piece(profU(g.bwI, g.hwI, g.t), g.ib0, g.ib1)}</g>`;
+        s += `<g class="eq-term" opacity="${f(st.termOn)}">${t}</g>`;
       }
+      // wire: bare strands, insulation, and the stripped-off slug
       if (st.wireOn > .01) {
-        const wy = st.wY, strip = 2.2;
-        let w = tb(wy, wy + strip + .2, .75, M.copper);
-        if (st.slug < .99) { const off = -st.slug * 5; const sl = tb(wy + off, wy + strip + off, 1.45, RED); if (sl) w += `<g opacity="${f(1 - st.slug)}">${sl}</g>`; }
+        const wy = st.wY, strip = g.strip;
+        let w = tb(wy, wy + strip + .1, g.cond, M.copper, g.zc);
+        if (st.slug < .99) { const off = -st.slug * strip * 2; const sl = tb(wy + off, wy + strip + off, g.od, RED, g.zi); if (sl) w += `<g opacity="${f(1 - st.slug)}">${sl}</g>`; }
         const ins0 = wy + strip, insEnd = ins0 + st.wireLen;
         const [a, b] = clip(ins0, insEnd);
         if (b > a) {
-          w += tube([W([0, a, 0]), W([0, b, 0])], 1.45 * k * K, RED, 'butt');
+          w += tube([W([0, a, g.zi]), W([0, b, g.zi])], g.od * k * K, RED, 'butt');
           if (b >= insEnd - .01 && st.wireLen < 60) {
-            const [ex, ey] = P(W([0, insEnd, 0]));
-            w += `<ellipse class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" rx="${f(.72 * k * K)}" ry="${f(.72 * k * K * .9)}" fill="${RED.d}" stroke="#2a0d09" stroke-width=".8"/><circle class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" r="${f(.36 * k * K)}" fill="${M.copper.m}"/>`;
+            const [ex, ey] = P(W([0, insEnd, g.zi])), r = g.od / 2 * k * K;
+            w += `<ellipse class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" rx="${f(r)}" ry="${f(r * .9)}" fill="${RED.d}" stroke="#2a0d09" stroke-width=".8"/><circle class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" r="${f(g.cond / 2 * k * K)}" fill="${M.copper.m}"/>`;
           }
         }
         s += `<g opacity="${f(st.wireOn)}">${w}</g>`;
       }
+      // crimped barrels sit over the wire
       if (st.termOn > .01) {
         let t = '';
-        if (st.crimpC < .5) t += bx(.6, -.95, .78, .95, 4.9, 6.9, M.tin);
-        else t += rd(.72, .62, 4.9, 6.6, M.tin) + rd(.86, .78, 6.6, 6.95, M.tin);       // crimped barrel + bellmouth
-        if (st.crimpI < .5) t += bx(.85, -.95, 1.05, 1.45, 7.3, 9.4, M.tin);
-        else t += rd(1.08, .98, 7.3, 9.4, M.tin);
-        s += `<g opacity="${f(st.termOn)}">${t}</g>`;
+        if (st.crimpC >= .5) {
+          const hc = g.cond * 1.2 + g.t * 2;
+          t += `<g class="${st.hotC > .5 ? 'eq-barrel-hot' : ''}">${piece(profB(g.bwC, hc), g.cb0, g.cb1 - .22)}${piece(profB(g.bwC * 1.12, hc * 1.12), g.cb1 - .22, g.cb1)}</g>`;   // + bellmouth
+        }
+        if (st.crimpI >= .5) t += `<g class="${st.hotI > .5 ? 'eq-barrel-hot' : ''}">${piece(profO(g.od / 2, g.t), g.ib0, g.ib1)}</g>`;
+        s += `<g class="eq-term" opacity="${f(st.termOn)}">${t}</g>`;
       }
       return s;
     }
@@ -1268,31 +1329,40 @@ const PAD11 = (() => {
     const lockPoly = poly => poly.map(lockPt);
     const XZw = XZf();
     const prW = (poly, y0, y1, m, cap) => prism(poly, XZw, y0, y1, m, '', cap);
-    const grip = (map, R, y0, y1) => {
+    const grip = (map, R, y0, y1, upper) => {
       let g = prW(GRIP.map(map).map(R), y0, y1, TPR, 'url(#pad-tpr)');
+      if (upper) {        // "ENGINEER" badge: a long hexagon outline
+        const badge = [[46, 0], [49, 3], [78, 3], [81, 0], [78, -3], [49, -3]].map(([u, v]) => [u * GU, v + .4]).map(map).map(R);
+        g += `<polygon class="eq-noink eq-badge" points="${pts(badge.map(([x, z]) => [x, y1 + .15, z]))}"/>`;
+      } else {            // lower grip: curved recess at the shoulder and three ribs near the end
+        const sw = [...Array.from({ length: 9 }, (_, n) => { const a = (205 + n * 12) * Math.PI / 180; return [24 + 15 * Math.cos(a), 13.5 + 15 * Math.sin(a)]; }),
+                    ...Array.from({ length: 9 }, (_, n) => { const a = (301 - n * 12) * Math.PI / 180; return [24 + 12.4 * Math.cos(a), 13.5 + 12.4 * Math.sin(a)]; })];
+        g += prW(sw.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
+        for (const u of [62, 67, 72]) g += prW([[u, -6.6], [u + 2.2, -6.6], [u + 3.2, 6.4], [u + 1, 6.4]].map(([a, b]) => [a * GU, b]).map(map).map(R), y1, y1 + .5, TPR, 'url(#pad-tpr-light)');
+      }
       g += prW(GRIP_FACET.map(map).map(R), y1, y1 + .4, TPR, 'url(#pad-tpr-light)');
       g += prW(GRIP_RIDGE.map(map).map(R), y1, y1 + .3, TPR, 'url(#pad-tpr-light)');
       g += prW(GRIP_TRI.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
-      g += prW(GRIP_GROOVE.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
-      const [hx, hz] = R(map([92, -3.4])), [sx, sy] = P([hx, y1 + .2, hz]);
+      if (upper) g += prW([[38, -3.6], [96, -3.2], [96, 3.6], [38, 3.8]].map(([u, v]) => [u * GU, v]).map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');   // channel
+      else g += prW(GRIP_GROOVE.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
+      const [hx, hz] = R(map([101, -2.6])), [sx, sy] = P([hx, y1 + .2, hz]);
       g += `<ellipse class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" rx="${f(2.2 * K)}" ry="${f(1.7 * K)}" fill="#3a1a05" opacity=".85"/>`;
       return g;
     };
     let tool = '';
     tool += pr(stripPoly(...coreA, 4.6, 4.4), RA, 0, 4, OXIDE, 'url(#pad-oxide)');
-    tool += grip(gripA, RA, -1.5, 5.5);
+    tool += grip(gripA, RA, -1.5, 5.5, false);
     tool += pr(armA, RA, 0, 4, OXIDE, 'url(#pad-oxide)');
     // cutter blade on arm A, showing below the front half
     tool += pr([[14.2, -5.8], [28, -6.4], [27.4, -7.8], [14.6, -7.3]], RA, 4, 4.3, OXIDE, 'url(#pad-blade)');
-    tool += pr(UP_PLATE, RA, 4, FRONT, DIE, 'url(#pad-die)');
     tool += pr(stripPoly(...coreB, 4.6, 4.4), RB, 4, 8, OXIDE, 'url(#pad-oxide)');
-    tool += grip(gripB, RB, 2.5, 9.5);
+    tool += grip(gripB, RB, 2.5, 9.5, true);
     tool += pr(armB, RB, 4, 8, OXIDE, 'url(#pad-oxide)');
     tool += pr([[12.2, -4.2], [19.2, -3.4], [21, -5.8], [22.8, -3.2], [28, -2.8], [27.6, -1.4], [12.6, -2.6]], RB, 8, 8.3, OXIDE, 'url(#pad-blade)');
-    tool += pr(LO_PLATE, RB, 8, FRONT, DIE, 'url(#pad-die)');
+    tool += '@@PLATES@@';
     // "ENGINEER" moulded into the upper grip
-    { const [x, z] = RB(gripB([58, 3.2])), [X, Y] = P([x, 9.6, z]), ang = -(TILT + aB) * 180 / Math.PI - 11.2;
-      tool += `<text class="eq-moulded" x="${f(X)}" y="${f(Y)}" font-size="${f(3.6 * K)}" text-anchor="middle" transform="rotate(${f(ang)} ${f(X)} ${f(Y)})">ENGINEER</text>`; }
+    { const [x, z] = RB(gripB([71, -.9])), [X, Y] = P([x, 9.6, z]), ang = -(TILT + aB) * 180 / Math.PI - 7;
+      tool += `<text class="eq-moulded" x="${f(X)}" y="${f(Y)}" font-size="${f(3.1 * K)}" text-anchor="middle" transform="rotate(${f(ang)} ${f(X)} ${f(Y)})">ENGINEER</text>`; }
     // screws
     const bolt = (c, R, y, r, hex = true, cap = 'url(#pad-bolt)') => {
       const [x, z] = R(c), n = hex ? 6 : 16, poly = Array.from({ length: n }, (_, i) => { const a = i / n * 2 * Math.PI + .3; return [x + r * Math.cos(a), z + r * Math.sin(a)]; });
@@ -1353,8 +1423,12 @@ const PAD11 = (() => {
     const s1 = 2.3, F = P([-16, 2, 0]), T1 = [-28 - F[0] * s1, 50 - F[1] * s1];
     const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
-    let scene = mat + shadowSvg + assembly(false);
-    scene += toolOp < .99 ? `<g opacity="${f(toolOp)}">${tool}</g>` : tool;
+    const [toolBase, toolTop] = tool.split('@@PLATES@@');
+    const plates = pr(UP_PLATE, RA, 4, FRONT, DIE, 'url(#pad-die)') + pr(LO_PLATE, RB, 8, FRONT, DIE, 'url(#pad-die)');
+    const seeThru = 1 - .62 * st.dieAlpha;                 // die plates go see-through while a barrel sits in them
+    const wrap = str => toolOp < .99 ? `<g opacity="${f(toolOp)}">${str}</g>` : str;
+    let scene = mat + shadowSvg + wrap(toolBase) + `<g class="eq-pin">${assembly(false)}</g>`;
+    scene += wrap(`<g style="opacity:${f(seeThru)}">${plates}</g>` + toolTop);
     scene += `<g class="eq-pin">${assembly(true)}</g>`;
     let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
 
@@ -1380,12 +1454,12 @@ const PAD11 = (() => {
       scale:   { at: at([-10.6, -12], RB, 8), dx: -84, dy: 40, text: 'Scale (mm)' },
       die16:   { at: at([DIES[SEL.c].x, 4.5], RA, FRONT), dx: -60, dy: -62, text: `${dieName(SEL.c)} mm die` },
       die19:   { at: at([DIES[SEL.i].x, 4.5], RA, FRONT), dx: 10, dy: -78, text: `${dieName(SEL.i)} mm die` },
-      terminal:{ at: tagAt(2, .9), dx: -86, dy: 22, text: 'Terminal' },
-      wire:    { at: tagAt(st.wY + 14), dx: 78, dy: 26, text: 'Stripped wire' },
-      strip:   { at: tagAt(st.wY + 1), dx: 84, dy: -12, text: 'Strip 1.5–2 mm' },
-      bell:    { at: tagAt(6.85, .8), dx: -70, dy: -50, text: 'Bellmouth' },
-      brush:   { at: tagAt(4.6, .2), dx: -70, dy: 46, text: 'Strand ends showing' },
-      insul:   { at: tagAt(8.6, 1), dx: 50, dy: -56, text: 'Grips the insulation' },
+      terminal:{ at: tagAt(GEO.Lc * .5, GEO.H), dx: -86, dy: 22, text: SPEC.name || 'Terminal' },
+      wire:    { at: tagAt(st.wY + GEO.strip + 6, GEO.zi), dx: 78, dy: 26, text: 'Stripped wire' },
+      strip:   { at: tagAt(st.wY + 1), dx: 84, dy: -12, text: 'Strip to the datasheet length' },
+      bell:    { at: tagAt(GEO.cb1 - .1, GEO.zc + GEO.cond * .7), dx: -40, dy: -64, text: 'Bellmouth' },
+      brush:   { at: tagAt(GEO.cb0 - .15, GEO.zc), dx: -24, dy: 58, text: 'Strand ends showing' },
+      insul:   { at: tagAt((GEO.ib0 + GEO.ib1) / 2, GEO.od + GEO.t), dx: 60, dy: -60, text: 'Grips the insulation' },
     };
     for (const t of Object.values(tags)) t.xy = cam(P(t.at));
     return { svg, tags, anchors: { flash: cam(P(at([-40, 0], RA, FRONT))), lock: cam(P(at([LOCK_HUB[0] + 4, LOCK_HUB[1] - 26], RA, 8.4))) } };
@@ -1404,20 +1478,35 @@ const PAD11 = (() => {
     <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
   const MOVE_KEY = { die: 4, glowI: 1 };
-  function setDies(c, i) {
+  const K_PLACE = { ty: -4.4 }, K_INSERT = { wY: 5.1 }, K_INS_TY = { ty: -8.4 }, K_INSPECT = { toolFade: .03, insp: 1, wireLen: 7 };
+  // Set which terminal is shown (a key of TERM_SPECS, or null for a generic one) and its dies (indexes into DIES)
+  function setTerminal(specKey, c, i) {
     SEL.c = c; SEL.i = i;
-    this.base.die = c; MOVE_KEY.die = i;
+    const cw = DIES[c].w, iw = DIES[i].w;
+    SPEC = TERM_SPECS[specKey] || genericSpec(cw, iw);
+    GEO = geometry(SPEC, cw, iw);
+    KT = DIES[c].dw / cw;                                   // match the drawn die width
+    const seatY = 8.6;                                      // middle of the lower die's thickness
+    const b = this.base;
+    b.die = c; MOVE_KEY.die = i;
+    K_PLACE.ty = seatY - (GEO.cb0 + GEO.Lb / 2) * KT;
+    K_INS_TY.ty = seatY - (GEO.ib0 + GEO.Li / 2) * KT;
+    b.wY = GEO.L + 14; K_INSERT.wY = GEO.tip;
+    b.as = 8; K_INSPECT.wireLen = Math.max(5, 14 - GEO.L * .4);       // true relative size between terminals
+    b.ix = 28 - (GEO.L + K_INSPECT.wireLen) * b.as / 2;               // centre it in the view
   }
+  function setDies(c, i) { setTerminal.call(this, null, c, i); }
 
   return {
-    setDies, dieName, dieSizes: DIES.map(d => d.w),
-    vars: () => ({ C: dieName(SEL.c), I: dieName(SEL.i) }),
+    setDies, setTerminal, dieName, dieSizes: DIES.map(d => d.w),
+    vars: () => ({ C: dieName(SEL.c), I: dieName(SEL.i),
+      M: SEL.c === SEL.i ? `Keep it in the ${dieName(SEL.i)} mm die but slide it further in` : `Move the terminal to the ${dieName(SEL.i)} mm die and push it in` }),
     picker: true,
     id: 'pad11', fig: 1, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
     viewBox: [-215, -212, 600, 430],
     look: 'real', defs,
     base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 48, wY: 26, slug: 0,
-            crimpC: 0, crimpI: 0, wireLen: 120, inset: 0, insetKind: 0, insetPress: 0, insetWire: 0, insetTerm: 0,
+            crimpC: 0, crimpI: 0, wireLen: 120, dieAlpha: 0, hotC: 0, hotI: 0, inset: 0, insetKind: 0, insetPress: 0, insetWire: 0, insetTerm: 0,
             insp: 0, ix: -21, iy: 40, iz: 6.5, as: 9, zoom: 0 },
     draw,
     steps: [
@@ -1431,7 +1520,7 @@ const PAD11 = (() => {
         keys: [[.2, { lockGlow: 1 }], [.55, { lock: 0 }], [.95, { open: 1 }], [1, { lockGlow: 0 }]],
         flashes: [[.5, 'Unlocked', 'lock']] },
       { title: 'Strip the wire', dur: 1500,
-        body: 'Strip the length given on the terminal\'s datasheet, usually 1.5–2 mm for small terminals. You can check it against the scale on the head. Keep the strands straight and untwisted.',
+        body: 'Strip the length given on the terminal\'s datasheet: enough bare wire to fill the conductor barrel, with the insulation reaching the insulation barrel. You can check it against the scale on the head. Keep the strands straight and untwisted.',
         caution: 'Nicked or missing strands make a weak crimp. If you cut any, trim the end and strip again.',
         tags: ['wire', 'strip', 'scale'], hot: ['strip'],
         keys: [[.25, { wireOn: 1 }], [1, { slug: 1 }]] },
@@ -1440,21 +1529,21 @@ const PAD11 = (() => {
         tags: ['die16'], hot: ['die16'],
         keys: [[.6, { glowC: 1, zoom: 1 }]] },
       { title: 'Place the conductor barrel', dur: 2000,
-        body: 'Set the terminal in the die with its open wings pointing at the upper die. Line the back edge of the conductor barrel up with the chamfered edge of the upper die, so a small bellmouth forms. Close the handles just enough to hold it.',
+        body: 'Set the terminal in the {C} mm die with its open wings pointing at the upper die, so the conductor barrel sits inside the die. Line the back edge of the barrel up with the chamfered edge of the upper die, so a small bellmouth forms. Close the handles just enough to hold it.',
         tags: ['terminal', 'die16'], hot: ['terminal'],
-        keys: [[.1, { termOn: 1 }], [.65, { ty: -4.4 }], [1, { open: .3, glowC: 0, inset: 1, insetTerm: 1, insetPress: .25 }]] },
+        keys: [[.1, { termOn: 1 }], [.3, { dieAlpha: 1 }], [.65, K_PLACE], [.7, { hotC: 1 }], [1, { open: .3, glowC: 0, inset: 1, insetTerm: 1, insetPress: .25 }]] },
       { title: 'Insert the stripped wire', dur: 1700,
         body: 'Slide the wire in from the front until the strands sit fully in the conductor barrel and the insulation reaches the insulation barrel.',
         tags: ['wire', 'terminal'], hot: ['wire'],
-        keys: [[.75, { wY: 5.1 }], [1, { insetWire: 1 }]] },
+        keys: [[.75, K_INSERT], [1, { insetWire: 1 }]] },
       { title: 'Squeeze the handles firmly', dur: 2200,
         body: 'Squeeze all the way until the jaws close fully. The upper die curls the wings down into the strands. Then open the handles.',
         tags: ['handles'], hot: ['handles'],
         keys: [[.6, { open: 0, insetPress: 1, crimpC: 1 }], [1, { open: .5 }]] },
       { title: 'Move to the insulation barrel', dur: 2000,
-        body: 'Move the terminal to the {I} mm die and push it in so the insulation barrel sits in the centre of the die. That keeps the terminal level while it crimps.',
+        body: '{M} so the insulation barrel sits in the centre of the die. That keeps the terminal level while it crimps.',
         tags: ['die19', 'terminal'], hot: ['die19'],
-        keys: [[0, { inset: 0 }], [.25, { ty: 6 }], [.55, MOVE_KEY], [.8, { ty: -8.4 }],
+        keys: [[0, { inset: 0, hotC: 0 }], [.25, { ty: 6 }], [.55, MOVE_KEY], [.8, K_INS_TY], [.82, { hotI: 1 }],
                [.85, { insetKind: 1, insetPress: .1 }], [1, { inset: 1, glowI: 0, open: .3 }]] },
       { title: 'Squeeze gently', dur: 2400,
         body: 'Squeeze softly, just enough for the wings to wrap round the insulation. Squeezing hard here cuts into the insulation and can damage the strands.',
@@ -1465,7 +1554,7 @@ const PAD11 = (() => {
         body: 'Take the terminal out and check it: a small bellmouth at the back of the conductor barrel, strand ends just showing past it, and the insulation barrel holding insulation, not bare wire. Give it a firm tug; it shouldn\'t move.',
         caution: 'Strands outside the barrel, wings not closed, or a terminal that pulls off: cut it off and crimp a new one.',
         tags: ['bell', 'brush', 'insul'],
-        keys: [[0, { inset: 0 }], [.3, { open: 1, ty: 30, zoom: 0 }], [1, { toolFade: .03, insp: 1, wireLen: 7 }]] },
+        keys: [[0, { inset: 0, hotI: 0, dieAlpha: 0 }], [.3, { open: 1, ty: 30, zoom: 0 }], [1, K_INSPECT]] },
       { title: 'Close and lock it', dur: 2200,
         body: 'When you\'re done, squeeze the handles shut and flick the lock switch back up. The tool stays closed, which protects the dies.',
         tags: ['lock'], hot: ['lock'],
@@ -1476,6 +1565,7 @@ const PAD11 = (() => {
 })();
 
 const EQ_TOOLS = [PAD11];
+PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
 /* ---------- Equipment tab controller ---------- */
 const eqUI = (() => {
@@ -1635,30 +1725,42 @@ const PAD11_MAKERS = ['JST', 'Molex', 'TE', 'Hirose', 'JAE'];
 const PAD11_TERMINALS = [[0,"ACHF","SACHF-003GAC-P0.2",""],[0,"ADH","SADH-002G-P0.2",""],[0,"APSH, LBT A Type, SH","SSH-003T-P0.2-H",""],[0,"BD, BHS","SBHS-002T-P0.5A",""],[0,"BHS, BHT","SBHSM-002T-P0.5",""],[0,"BHT","SBHT-002T-P0.5",""],[0,"BL, HL, SL","BSF-21T-P1.4",""],[0,"BL, HL, SL","SSF-21T-P1.4",""],[0,"CZF, CZH・CZHW, OTZ, RIC, RIZ, RVE, RWM, RWZ","SCZH-002T-P0.5",""],[0,"DAC, HL, MWP, SL","BSM-21T-P1.4",""],[0,"DAC, HL, MWP, SL","SSM-21T-P1.4",""],[0,"EH","BEH-001T-P0.6",""],[0,"EH","SEH-001T-P0.6",""],[0,"EH","SEH-001T-P0.6L",""],[0,"EH","SEH-002T-P0.6L",""],[0,"EH","SEH-003T-P0.6L",""],[0,"EL","LLF-01T-P1.3E",""],[0,"EL","LLF-41T-P1.3E",""],[0,"EL","LLM-01T-P1.3E",""],[0,"EL","LLM-41T-P1.3E",""],[0,"EL","SLF-01T-P1.3E",""],[0,"EL","SLF-41T-P1.3E",""],[0,"EL","SLM-01T-P1.3E",""],[0,"EL","SLM-41T-P1.3E",""],[0,"GH","SSHL-002T-P0.2",""],[0,"HM, HR, THR","SHR-001T-P0.6",""],[0,"HM","SMR-001T-0.6",""],[0,"JFA J2000","BJ2F-002GF-P1.0",""],[0,"JFA J2000","BJ2F-21GF-P1.0",""],[0,"JFA J2000","SJ2F-002GF-P1.0",""],[0,"JFA J2000","SJ2F-01GF-P1.0",""],[0,"JFA J2000","SJ2F-21GF-P1.0",""],[0,"JFA J2000","SJ2M-01GF-M1.0S",""],[0,"JWPF","SWPR-001T-P025",""],[0,"JWPF","SWPT-001T-P025",""],[0,"LEA, LEX, SFH, SFK","SSFH-001T-P0.5",""],[0,"LEA, LEX, SFH, SFK","SSFH-002T-P0.5",""],[0,"LEB","SLEB-001T-P0.2",""],[0,"LEH","SLEH-001T-P0.15",""],[0,"NH, SM","BHF-001T-0.8BS",""],[0,"NH, SM","SHF-001T-0.8BS",""],[0,"NH","SHF-001T-P0.6",""],[0,"NH","SHF-002T-0.8BS",""],[0,"NSH, SHL","SSHL-003T-P0.2",""],[0,"PA, PBV, PHD","BPHD-001T-P0.5",""],[0,"PA, PBV, PHD","BPHD-002T-P0.5",""],[0,"PA","SPA-001T-P0.5",""],[0,"PA","SPAL-001T-P0.5",""],[0,"PA","SPAL-002T-P0.5",""],[0,"PA, PBV, PHD","SPHD-001T-P0.5",""],[0,"PA, PBV, PHD","SPHD-002T-P0.5",""],[0,"PAD","SPH-001T-P0.5L",""],[0,"PAD, PH","SPH-002T-P0.5L",""],[0,"PAD, PND, PNI","SPND-001T-C0.5",""],[0,"PAD, PND, PNI","SPND-002T-C0.5",""],[0,"PH","BPH-002T-P0.5S",""],[0,"PH","BPH-004T-P0.5S",""],[0,"PH","SPH-002T-P0.5S",""],[0,"PH","SPH-004T-P0.5S",""],[0,"PNI","SPNI-001T-P0.5",""],[0,"PNI","SPNI-002T-P0.5",""],[0,"PS, RPZ","SPS-01T-110",""],[0,"PUD","SPUD-001T-P0.5",""],[0,"PUD","SPUD-002T-P0.5",""],[0,"RA","RA-SC1290",""],[0,"RCY, SM","BYM-001T-P0.6",""],[0,"RCY","SYF-001T-P0.6",""],[0,"RCY, SM","SYM-001T-P0.6",""],[0,"RE, RF","RF-SC2210",""],[0,"RE, RF","RF-SC2290",""],[0,"SAN","SAN-002T-0.8A",""],[0,"SAN","SAN-002T-0.8K",""],[0,"SBN","SBN-001T-1.0",""],[0,"SCN","SCN-001T-1.0K",""],[0,"SCN","SCN-001T-P1.0",""],[0,"SHD","SSH-003GA-P0.2",""],[0,"SHLD, SHLV","SSHL-003GA1-P0.2",""],[0,"SIN","SIN-002T-1.0S",""],[0,"SIN","SIN-002T-1.2N",""],[0,"SIN","SIN-01T-1.8N",""],[0,"SJN","SJN-002PT-0.9",""],[0,"SMF","SMF-01T-1.0",""],[0,"SUH","SSUH-003T-P0.15",""],[0,"SV","SVF-01T-1.5N",""],[0,"SZN","SZN-002T-P0.7K",""],[0,"SZN","SZN-003T-P0.7K",""],[0,"WPJ","SWPJR-21T-M0.5A",""],[0,"XA, XAD, XAG, XM","BXA-001T-P0.6",""],[0,"XA, XAD, XAG, XM","BXA-01T-P0.6",""],[0,"XA, XAD","BXAM-001T-P0.6",""],[0,"XA, XAD, XAG, XM","SXA-001T-P0.6",""],[0,"XA, XAD, XM, XMD","SXA-001T-P0.6L",""],[0,"XA, XAD, XAG, XM","SXA-01T-P0.6",""],[0,"XA, XAD","SXAM-001T-P0.6",""],[0,"XA, XAD","SXAM-01T-P0.6",""],[0,"XH","BXH-001T-P0.6",""],[0,"XH","BXH-001T-P0.6N",""],[0,"XH","SXH-001T-P0.6",""],[0,"XH","SXH-001T-P0.6N",""],[0,"XH","SXH-002T-P0.6",""],[0,"XL","SXF-01T-P0.7",""],[0,"XL","SYM-01T-P0.7",""],[0,"XM, XMA","SXM-001T-P0.6",""],[0,"XM","SXM-01T-P0.6",""],[0,"XNI","SXNI-001T-P0.6",""],[0,"YL, YLN","SYF-01T-P0.5A",""],[0,"YL, YLN","SYM-01T-P0.5A",""],[0,"ZE","SZE-002T-P0.3",""],[0,"ZE","SZE-003T-P0.3",""],[0,"ZH","BZH-002T-P0.5",""],[0,"ZH","BZH-003T-P0.5",""],[0,"ZH","SZH-002T-P0.5",""],[0,"ZH","SZH-003T-P0.5",""],[0,"ZL","SZF-01T-P0.7",""],[0,"ZL","SZM-01T-P0.7",""],[0,"ZM","SMM-003T-P0.5",""],[0,"ZPD","SZPD-002T-P0.3",""],[0,"丸形ターミナル","SRC-01T-2.5",""],[1,"Board-In","50034-8000",""],[1,"Board-In","50034-8100",""],[1,"Board-In","50097-8000",""],[1,"Board-In","50097-8100",""],[1,"Board-In","50098-8000",""],[1,"Board-In","50098-8100",""],[1,"Cat Ear, KK","08-70-0048","5159PBT"],[1,"Cat Ear, KK","08-70-0049","5159PBTL"],[1,"Cat Ear, KK","08-70-0064","5159T"],[1,"Cat Ear, KK","08-70-0069","5159TL"],[1,"CLIK-Mate, IllumiMate","502381-0000",""],[1,"CLIK-Mate","502438-0000",""],[1,"CLIK-Mate","502438-0100",""],[1,"CLIK-Mate","502579-0000",""],[1,"CLIK-Mate","502579-0100",""],[1,"CLIK-Mate, IllumiMate","50641-8041",""],[1,"CLIK-Mate, IllumiMate","50641-8141",""],[1,"CP-2.5 Mini, CP-3.3","50397-8000",""],[1,"CP-2.5 Mini, CP-3.3","50397-8100",""],[1,"CP-2.5 Mini, CP-3.3","50398-8000",""],[1,"CP-2.5 Mini, CP-3.3","50398-8100",""],[1,"CRC","56118-8228",""],[1,"CRC","56118-8328",""],[1,"CRC","56120-8428",""],[1,"CRC","56120-8528",""],[1,"CyClone, SL","16-02-0069","70058-0004"],[1,"CyClone, SL","16-02-0087","70058-0024"],[1,"CyClone, SL","16-02-0103","70058-0224"],[1,"Duo-Clasp","501930-1100",""],[1,"DuraClik, Mi II, Micro-Latch, Sherlock","50212-8000",""],[1,"DuraClik, Mi II, Micro-Latch, Sherlock","50212-8100",""],[1,"Flexi-Mate","503485-0000",""],[1,"iGrid","501647-1000",""],[1,"iGrid","501647-1100",""],[1,"iGrid","501648-1000",""],[1,"KK 254","08-55-0130","2759-(558)B"],[1,"KK 254","08-55-0131","2759-(558)L"],[1,"KK 396, KK 508","08-50-0107","2578-(P909)"],[1,"KK 396, KK 508","08-50-0107","2578-(P909)L"],[1,"MicroBlade","50011-8000",""],[1,"MicroBlade","50011-8100",""],[1,"MicroBlade","50012-8000",""],[1,"MicroBlade","50012-8100",""],[1,"MicroClasp, MUO 2.5","56134-9000",""],[1,"MicroClasp, MUO 2.5","56134-9100",""],[1,"Micro-Fit 3.0","43030-0001",""],[1,"Micro-Fit 3.0","43030-0004",""],[1,"Micro-Fit 3.0","43030-0007",""],[1,"Micro-Fit 3.0","43030-0010",""],[1,"Micro-Fit 3.0","43031-0001",""],[1,"Micro-Fit 3.0","43031-0004",""],[1,"Micro-Fit 3.0","43031-0007",""],[1,"Micro-Fit 3.0","43031-0010",""],[1,"MicroTPA, MUO 2.5","59370-8000",""],[1,"MicroTPA, MUO 2.5","59370-8100",""],[1,"Milli-Grid","50394-8051",""],[1,"Milli-Grid","50394-8100",""],[1,"Mini-Fit","39-00-0038","5556T"],[1,"Mini-Fit","39-00-0039","5556TL"],[1,"Mini-Fit","39-00-0040","5558T"],[1,"Mini-Fit","39-00-0041","5558TL"],[1,"Mini-Fit","39-00-0046","5556T2"],[1,"Mini-Fit","39-00-0047","5556T2L"],[1,"Mini-Fit","39-00-0048","5558T2"],[1,"Mini-Fit","39-00-0049","5558T2L"],[1,"Mini-Fit","39-00-0059","5556PBT"],[1,"Mini-Fit","39-00-0060","5556PBTL"],[1,"Mini-Fit","39-00-0061","5558PBT"],[1,"Mini-Fit","39-00-0062","5558PBTL"],[1,"Mini-Fit","39-00-0065","5556PBT2"],[1,"Mini-Fit","39-00-0066","5556PBT2L"],[1,"Mini-Fit","39-00-0067","5558-PBT2"],[1,"Mini-Fit","39-00-0068","5558PBT2L"],[1,"Mini-Latch","08-70-0102","5241T"],[1,"Mini-Latch","08-70-0103","5241TL"],[1,"Mini-Latch","50802-8000",""],[1,"Mini-Latch","50802-8100",""],[1,"Mini-Latch","50802-9001",""],[1,"Mini-Latch","50802-9101",""],[1,"Mini-Lock","50351-8000",""],[1,"Mini-Lock","50351-8100",""],[1,"Mini-Lock","50837-8000",""],[1,"Mini-Lock","50837-8100",""],[1,"Mini-SPOX","08-70-1039","5263PBT"],[1,"Mini-SPOX","08-70-1040","5263PBTL"],[1,"Mizu-P25 Waterproof","50147-8000",""],[1,"Mizu-P25 Waterproof","50147-8100",""],[1,"Mizu-P25 Waterproof","50148-8000",""],[1,"Mizu-P25 Waterproof","50148-8100",""],[1,"PanelMate","50753-8041",""],[1,"PanelMate","50753-8141",""],[1,"PicoBlade","50058-8000",""],[1,"PicoBlade","50058-8100",""],[1,"PicoBlade","50079-8000",""],[1,"PicoBlade","50079-8100",""],[1,"PicoBlade","50125-8000",""],[1,"PicoBlade","50125-8100",""],[1,"Pico-Clasp","501334-0000",""],[1,"Pico-Clasp","501334-0100",""],[1,"Pico-Ezmate","78172-0411",""],[1,"Pico-SPOX","87421-0000",""],[1,"SL","16-02-0105","70021-0004"],[1,"SL","16-02-0108","70021-0204"],[1,"SPOX","08-70-1028","5225T"],[1,"SPOX","08-70-1029","5225TL"],[1,"Standard .062\"","39-00-0278","1560T"],[1,"Standard .062\"","39-00-0279","1561T"],[1,"Standard .062\"","39-00-0280","1854T"],[1,"Standard .062\"","39-00-0327","1560TL"],[1,"Standard .062\"","39-00-0331","1561TL"],[1,"Standard .062\"","39-00-0335","1854TL"],[1,"Standard .062\"","39-00-0338","1855T"],[1,"Standard .062\"","39-00-0339","1855TL"],[1,"Standard .062\"","39-00-0317","1433AT"],[1,"Standard .062\"","39-00-0318","1433ATL"],[1,"Standard .062\"","39-00-0323","1434T"],[2,"AMP CT","179518-1",""],[2,"AMP CT","179609-1",""],[2,"AMP Mini CT","353918-1",""],[2,"AMPMODU IV/V","182206-2",""],[2,"Commercial MATE-N-LOK","61173-1",""],[2,"Dynamic 1000","1827569-2",""],[2,"Dynamic 1000","1827571-2",""],[2,"Dynamic 1000","1827586-2",""],[2,"Dynamic 1000","1827587-2",""],[2,"Dynamic 1000","1827588-2",""],[2,"Dynamic 1000","1827589-2",""],[2,"Dynamic 1000","1903112-2",""],[2,"Dynamic 1000","1903115-2",""],[2,"Dynamic 1000","1903116-2",""],[2,"Dynamic 1000","1903117-2",""],[2,"Dynamic 1000","1903118-2",""],[2,"Dynamic 2000","1318106-1",""],[2,"Dynamic 2000","1318107-1",""],[2,"Dynamic 2000","1318108-1",""],[2,"Dynamic 2000","1318112-1",""],[2,"Dynamic 3000","175216-2",""],[2,"Economy Power","1375819-3",""],[2,"","170429-1",""],[2,"Mini-Universal MATE-N-LOK","170363-1",""],[2,"Mini-Universal MATE-N-LOK","170364-1",""],[2,"Mini-Universal MATE-N-LOK","170365-1",""],[2,"Mini-Universal MATE-N-LOK","770985-1",""],[2,"Multilock Connector System","1376700-1",""],[2,"Multilock Connector System","316838-1",""],[2,"TH/.025 Connector System","1318143-1",""],[2,"Universal MATE- N-LOK","350689-1",""],[3,"A3B","A3B-2630SCFC","CL0621-0301-7-00"],[3,"DF11","DF11-2428SC","CL0543-0501-5-00"],[3,"DF13","DF13-2630SCF","CL0536-0300-5-41"],[3,"DF14","DF14-2628SCF","CL0538-0001-7-00"],[3,"DF14","DF14-3032SCF","CL0538-0003-2-00"],[3,"DF1E","DF1E-2428PC","CL0541-0940-2-00"],[3,"DF3","DF3-2428SC","CL0543-0002-5-00"],[3,"DF33C","DF33A-2022SC","CL0676-1094-8-00"],[3,"FX15","FX15-2830PCFB[CL0575-2002-0-00",""],[3,"GT25","GT25H-2024SCF[CL0775-0039-6-0",""],[4,"IL-G","IL-G-C2-SC-0001",""],[4,"IL-Z","IL-Z-C3-A-0001",""],[4,"MX34","M34S75C4F1",""],[4,"MX34","M34S75C4F2",""]];
 
 /* ---------- PAD-11 terminal picker ---------- */
-// Die sizes are recorded by the lab (measure the barrel, round up to the next die) and shared through
-// Supabase table pad11_dies (see add-pad11-dies.sql). Without the table, choices last until the page reloads.
+// The lab's terminals, with die sizes confirmed by the lab. Shown as quick picks above the search.
+const PAD11_PRESETS = [
+  { spec: 'micro', maker: 'Molex', series: 'Micro-Fit 3.0', part: '43030-0007', c: 1.6, i: 1.6, wire: '20–24 AWG', lcsc: 'C293530' },
+  { spec: 'nano', maker: 'Molex', series: 'Nano-Fit', part: '105300-1100', c: 1.3, i: 1.6, wire: '24–26 AWG', lcsc: 'C177226' },
+  { spec: 'df11', maker: 'Hirose', series: 'DF11', part: 'DF11-2428SCF', c: 1.3, i: 1.6, wire: '24–28 AWG', lcsc: 'C392020' },
+  { spec: 'pico', maker: 'Molex', series: 'PicoBlade', part: '50079-8000', c: 1.0, i: 1.0, wire: '26–28 AWG', lcsc: 'C259763' },
+  { spec: 'gh', maker: 'JST', series: 'GH', part: 'SSHL-002T-P0.2', c: 1.0, i: 1.0, wire: '26–30 AWG', lcsc: 'C189897' },
+  { spec: 'sh', maker: 'JST', series: 'SH', part: 'SSH-003T-P0.2-H', c: 1.0, i: 1.0, wire: '28–32 AWG' },
+  { spec: 'rcy', maker: 'JST', series: 'RCY', part: 'SYF-001T-P0.6', c: 1.6, i: 1.9, wire: '22–28 AWG', lcsc: 'C2983905' },
+];
+// Die sizes the lab records for other terminals are shared through Supabase table pad11_dies
+// (see add-pad11-dies.sql). Without the table, they last until the page reloads.
 const termPicker = (() => {
   const dies = new Map();            // key -> { c, i } in mm
   let current = null, editing = false, results = [], active = -1, tableMissing = false;
-  const keyOf = t => `${PAD11_MAKERS[t[0]]}:${t[2]}`;
-  const label = t => `${PAD11_MAKERS[t[0]]}${t[1] ? ' ' + t[1] : ''}`;
+  const fromRow = r => {
+    const pre = PAD11_PRESETS.find(p => p.part.replace(/-/g, '') === r[2].replace(/-/g, ''));
+    return pre ? fromPreset(pre) : { key: `${PAD11_MAKERS[r[0]]}:${r[2]}`, maker: PAD11_MAKERS[r[0]], series: r[1], part: r[2], alt: r[3] };
+  };
+  const fromPreset = p => ({ key: `${p.maker}:${p.part}`, maker: p.maker, series: p.series, part: p.part, alt: '', preset: p });
+  const ALL = [...PAD11_PRESETS.map(fromPreset), ...PAD11_TERMINALS.map(fromRow).filter(t => !t.preset)];
+  const label = t => `${t.maker}${t.series ? ' ' + t.series : ''}`;
   const tool = () => EQ_TOOLS.find(x => x.id === 'pad11');
   const sizes = () => tool().dieSizes;
-  const idx = mm => sizes().findIndex(w => Math.abs(w - mm) < .01);
+  const idx = mm => { const n = sizes().findIndex(w => Math.abs(w - mm) < .01); return n < 0 ? 3 : n; };
+  const diesFor = t => dies.get(t.key) || (t.preset ? { c: t.preset.c, i: t.preset.i } : null);
 
   function apply(c, i) {
-    const t = tool(), ci = idx(c), ii = idx(i);
-    t.setDies(ci < 0 ? 3 : ci, ii < 0 ? 4 : ii);
+    tool().setTerminal(current?.preset?.spec || null, idx(c), idx(i));
     eqUI.refresh();
   }
 
   function search(q) {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     if (!words.length) return [];
-    return PAD11_TERMINALS.filter(t => {
-      const hay = `${PAD11_MAKERS[t[0]]} ${t[1]} ${t[2]} ${t[3]}`.toLowerCase();
-      return words.every(w => hay.includes(w));
-    }).slice(0, 40);
+    return ALL.filter(t => words.every(w => `${t.maker} ${t.series} ${t.part} ${t.alt}`.toLowerCase().includes(w))).slice(0, 40);
   }
 
   function renderList() {
@@ -1667,9 +1769,9 @@ const termPicker = (() => {
       list.innerHTML = input.value.trim() ? '<div class="pick-empty">No PAD-11 terminal matches that. Check the part number, or search by series.</div>' : '';
     } else {
       list.innerHTML = results.map((t, n) => {
-        const d = dies.get(keyOf(t));
+        const d = diesFor(t);
         return `<button type="button" class="pick-item" role="option" data-n="${n}" aria-selected="${n === active}">`
-          + `<span class="eq-term-part">${esc(t[2])}</span><span class="mono">${esc(label(t))}</span>`
+          + `<span class="eq-term-part">${esc(t.part)}</span><span class="mono">${esc(label(t))}</span>`
           + (d ? `<span class="eq-term-dies">${d.c.toFixed(1)} / ${d.i.toFixed(1)}</span>` : '') + '</button>';
       }).join('');
     }
@@ -1678,19 +1780,20 @@ const termPicker = (() => {
     input.setAttribute('aria-expanded', open);
   }
 
+  function renderChips() {
+    $('eqTermChips').innerHTML = PAD11_PRESETS.map((p, n) =>
+      `<button type="button" class="eq-chip" data-preset="${n}" aria-pressed="${current?.preset === p}">${esc(p.series)}</button>`).join('');
+  }
+
   function dieSelect(id, val) {
     return `<select id="${id}">${sizes().map(w => `<option value="${w}"${Math.abs(w - val) < .01 ? ' selected' : ''}>${w.toFixed(1)} mm</option>`).join('')}</select>`;
   }
 
   function renderInfo() {
-    const box = $('eqTermInfo');
-    if (!current) {
-      box.innerHTML = '<p class="eq-term-note">Showing an example terminal in the 1.6 mm and 1.9 mm dies. Search above to load yours.</p>';
-      apply(1.6, 1.9);
-      return;
-    }
-    const d = dies.get(keyOf(current));
-    const head = `<div class="eq-term-sel"><b>${esc(current[2])}</b> <span class="muted">${esc(label(current))}${current[3] ? ', was ' + esc(current[3]) : ''}</span></div>`;
+    renderChips();
+    const box = $('eqTermInfo'), t = current, d = diesFor(t);
+    const extra = t.preset ? `${esc(t.preset.wire)}${t.preset.lcsc ? `, LCSC ${esc(t.preset.lcsc)}` : ''}` : (t.alt ? 'was ' + esc(t.alt) : '');
+    const head = `<div class="eq-term-sel"><b>${esc(t.part)}</b> <span class="muted">${esc(label(t))}</span>${extra ? `<div class="eq-term-meta">${extra}</div>` : ''}</div>`;
     if (d && !editing) {
       box.innerHTML = head + `<p class="eq-term-dieline">Conductor barrel <b>${d.c.toFixed(1)} mm</b>, insulation barrel <b>${d.i.toFixed(1)} mm</b></p>`
         + `<button type="button" class="toggle-link" id="eqTermEdit">Change die sizes</button>`;
@@ -1715,12 +1818,12 @@ const termPicker = (() => {
 
   async function save() {
     const c = +$('eqDieC').value, i = +$('eqDieI').value, t = current;
-    dies.set(keyOf(t), { c, i });
+    dies.set(t.key, { c, i });
     editing = false;
     renderInfo();
     if (!db) { toast('Saved for now. Connect Supabase to share die sizes with everyone.'); return; }
     const { error } = await db.from('pad11_dies').upsert({
-      part_key: keyOf(t), manufacturer: PAD11_MAKERS[t[0]], part_number: t[2], conductor_die: c, insulation_die: i, updated_at: new Date().toISOString(),
+      part_key: t.key, manufacturer: t.maker, part_number: t.part, conductor_die: c, insulation_die: i, updated_at: new Date().toISOString(),
     });
     if (error) {
       tableMissing = /pad11_dies|does not exist|schema cache/i.test(error.message || '');
@@ -1728,12 +1831,12 @@ const termPicker = (() => {
       toast(tableMissing ? 'Saved for now. Run add-pad11-dies.sql in Supabase to share die sizes.'
         : offline ? 'Couldn\'t reach Supabase, so the die sizes are only saved until the page reloads.' : `Couldn't save die sizes: ${error.message}`, true);
       renderInfo();
-    } else toast(`Saved die sizes for ${t[2]}`);
+    } else toast(`Saved die sizes for ${t.part}`);
   }
 
   function choose(t) {
     current = t; editing = false;
-    try { localStorage.setItem('pad11-terminal', keyOf(t)); } catch { /* storage unavailable */ }
+    try { localStorage.setItem('pad11-terminal', t.key); } catch { /* storage unavailable */ }
     $('eqTermSearch').value = '';
     results = []; active = -1; renderList();
     renderInfo();
@@ -1762,9 +1865,10 @@ const termPicker = (() => {
     });
     $('eqTermList').addEventListener('mousedown', e => e.preventDefault());   // keep focus in the search box
     $('eqTermList').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) choose(results[+b.dataset.n]); });
+    $('eqTermChips').addEventListener('click', e => { const b = e.target.closest('[data-preset]'); if (b) choose(fromPreset(PAD11_PRESETS[+b.dataset.preset])); });
     let saved = null;
     try { saved = localStorage.getItem('pad11-terminal'); } catch { /* storage unavailable */ }
-    current = PAD11_TERMINALS.find(t => keyOf(t) === saved) || null;
+    current = ALL.find(t => t.key === saved) || ALL[0];
     renderInfo();
   }
   return { init, load, showFor: id => { $('eqTerm').hidden = id !== 'pad11'; } };
