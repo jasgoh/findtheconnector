@@ -1,4 +1,6 @@
-# Connector Recognizer: setup
+# Tool Room: setup
+
+Equipment guides and a connector scanner for the lab.
 
 ## 1. Supabase (about 5 minutes)
 1. Create a project at supabase.com.
@@ -73,10 +75,33 @@ Each tool is one object in `EQ_TOOLS`:
 - `flashes`: optional `[time, 'Click']` pop-ups during a step.
 - `draw(state)`: returns the SVG for that state plus label positions.
 
-To change the wording of a procedure, edit the `steps` text only. To add a new tool, copy the crimper's
-structure; the drawing helpers (`prism`, `tube`, `strip`, `plate`, `shadow`) build parts from 2D outlines.
+To change the wording of a procedure, edit the `steps` text only. To add a new tool, copy the PAD-11's
+structure (Fig. 01 is the Engineer PAD-11). Drawing helpers (`prism`, `tube`) build parts from 2D outlines;
+a tool can set its own camera (`EQ.setView`), shading (`look: 'real'` plus gradient `defs`) and a `zoom` state for close-ups.
 
 People who have asked their device to reduce motion see each step's end position without the animation.
+
+## Equipment guides
+- Fig. 01, Engineer PA-14 wire stripper: 7 steps. The Wire size box picks the stripping hole from Engineer's chart
+  (0.25 to 0.95 mm holes for AWG 34-22 stranded and AWG 32-20 solid).
+- Fig. 02, IDEAL Custom Stripmaster automatic stripper: 6 steps. Shown with IDEAL's 16-26 AWG die-type blade
+  set; the Wire size box picks the hole. If your blades are a different set, change HOLES in the STRIPMASTER module.
+- Fig. 03, Engineer PAD-11 micro crimper: 11 steps, with the terminal picker below.
+
+## PAD-11 terminal picker
+Seven lab terminals are built in as quick picks, each with its own model and the lab's die sizes:
+Molex Micro-Fit 3.0 43030-0007 (1.6/1.6), Molex Nano-Fit 105300-1100 (1.3/1.6), Hirose DF11-2428SCF
+(1.3/1.6), Molex PicoBlade 50079-8000 (1.0/1.0), JST GH SSHL-002T-P0.2 (1.0/1.0), JST SH SSH-003T-P0.2-H
+(1.0/1.0) and JST RCY SYF-001T-P0.6 (1.6/1.9), listed as conductor/insulation die in mm. They're in
+`PAD11_PRESETS`; their shapes are in `TERM_SPECS` (approximate, from datasheet outline sizes and wire ranges).
+
+The Equipment tab's PAD-11 guide also has a search box listing every terminal Engineer rates for the PAD-11
+(279 part numbers from Engineer's JST, Molex, TE, Hirose and JAE compatibility tables). Engineer doesn't
+publish which die each terminal uses, so the lab records it: pick a terminal, choose the conductor and
+insulation dies, and save. The animation, labels and step text then use those dies.
+
+To share recorded die sizes with everyone, run `add-pad11-dies.sql` once in Supabase (SQL Editor > New
+query > paste > Run). Without it, die sizes only last until the page is reloaded.
 
 ## Colours and theme
 Colours match the Stockroom (stock and orders) app: paper and card surfaces, an amber accent, pine for
