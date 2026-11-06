@@ -505,10 +505,10 @@ label.btn { cursor: pointer; }
 .eq-mat line.major { stroke-width: 1.6; }
 .eq-pin { filter: drop-shadow(0 0 1.6px rgba(255, 255, 255, .75)) drop-shadow(0 1.5px 2px rgba(0, 0, 0, .55)); }
 .eq-lock-rim { fill: none; stroke: #6A7078; stroke-width: 1; opacity: .7; }
-.eq-real .eq-term polygon { stroke: rgba(70, 56, 14, .45); stroke-width: .35; }
+.eq-real .eq-term polygon { stroke: rgba(40, 44, 40, .16); stroke-width: .3; }
 .eq-real .eq-term .eq-barrel-hot polygon { stroke: var(--mat); stroke-width: 1.2; }
-.eq-badge { fill: none; stroke: #FFB27A; stroke-width: 1.2; }
-.eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .14em; fill: #FFB27A; }
+.eq-badge { fill: none; stroke: #B5560E; stroke-width: 1.1; }
+.eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .12em; fill: #B5560E; }
 .eq-ticks line { stroke: #C9CED4; stroke-width: .8; opacity: .75; }
 .eq-glow-dash { stroke-dasharray: 5 4; }
 .eq-engrave { font-family: var(--font); fill: #C9CED4; opacity: .82; letter-spacing: .02em; }
@@ -1068,7 +1068,9 @@ const PAD11 = (() => {
   const OXIDE = { l: '#5D636B', m: '#3B4047', d: '#1E2126' };
   const DIE = { l: '#666C74', m: '#454A51', d: '#25282D' };
   const TPR = { l: '#FFAE6B', m: '#F07A22', d: '#A84B0B' };
-  M.tinDark = { l: '#B9A86A', m: '#9C8B50', d: '#6B5E33' };
+  M.tinDark = { l: '#9EA39F', m: '#80857F', d: '#5D615C' };
+  // tin-plated terminals read as bright silver in product photos
+  M.tin = { l: '#F4F5F2', m: '#CDD0CB', d: '#8E938D' };
   const BOLT = { l: '#70767E', m: '#4A4F56', d: '#2A2D32' };
   const RED = { l: '#F07A6E', m: '#D23C2E', d: '#7E1F17' };
 
@@ -1093,17 +1095,18 @@ const PAD11 = (() => {
 
   /* ----- terminals: dimensions in mm (contact at y = 0, wire end at the far y) ----- */
   // Approximate geometry from each maker's datasheet outline dimensions and wire range.
+  // type = the contact's shape, drawn to match product photos of each terminal
   const TERM_SPECS = {
-    micro: { name: 'Micro-Fit terminal', Lc: 6.0, W: 2.7, H: 2.6, Lt: .9, Lb: 1.9, g: .8, Li: 2.0, cond: .64, od: 1.6, shoulder: true },
-    nano:  { name: 'Nano-Fit terminal', Lc: 4.6, W: 1.9, H: 1.9, Lt: .7, Lb: 1.4, g: .6, Li: 1.6, cond: .40, od: 1.15 },
-    df11:  { name: 'DF11 terminal', Lc: 4.2, W: 1.7, H: 1.6, Lt: .6, Lb: 1.3, g: .5, Li: 1.5, cond: .40, od: 1.1 },
-    pico:  { name: 'PicoBlade terminal', Lc: 3.4, W: 1.1, H: 1.0, Lt: .5, Lb: 1.1, g: .45, Li: 1.25, cond: .32, od: .95 },
-    gh:    { name: 'GH terminal', Lc: 2.9, W: 1.0, H: .95, Lt: .45, Lb: 1.0, g: .4, Li: 1.1, cond: .32, od: .9 },
-    sh:    { name: 'SH terminal', Lc: 2.4, W: .85, H: .8, Lt: .4, Lb: .9, g: .35, Li: .95, cond: .25, od: .6 },
-    rcy:   { name: 'RCY socket', Lc: 5.8, W: 1.7, H: 1.7, Lt: .8, Lb: 1.8, g: .7, Li: 1.9, cond: .51, od: 1.4 },
+    micro: { name: 'Micro-Fit terminal', type: 'tube',    Lc: 6.4, W: 1.5, H: 1.5, Lt: .7, Lb: 1.8, g: .7, Li: 2.0, cond: .64, od: 1.6 },
+    nano:  { name: 'Nano-Fit terminal',  type: 'channel', Lc: 5.4, W: 1.1, H: 1.0, Lt: .6, Lb: 1.1, g: .5, Li: 1.5, cond: .40, od: 1.15 },
+    df11:  { name: 'DF11 terminal',      type: 'fork',    Lc: 2.9, W: 1.3, H: 1.2, Lt: .4, Lb: 1.0, g: .4, Li: 1.5, cond: .40, od: 1.1 },
+    pico:  { name: 'PicoBlade terminal', type: 'openbox', Lc: 1.8, W: 1.0, H: 1.0, Lt: .35, Lb: .85, g: .35, Li: 1.05, cond: .32, od: .95 },
+    gh:    { name: 'GH terminal',        type: 'box',     Lc: 2.7, W: .9, H: .85, Lt: .4, Lb: .9, g: .35, Li: 1.1, cond: .32, od: .9 },
+    sh:    { name: 'SH terminal',        type: 'rolled',  Lc: 1.8, W: .8, H: .8, Lt: .35, Lb: .8, g: .3, Li: 1.0, cond: .25, od: .6 },
+    rcy:   { name: 'RCY socket',         type: 'square',  Lc: 5.6, W: 1.7, H: 1.7, Lt: .7, Lb: 1.8, g: .7, Li: 1.9, cond: .51, od: 1.4 },
   };
   // For terminals without a model: proportions from the die sizes
-  const genericSpec = (c, i) => ({ Lc: 2.2 * c + 1.4, W: c * 1.1, H: c * 1.05, Lt: .3 + .3 * c, Lb: .5 + .8 * c, g: .2 + .3 * c, Li: .5 + .85 * i, cond: Math.max(.22, c * .33), od: Math.min(i * .9, Math.max(.6, i * .75)) });
+  const genericSpec = (c, i) => ({ type: 'box', Lc: 2.2 * c + 1.4, W: c * 1.1, H: c * 1.05, Lt: .3 + .3 * c, Lb: .5 + .8 * c, g: .2 + .3 * c, Li: .5 + .85 * i, cond: Math.max(.22, c * .33), od: Math.min(i * .9, Math.max(.6, i * .75)) });
   let SPEC = null, GEO = null;
   function geometry(sp, c, i) {
     const t = Math.max(.07, sp.W * .045);                        // sheet thickness
@@ -1119,6 +1122,11 @@ const PAD11 = (() => {
     const R = w / 2;
     return [[-R, h], ...arc(0, R, R, 180, 360, 10), [R, h], [R - t, h], ...arc(0, R, R - t, 360, 180, 10), [-R + t, h]];
   }
+  function profV(w, h, t, fl) {                                   // open insulation barrel: wings flare outwards
+    const R = w / 2;
+    return [[-R - fl, h], [-R, R], ...arc(0, R, R, 180, 360, 10).slice(1, -1), [R, R], [R + fl, h], [R + fl - t, h], [R - t, R],
+            ...arc(0, R, R - t, 360, 180, 10).slice(1, -1), [-R + t, R], [-R - fl + t, h]];
+  }
   function profB(w, h) {                                          // F-crimp: two curled wings meeting in the middle
     const R = w / 2, lob = w / 4, zm = h * .46;
     const bottom = Array.from({ length: 11 }, (_, k) => { const a = (180 + 18 * k) * Math.PI / 180; return [R * Math.cos(a), zm + zm * Math.sin(a)]; });
@@ -1127,6 +1135,58 @@ const PAD11 = (() => {
   function profO(r, t) {                                          // insulation barrel wrapped round the wire, overlap seam on top
     const c = r + t, R = r + t;
     return [...arc(0, c, R, -80, 250, 18), [-R * .32, c + R * 1.02], [R * .36, c + R * 1.12], [R * .44, c + R * .96]];
+  }
+
+  // The contact end of each terminal, by type. piece(profile, y0, y1) extrudes a cross-section along the terminal;
+  // plate(corners) draws a flat tab such as a locking lance.
+  function contact(g, piece, plate, rect) {
+    const w = g.W, h = g.H, L = g.Lc, r = w / 2, t = g.t;
+    const circ = (rr, cz, n = 16) => Array.from({ length: n }, (_, k) => [rr * Math.cos(k / n * 2 * Math.PI), cz + rr * Math.sin(k / n * 2 * Math.PI)]);
+    let s = '';
+    switch (g.type) {
+      case 'tube': {            // Micro-Fit: long round barrel, two lances flaring out at the sides
+        s += piece(circ(r * .9, r), 0, .4) + piece(circ(r, r), .4, L - .5) + piece(circ(r * 1.08, r), L - .5, L);
+        for (const sg of [-1, 1]) s += plate([[sg * r * .95, L * .86, r - .28], [sg * r * .95, L * .86, r + .28], [sg * (r + .55), L * .56, r + .22], [sg * (r + .55), L * .56, r - .22]]);
+        break;
+      }
+      case 'channel': {         // Nano-Fit: long narrow open channel, closed box at the front, a tab near the back
+        s += piece(rect(-r, 0, r, h * 1.1), 0, L * .2);
+        s += piece(profU(w, h, t), L * .2, L);
+        s += plate([[-r * .5, L * .24, h * .7], [r * .5, L * .24, h * .7], [r * .5, L * .7, h * .3], [-r * .5, L * .7, h * .3]]);
+        s += piece(rect(-.13, h, .13, h + .38), L * .8, L * .9);
+        break;
+      }
+      case 'fork': {            // DF11: open channel with walls sloping outwards, tongue at the front
+        const fw = w * .35;
+        s += piece([[-fw, 0], [fw, 0], [r, h], [r - t, h], [fw - t * .8, t], [-fw + t * .8, t], [-r + t, h], [-r, h]], 0, L);
+        s += piece(rect(-fw * .8, 0, fw * .8, t), -.45, 0);
+        break;
+      }
+      case 'openbox': {         // PicoBlade: very short open box with a notch in its walls
+        s += piece(profU(w, h, t), 0, L * .34) + piece(profU(w, h * .55, t), L * .34, L * .66) + piece(profU(w, h, t), L * .66, L);
+        break;
+      }
+      case 'box': {             // GH: box contact with a lance on top
+        s += piece(rect(-r * .92, .04, r * .92, h * .96), 0, .3) + piece(rect(-r, 0, r, h), .3, L);
+        s += plate([[-.15, L * .34, h], [.15, L * .34, h], [.15, L * .62, h + .26], [-.15, L * .62, h + .26]]);
+        s += piece(rect(-w * .03, h, w * .03, h + .015), .4, L - .2, M.tinDark);
+        break;
+      }
+      case 'rolled': {          // SH: short rolled contact with a rounded top and a slit along it
+        const pr = [[-r, 0], [r, 0], [r, h - r], ...arc(0, h - r, r, 0, 180, 10).slice(1, -1), [-r, h - r]];
+        s += piece(pr, 0, L);
+        s += piece(rect(-w * .03, h - .005, w * .03, h + .01), .1, L - .1, M.tinDark);
+        break;
+      }
+      case 'square': {          // RCY socket: closed square box, seam on top, spring tongue on the side, tab behind
+        s += piece(rect(-r, 0, r, h), 0, L);
+        s += piece(rect(-w * .03, h, w * .03, h + .015), .1, L - .1, M.tinDark);
+        s += plate([[-r, L * .2, h * .3], [-r, L * .2, h * .7], [-r - .42, L * .52, h * .62], [-r - .42, L * .52, h * .38]]);
+        s += piece(rect(-.16, h, .16, h + .32), L * .84, L * .94);
+        break;
+      }
+    }
+    return s;
   }
 
   /* ----- the two halves of the tool, in the closed position (proportions from Engineer's product photos) ----- */
@@ -1145,12 +1205,11 @@ const PAD11 = (() => {
   ];
   const coreA = [[30, -13], [140, -27]], coreB = [[28, 8.4], [140, 24]];
   // Sculpted grips, drawn in handle terms: u along the handle, v outwards (away from the other handle)
-  const GU = 1.12;                                  // grips are long: over half the tool's length
-  const GRIP = [[0, -6.8], [0, 6], [5, 11.6], [17, 12.4], [80, 9.8], [91, 9], [97.5, 6.2], [100, 1.4], [99, -3.4], [94, -7.2], [22, -8.4], [6, -9]].map(([u, v]) => [u * GU, v]);
-  const GRIP_FACET = [[2, 5.4], [6.5, 10.4], [17, 11], [13, 4.6]];
-  const GRIP_TRI = [[22, 2.6], [31, 7.6], [31, .8]].map(([u, v]) => [u * GU, v]);
-  const GRIP_GROOVE = [[34, -2.4], [88, -1.4], [88, .4], [34, -.6]].map(([u, v]) => [u * GU, v]);
-  const GRIP_RIDGE = [[17, 10.6], [78, 8.4], [78, 7], [17, 8.6]].map(([u, v]) => [u * GU, v]);
+  // Grips: wide angular shoulder, narrower waist, flared tip with an angled end (from Engineer's photos).
+  // u runs along the grip from the metal, v outwards (away from the other handle).
+  const GRIP = [[0, -7.6], [0, 7], [4, 12.8], [20, 13.2], [30, 10.2], [62, 8.8], [92, 9.6], [104, 9.8], [110, 6.4], [112, 0], [110, -5.4], [104, -8.4], [62, -7.6], [24, -8.6], [8, -9.4]];
+  const GRIP_TOP = [[2, -6], [2, 5.6], [5.4, 11], [19, 11.4], [29, 8.6], [62, 7.4], [92, 8.2], [103, 8.3], [108, 5.4], [110, 0], [108, -4.2], [103, -7], [62, -6.2], [24, -7.2], [8, -8]];
+  const GRIP_SPINE = [[26, 0], [30, -2.8], [96, -2.8], [100, 0], [96, 2.8], [30, 2.8]];
   const gripMap = (A, B, side) => { const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uz = (B[1] - A[1]) / L, nx = -uz * side, nz = ux * side; return ([u, v]) => [A[0] + ux * u + nx * v, A[1] + uz * u + nz * v]; };
   const gripA = gripMap([38, -16.4], [150, -29], -1), gripB = gripMap([36, 10.8], [150, 24], 1);
   // Die plate: concave sides with a screw in each corner ear, split along the die line into two halves
@@ -1238,7 +1297,7 @@ const PAD11 = (() => {
       const fl = `M${f(cx - W / 2 * .92)} ${f(floorY)} Q${f(cx)} ${f(floorY + .45 * S)} ${f(cx + W / 2 * .92)} ${f(floorY)}`;
       const wl = p => 'M' + p.map(([a, b]) => f(a) + ' ' + f(b)).join(' L');
       const sw = .3 * S;
-      const path = [fl, wl(wing(-1)), wl(wing(1))].map(d => `<path d="${d}" fill="none" stroke="#6B5A2A" stroke-width="${f(sw + 2)}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#E7D7A1" stroke-width="${f(sw)}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+      const path = [fl, wl(wing(-1)), wl(wing(1))].map(d => `<path d="${d}" fill="none" stroke="#5E625D" stroke-width="${f(sw + 2)}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#E3E5E1" stroke-width="${f(sw)}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
       term = `<g opacity="${f(st.insetTerm)}">${path}</g>`;
     }
     const label = kind === 'cond' ? `Conductor barrel, ${dieName(SEL.c)} mm die` : `Insulation barrel, ${dieName(SEL.i)} mm die`;
@@ -1277,21 +1336,27 @@ const PAD11 = (() => {
       const clip = (a, b) => [Math.max(a, yMin), Math.min(b, yMax)];
       const piece = (prof, y0, y1, m = M.tin) => { const [a, b] = clip(y0, y1); return b > a ? prism(prof, frame, a, b, m) : ''; };
       const rect = (x0, z0, x1, z1) => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+      // a flat sheet-metal tab given by its corners [x, y, z] (local), shaded by which way it faces
+      const plate = (corners, m = M.tin) => {
+        const yc = corners.reduce((a, p) => a + p[1], 0) / corners.length;
+        if (yc < yMin || yc > yMax) return '';
+        const w3 = corners.map(W), [a, b, c] = w3;
+        const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+        let n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+        const l = Math.hypot(...n) || 1; n = n.map(q => q / l);
+        const up = Math.abs(n[2]), fill = up > .7 ? m.l : up > .3 ? m.m : m.d;
+        return `<polygon points="${EQ.pts(w3)}" fill="${fill}"/>`;
+      };
       const tb = (y0, y1, d, m, z) => { const [a, b] = clip(y0, y1); return b > a ? tube([W([0, a, z]), W([0, b, z])], d * k * K, m, 'butt') : ''; };
       let s = '';
       // contact, transition and open barrels
       if (st.termOn > .01) {
         const w = g.W, h = g.H;
-        let t = piece(rect(-w / 2 * .92, .04, w / 2 * .92, h * .96), 0, .35);                          // entry
-        t += piece(rect(-w / 2, 0, w / 2, h), .35, g.Lc);                                             // box
-        if (g.shoulder) t += piece(rect(-w / 2 - .18, 0, w / 2 + .18, h * .7), g.Lc * .72, g.Lc);
-        t += piece([[-w * .22, h], [w * .22, h], [w * .16, h + .22], [-w * .16, h + .22]], g.Lc * .3, g.Lc * .62);   // locking lance
-        t += piece(rect(-w * .03, h, w * .03, h + .015), .4, g.Lc - .2, M.tinDark);                  // seam
-        t += piece(rect(-w / 2 - .012, h * .28, -w / 2, h * .72), g.Lc * .14, g.Lc * .46, M.tinDark);  // spring window
+        let t = contact(g, piece, plate, rect);
         t += piece(profU(Math.min(g.bwC, w) * .9, g.t * 2.2, g.t), g.Lc, g.cb0);                     // transition strip
         if (st.crimpC < .5) t += `<g class="${st.hotC > .5 ? 'eq-barrel-hot' : ''}">${piece(profU(g.bwC, g.hwC, g.t), g.cb0, g.cb1)}</g>`;
         t += piece(profU(g.bwC * .9, g.t * 2.2, g.t), g.cb1, g.ib0);                                  // gap
-        if (st.crimpI < .5) t += `<g class="${st.hotI > .5 ? 'eq-barrel-hot' : ''}">${piece(profU(g.bwI, g.hwI, g.t), g.ib0, g.ib1)}</g>`;
+        if (st.crimpI < .5) t += `<g class="${st.hotI > .5 ? 'eq-barrel-hot' : ''}">${piece(profV(g.bwI, g.hwI, g.t, g.bwI * .32), g.ib0, g.ib1)}</g>`;
         s += `<g class="eq-term" opacity="${f(st.termOn)}">${t}</g>`;
       }
       // wire: bare strands, insulation, and the stripped-off slug
@@ -1330,23 +1395,23 @@ const PAD11 = (() => {
     const XZw = XZf();
     const prW = (poly, y0, y1, m, cap) => prism(poly, XZw, y0, y1, m, '', cap);
     const grip = (map, R, y0, y1, upper) => {
-      let g = prW(GRIP.map(map).map(R), y0, y1, TPR, 'url(#pad-tpr)');
-      if (upper) {        // "ENGINEER" badge: a long hexagon outline
-        const badge = [[46, 0], [49, 3], [78, 3], [81, 0], [78, -3], [49, -3]].map(([u, v]) => [u * GU, v + .4]).map(map).map(R);
-        g += `<polygon class="eq-noink eq-badge" points="${pts(badge.map(([x, z]) => [x, y1 + .15, z]))}"/>`;
-      } else {            // lower grip: curved recess at the shoulder and three ribs near the end
+      const on = poly => poly.map(map).map(R);
+      let g = prW(on(GRIP), y0, y1, TPR, 'url(#pad-tpr-dark)');                      // bevelled sides
+      g += prW(on(GRIP_TOP), y1, y1 + .5, TPR, 'url(#pad-tpr)');                      // top face
+      g += prW(on(GRIP_SPINE), y1 + .5, y1 + 1.1, TPR, 'url(#pad-tpr-light)');        // raised spine
+      if (upper) {
+        g += prW(on([[3, 4], [6.4, 10.6], [18, 11], [26, 7.4], [22, 3]]), y1 + .5, y1 + 1, TPR, 'url(#pad-tpr-light)');   // shoulder block
+        g += prW(on([[9, -1.6], [19, -5.6], [19, .6]]), y1 + .5, y1 + .55, TPR, 'url(#pad-tpr-dark)');
+        g += `<polygon class="eq-noink eq-badge" points="${pts(on([[62, 0], [65.5, 2.4], [86, 2.4], [89.5, 0], [86, -2.4], [65.5, -2.4]]).map(([x, z]) => [x, y1 + 1.15, z]))}"/>`;
+      } else {
+        g += prW(on([[5, 5.2], [20, 10.8], [16, 3]]), y1 + .5, y1 + .55, TPR, 'url(#pad-tpr-dark)');                    // shoulder recess
         const sw = [...Array.from({ length: 9 }, (_, n) => { const a = (205 + n * 12) * Math.PI / 180; return [24 + 15 * Math.cos(a), 13.5 + 15 * Math.sin(a)]; }),
                     ...Array.from({ length: 9 }, (_, n) => { const a = (301 - n * 12) * Math.PI / 180; return [24 + 12.4 * Math.cos(a), 13.5 + 12.4 * Math.sin(a)]; })];
-        g += prW(sw.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
-        for (const u of [62, 67, 72]) g += prW([[u, -6.6], [u + 2.2, -6.6], [u + 3.2, 6.4], [u + 1, 6.4]].map(([a, b]) => [a * GU, b]).map(map).map(R), y1, y1 + .5, TPR, 'url(#pad-tpr-light)');
+        g += prW(on(sw), y1 + .5, y1 + .55, TPR, 'url(#pad-tpr-dark)');
+        for (const u of [74, 81, 88]) g += prW(on([[u, -6.6], [u + 2, -6.6], [u + 4.6, 0], [u + 2, 6.6], [u, 6.6], [u + 2.6, 0]]), y1 + .5, y1 + 1.2, TPR, 'url(#pad-tpr-light)');   // chevron ribs
       }
-      g += prW(GRIP_FACET.map(map).map(R), y1, y1 + .4, TPR, 'url(#pad-tpr-light)');
-      g += prW(GRIP_RIDGE.map(map).map(R), y1, y1 + .3, TPR, 'url(#pad-tpr-light)');
-      g += prW(GRIP_TRI.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
-      if (upper) g += prW([[38, -3.6], [96, -3.2], [96, 3.6], [38, 3.8]].map(([u, v]) => [u * GU, v]).map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');   // channel
-      else g += prW(GRIP_GROOVE.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
-      const [hx, hz] = R(map([101, -2.6])), [sx, sy] = P([hx, y1 + .2, hz]);
-      g += `<ellipse class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" rx="${f(2.2 * K)}" ry="${f(1.7 * K)}" fill="#3a1a05" opacity=".85"/>`;
+      const [hx, hz] = R(map([105, -3.4])), [sx, sy] = P([hx, y1 + .6, hz]);
+      g += `<ellipse class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" rx="${f(1.9 * K)}" ry="${f(1.5 * K)}" fill="#3a1a05" opacity=".85"/>`;
       return g;
     };
     let tool = '';
@@ -1361,7 +1426,7 @@ const PAD11 = (() => {
     tool += pr([[12.2, -4.2], [19.2, -3.4], [21, -5.8], [22.8, -3.2], [28, -2.8], [27.6, -1.4], [12.6, -2.6]], RB, 8, 8.3, OXIDE, 'url(#pad-blade)');
     tool += '@@PLATES@@';
     // "ENGINEER" moulded into the upper grip
-    { const [x, z] = RB(gripB([71, -.9])), [X, Y] = P([x, 9.6, z]), ang = -(TILT + aB) * 180 / Math.PI - 7;
+    { const [x, z] = RB(gripB([75.8, -1])), [X, Y] = P([x, 10.7, z]), ang = -(TILT + aB) * 180 / Math.PI - 7;
       tool += `<text class="eq-moulded" x="${f(X)}" y="${f(Y)}" font-size="${f(3.1 * K)}" text-anchor="middle" transform="rotate(${f(ang)} ${f(X)} ${f(Y)})">ENGINEER</text>`; }
     // screws
     const bolt = (c, R, y, r, hex = true, cap = 'url(#pad-bolt)') => {
@@ -1492,8 +1557,8 @@ const PAD11 = (() => {
     K_PLACE.ty = seatY - (GEO.cb0 + GEO.Lb / 2) * KT;
     K_INS_TY.ty = seatY - (GEO.ib0 + GEO.Li / 2) * KT;
     b.wY = GEO.L + 14; K_INSERT.wY = GEO.tip;
-    b.as = 8; K_INSPECT.wireLen = Math.max(5, 14 - GEO.L * .4);       // true relative size between terminals
-    b.ix = 28 - (GEO.L + K_INSPECT.wireLen) * b.as / 2;               // centre it in the view
+    b.as = 8; K_INSPECT.wireLen = Math.max(4, 10 - GEO.L * .4);       // true relative size between terminals
+    b.ix = 50 - (GEO.L + K_INSPECT.wireLen) * b.as / 2;               // centre it in the view
   }
   function setDies(c, i) { setTerminal.call(this, null, c, i); }
 
@@ -1729,7 +1794,7 @@ const PAD11_TERMINALS = [[0,"ACHF","SACHF-003GAC-P0.2",""],[0,"ADH","SADH-002G-P
 const PAD11_PRESETS = [
   { spec: 'micro', maker: 'Molex', series: 'Micro-Fit 3.0', part: '43030-0007', c: 1.6, i: 1.6, wire: '20–24 AWG', lcsc: 'C293530' },
   { spec: 'nano', maker: 'Molex', series: 'Nano-Fit', part: '105300-1100', c: 1.3, i: 1.6, wire: '24–26 AWG', lcsc: 'C177226' },
-  { spec: 'df11', maker: 'Hirose', series: 'DF11', part: 'DF11-2428SCF', c: 1.3, i: 1.6, wire: '24–28 AWG', lcsc: 'C392020' },
+  { spec: 'df11', chip: 'DF11 Hirose', maker: 'Hirose', series: 'DF11', part: 'DF11-2428SCF', c: 1.3, i: 1.6, wire: '24–28 AWG', lcsc: 'C392020' },
   { spec: 'pico', maker: 'Molex', series: 'PicoBlade', part: '50079-8000', c: 1.0, i: 1.0, wire: '26–28 AWG', lcsc: 'C259763' },
   { spec: 'gh', maker: 'JST', series: 'GH', part: 'SSHL-002T-P0.2', c: 1.0, i: 1.0, wire: '26–30 AWG', lcsc: 'C189897' },
   { spec: 'sh', maker: 'JST', series: 'SH', part: 'SSH-003T-P0.2-H', c: 1.0, i: 1.0, wire: '28–32 AWG' },
@@ -1782,7 +1847,7 @@ const termPicker = (() => {
 
   function renderChips() {
     $('eqTermChips').innerHTML = PAD11_PRESETS.map((p, n) =>
-      `<button type="button" class="eq-chip" data-preset="${n}" aria-pressed="${current?.preset === p}">${esc(p.series)}</button>`).join('');
+      `<button type="button" class="eq-chip" data-preset="${n}" aria-pressed="${current?.preset === p}">${esc(p.chip || p.series)}</button>`).join('');
   }
 
   function dieSelect(id, val) {
