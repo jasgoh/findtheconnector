@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Connector Recognizer</title>
+<script>
+  // Dark by default (same as Stockroom); the header toggle remembers the choice in this browser.
+  try { document.documentElement.dataset.theme = localStorage.getItem('ftc-theme') || 'dark'; }
+  catch (e) { document.documentElement.dataset.theme = 'dark'; }
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔌</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,37 +21,42 @@
 
 <style>
 :root {
-  --bg: #EEF1F4;
-  --surface: #FFFFFF;
-  --ink: #1B2430;
-  --muted: #5C6876;
-  --line: #D3DAE2;
-  --mat: #2E5E8C;          /* ESD-mat blue */
-  --mat-soft: #E1EAF3;
-  --brass: #B8862E;        /* connector-pin brass */
-  --brass-soft: #F4EAD6;
-  --danger: #B33A3A;
-  --ok: #2F7A4F;
+  /* Colours follow the Stockroom (stock and orders) palette */
+  --bg: #F7F5F0;           /* paper */
+  --surface: #FFFFFF;      /* card */
+  --field: #F7F5F0;        /* inputs inside cards */
+  --ink: #1C2430;
+  --muted: #5B6472;        /* inkfaint */
+  --line: #DAD5C9;         /* hairline */
+  --mat: #C98A2C;          /* amber: main accent */
+  --mat-soft: rgba(201, 138, 44, .14);
+  --brass: #C98A2C;
+  --brass-soft: rgba(201, 138, 44, .12);
+  --danger: #A6432E;       /* rust */
+  --ok: #3D6B4F;           /* pine */
+  --on-accent: #1C2430;
+  --eq-ink: #15181D;
+  --eq-plate-l: #ECE7DB; --eq-plate-m: #D5CEBD; --eq-plate-d: #ADA591;
+  --eq-grid: rgba(28, 36, 48, .09);
+  --eq-shadow: rgba(28, 36, 48, .16);
   --radius-lg: 14px;
   --radius-sm: 6px;
   --font: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Barlow Condensed", "Arial Narrow", "Barlow", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #121820; --surface: #1A222C; --ink: #E6EBF0; --muted: #98A4B2;
-    --line: #2C3743; --mat: #6FA2D4; --mat-soft: #1D2D3E;
-    --brass: #D9A94F; --brass-soft: #33291A; --danger: #E07070; --ok: #6BC08F;
-  }
-}
 :root[data-theme="dark"] {
-  --bg: #121820; --surface: #1A222C; --ink: #E6EBF0; --muted: #98A4B2;
-  --line: #2C3743; --mat: #6FA2D4; --mat-soft: #1D2D3E;
-  --brass: #D9A94F; --brass-soft: #33291A; --danger: #E07070; --ok: #6BC08F;
+  --bg: #12151A; --surface: #1B1F26; --field: #20252D; --ink: #E8EAED; --muted: #8A93A0;
+  --line: #2A2F38; --mat: #E8A33D; --mat-soft: rgba(232, 163, 61, .14);
+  --brass: #E8A33D; --brass-soft: rgba(232, 163, 61, .12); --danger: #E15554; --ok: #34B37E;
+  --eq-plate-l: #3B424C; --eq-plate-m: #2C323A; --eq-plate-d: #1F242A;
+  --eq-grid: rgba(255, 255, 255, .05);
+  --eq-shadow: rgba(0, 0, 0, .38);
+  color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: inherit; }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -58,17 +68,16 @@ body {
 img { max-width: 100%; display: block; }
 [hidden] { display: none !important; }
 button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 .wrap { max-width: 920px; margin: 0 auto; padding: 0 1.25rem; }
 
 /* Header + tabs */
 header.top {
-  background: var(--mat); color: #fff;
+  background: var(--surface); color: var(--ink);
+  border-bottom: 1px solid var(--line);
   padding: 1.5rem 0 0;
 }
-:root[data-theme="dark"] header.top { color: #0E1620; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) header.top { color: #0E1620; } }
 .brand { display: flex; align-items: center; gap: .9rem; }
 .brand-mark {
   width: 44px; height: 44px; border-radius: 50%;
@@ -84,21 +93,29 @@ header.top {
   font-family: var(--font-display); font-weight: 700; font-size: 2rem;
   line-height: 1; margin: 0; letter-spacing: .01em;
 }
-.brand p { margin: .2rem 0 0; opacity: .85; font-size: .95rem; }
+.brand p { margin: .2rem 0 0; color: var(--muted); font-size: .95rem; }
+.brand > div:not(.brand-mark) { flex: 1; min-width: 0; }
+.theme-toggle {
+  appearance: none; flex: none; align-self: flex-start; width: 40px; height: 40px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer;
+  display: grid; place-items: center;
+}
+.theme-toggle:hover { color: var(--ink); background: var(--bg); }
 
-.tabs { display: flex; gap: .25rem; margin-top: 1.4rem; }
+.tabs { display: flex; gap: .25rem; margin-top: 1.4rem; overflow-x: auto; scrollbar-width: none; margin-bottom: -1px; }
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   appearance: none; border: 0; cursor: pointer;
-  background: transparent; color: inherit; opacity: .8;
+  background: transparent; color: var(--muted);
   padding: .75rem 1.15rem; font-weight: 600; font-size: 1rem;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   white-space: nowrap;
 }
 @media (max-width: 480px) { .tab { padding: .7rem .75rem; font-size: .95rem; } .tabs { gap: 0; } }
-.tab:hover { opacity: 1; }
-.tab[aria-selected="true"] { background: var(--bg); color: var(--ink); opacity: 1; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { background: var(--bg); color: var(--ink); box-shadow: inset 0 3px 0 var(--mat), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line); }
 
-main { padding: 2rem 0 4rem; }
+main, main.wrap { padding-top: 1.75rem; padding-bottom: 4rem; }
 [role="tabpanel"][hidden] { display: none; }
 
 h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1.15; margin: 0 0 .5rem; }
@@ -166,8 +183,9 @@ p { margin: 0 0 .9rem; }
 .field .hint { font-size: .85rem; color: var(--muted); }
 input[type="text"], select, textarea {
   width: 100%; padding: .65rem .8rem; border: 1px solid var(--line);
-  border-radius: var(--radius-sm); background: var(--bg);
+  border-radius: var(--radius-sm); background: var(--field);
 }
+input[type="text"]:focus, select:focus, textarea:focus { outline: none; border-color: var(--mat); }
 textarea { min-height: 4rem; resize: vertical; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
 @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
@@ -180,9 +198,7 @@ textarea { min-height: 4rem; resize: vertical; }
 }
 .btn:hover:not(:disabled) { border-color: var(--mat); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn-primary { background: var(--mat); border-color: var(--mat); color: #fff; }
-:root[data-theme="dark"] .btn-primary { color: #0E1620; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-primary { color: #0E1620; } }
+.btn-primary { background: var(--mat); border-color: var(--mat); color: var(--on-accent); }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
 .btn-danger { color: var(--danger); }
 .btn-danger:hover:not(:disabled) { border-color: var(--danger); }
@@ -290,7 +306,7 @@ textarea { min-height: 4rem; resize: vertical; }
 .pick { text-align: left; margin-top: .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 1rem; background: var(--surface); }
 .pick h4 { margin: 0 0 .2rem; font-size: 1.05rem; }
 .pick > p { font-size: .9rem; margin: 0 0 .7rem; }
-.pick input[type="search"] { width: 100%; padding: .65rem .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); }
+.pick input[type="search"] { width: 100%; padding: .65rem .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--field); }
 .pick-list { max-height: 260px; overflow-y: auto; margin: .5rem 0 .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .pick-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: none; padding: .65rem .8rem; cursor: pointer; min-height: 44px; }
 .pick-item:last-child { border-bottom: 0; }
@@ -316,7 +332,7 @@ textarea { min-height: 4rem; resize: vertical; }
 .crop-head { padding: .75rem 1.25rem .25rem; text-align: center; }
 .crop-head h3 { font-family: var(--font-display); font-size: 1.4rem; margin: 0; }
 .crop-head p { margin: .2rem 0 0; opacity: .75; font-size: .95rem; }
-.crop-area { flex: 1; min-height: 0; display: grid; place-items: center; padding: 1.25rem 1.5rem 5rem; } /* bottom room keeps the photo clear of the Netlify badge */
+.crop-area { flex: 1; min-height: 0; display: grid; place-items: center; padding: 1.25rem 1.5rem 5rem; } /* bottom room keeps the photo clear of the browser toolbar on phones */
 .crop-stage { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
 .crop-stage canvas { display: block; width: 100%; height: 100%; }
 .crop-box {
@@ -345,7 +361,7 @@ textarea { min-height: 4rem; resize: vertical; }
 .crop-actions { display: flex; justify-content: center; gap: .4rem; padding: .5rem .75rem 0; }
 .crop-actions .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding: .55rem .4rem; font-size: .95rem; max-width: 160px; }
 .crop-actions .btn { background: #1E2731; border-color: #34404D; color: #fff; }
-.crop-actions .btn-primary { background: var(--brass); border-color: var(--brass); color: #1B1408; }
+.crop-actions .btn-primary { background: var(--brass); border-color: var(--brass); color: var(--on-accent); }
 
 
 .thumb .crop-btn {
@@ -391,7 +407,7 @@ textarea { min-height: 4rem; resize: vertical; }
 .set-tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
 .set-tab { appearance: none; border: 0; background: none; cursor: pointer; padding: .5rem 1.1rem; border-radius: 999px; font-weight: 600; color: var(--muted); min-height: 40px; }
 .set-tab:hover { color: var(--ink); }
-.set-tab[aria-checked="true"] { background: var(--brass); color: #1B1408; }
+.set-tab[aria-checked="true"] { background: var(--brass); color: var(--on-accent); }
 .set-badge { display: inline-block; vertical-align: middle; font-family: var(--font); font-size: .8rem; font-weight: 700; letter-spacing: .02em;
   padding: .15rem .6rem; border-radius: 999px; background: var(--brass-soft); color: var(--ink); border: 1px solid var(--brass); margin-left: .3rem; }
 .edit-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--line); }
@@ -413,6 +429,95 @@ textarea { min-height: 4rem; resize: vertical; }
 label.btn { cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+
+/* ===================== Equipment tab ===================== */
+.eq-intro { margin-bottom: 1.4rem; }
+.eq { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.eq-tools { display: flex; flex-direction: column; gap: .4rem; position: sticky; top: 1rem; }
+.eq-tool {
+  appearance: none; text-align: left; cursor: pointer; border: 1px solid transparent; background: transparent;
+  border-radius: var(--radius-sm); padding: .65rem .8rem; display: flex; flex-direction: column; gap: .05rem;
+}
+.eq-tool:hover { background: var(--surface); border-color: var(--line); }
+.eq-tool[aria-pressed="true"] { background: var(--mat-soft); border-color: var(--mat); }
+.eq-fig { font-family: var(--font-mono); font-size: .78rem; color: var(--muted); }
+.eq-tool-name { font-weight: 700; font-size: 1.02rem; line-height: 1.25; }
+.eq-tool[aria-pressed="true"] .eq-tool-name { color: var(--mat); }
+.eq-tool-sub { font-size: .85rem; color: var(--muted); }
+.eq-more { font-size: .85rem; color: var(--muted); margin: .5rem .8rem 0; }
+
+.eq-stage {
+  position: relative; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.eq-stage:focus-visible { outline-offset: 3px; }
+.eq-figcap { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .75rem; margin: .3rem 0 .6rem; }
+.eq-figcap b { font-family: var(--font-display); font-size: 1.45rem; line-height: 1.1; }
+.eq-figcap .muted { font-size: .92rem; margin-left: auto; }
+#eqFigure { display: block; width: 100%; height: auto; aspect-ratio: 522 / 408; }
+
+/* figure drawing */
+.eq-ink polygon { stroke: var(--eq-ink); stroke-width: 1.25; stroke-linejoin: round; }
+.eq-ink .eq-noink polygon { stroke: none; }
+.eq-grid polyline { stroke: var(--eq-grid); stroke-width: 1; fill: none; }
+.eq-shadow polygon { fill: var(--eq-shadow); }
+.eq-shadow { opacity: .9; }
+.eq-glow { fill: none; stroke: var(--mat); stroke-width: 3; stroke-linecap: round; }
+.eq-face-text { font-family: var(--font-mono); font-weight: 500; fill: #3A4048; }
+.eq-tag path { stroke: var(--ink); stroke-width: 1; fill: none; }
+.eq-tag circle { fill: var(--ink); }
+.eq-tag rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+.eq-tag text { font-family: var(--font-mono); font-weight: 500; fill: var(--ink); }
+.eq-tag.hot rect { fill: var(--mat); stroke: var(--mat); }
+.eq-tag.hot text { fill: var(--on-accent); font-weight: 600; }
+.eq-tag.hot path { stroke: var(--mat); stroke-width: 1.6; }
+.eq-tag.hot circle { fill: var(--mat); }
+.eq-flash {
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600; fill: var(--mat);
+  paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round;
+}
+
+.eq-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin: .9rem 0 0; }
+.eq-controls #eqNext { margin-left: auto; }
+.eq-controls #eqPlay[aria-pressed="true"] { border-color: var(--mat); color: var(--mat); }
+
+.eq-step { margin-top: 1.1rem; max-width: 66ch; min-height: 9.5rem; }
+.eq-step-top { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; margin-bottom: .35rem; }
+.eq-step-num { font-family: var(--font-mono); font-size: .85rem; color: var(--muted); }
+.eq-step .pins { margin: 0; }
+.eq-step h3 { font-family: var(--font-display); font-size: 1.55rem; line-height: 1.15; margin: 0 0 .35rem; }
+.eq-step p { margin: 0 0 .8rem; }
+.eq-caution { border-left: 4px solid var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); padding: .7rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .95rem; }
+.eq-caution strong { color: var(--danger); margin-right: .25rem; }
+
+.eq-list { list-style: none; margin: 1.2rem 0 0; padding: 1rem 0 0; border-top: 1px solid var(--line); counter-reset: eqs; columns: 2; column-gap: 1.5rem; }
+.eq-list li { counter-increment: eqs; break-inside: avoid; }
+.eq-list button {
+  appearance: none; border: 0; background: none; cursor: pointer; width: 100%; text-align: left;
+  display: flex; gap: .7rem; align-items: center; padding: .45rem .3rem; border-radius: var(--radius-sm); color: var(--muted); min-height: 40px;
+}
+.eq-list button::before {
+  content: counter(eqs); flex: none; width: 1.7rem; height: 1.7rem; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: .95rem; border: 1.5px solid var(--line); color: var(--muted);
+}
+.eq-list button:hover { color: var(--ink); background: var(--surface); }
+.eq-list li.done button::before { background: var(--line); border-color: var(--line); color: var(--ink); }
+.eq-list button[aria-current="step"] { color: var(--ink); font-weight: 600; }
+.eq-list button[aria-current="step"]::before { background: var(--mat); border-color: var(--mat); color: var(--on-accent); }
+
+@media (max-width: 760px) {
+  .eq { grid-template-columns: 1fr; gap: 1rem; }
+  .eq-tools { flex-direction: row; overflow-x: auto; position: static; padding-bottom: .2rem; }
+  .eq-tool { flex: none; border-color: var(--line); background: var(--surface); }
+  .eq-more { display: none; }
+  .eq-list { columns: 1; }
+}
+@media (max-width: 480px) {
+  .eq-controls .btn { flex: 1 1 40%; justify-content: center; }
+  .eq-controls #eqNext { margin-left: 0; }
+  .eq-figcap b { font-size: 1.15rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
@@ -428,11 +533,15 @@ label.btn { cursor: pointer; }
         <h1>Connector Recognizer</h1>
         <p>Point a camera at a connector, find out what it is.</p>
       </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g id="themeIcon"></g></svg>
+      </button>
     </div>
     <div class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="true" data-hash="scan">Scan me</button>
       <button class="tab" role="tab" id="tab-guide" aria-controls="panel-guide" aria-selected="false" tabindex="-1" data-hash="guide">How to use</button>
       <button class="tab" role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" tabindex="-1" data-hash="train">Train the model</button>
+      <button class="tab" role="tab" id="tab-equip" aria-controls="panel-equip" aria-selected="false" tabindex="-1" data-hash="equipment">Equipment</button>
     </div>
   </div>
 </header>
@@ -640,6 +749,36 @@ label.btn { cursor: pointer; }
       <div class="empty">Loading connectors…</div>
     </div>
   </section>
+
+  <!-- ============ TAB 3: EQUIPMENT ============ -->
+  <section role="tabpanel" id="panel-equip" aria-labelledby="tab-equip" hidden>
+    <div class="eq-intro">
+      <h2>How to use equipment</h2>
+      <p class="lead">Pick a tool and follow it step by step. Each step plays as a short animation; replay it as many times as you need.</p>
+    </div>
+    <div class="eq">
+      <nav class="eq-tools" id="eqTools" aria-label="Equipment"></nav>
+      <div class="eq-main">
+        <div class="eq-figcap"><span class="eq-fig" id="eqFigName"></span><b id="eqFigTitle"></b><span class="muted" id="eqFigSub"></span></div>
+        <div class="eq-stage" id="eqStage" tabindex="0" aria-label="Animated figure. Use the left and right arrow keys to move between steps.">
+          <svg id="eqFigure" role="img" aria-labelledby="eqStepTitle" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="eq-controls">
+          <button class="btn" id="eqBack" type="button">Back</button>
+          <button class="btn" id="eqReplay" type="button">Replay</button>
+          <button class="btn" id="eqPlay" type="button" aria-pressed="false">Play all</button>
+          <button class="btn btn-primary" id="eqNext" type="button">Next step</button>
+        </div>
+        <div class="eq-step" aria-live="polite">
+          <div class="eq-step-top"><span class="eq-step-num" id="eqStepNum"></span><div class="pins" id="eqPins" aria-hidden="true"></div></div>
+          <h3 id="eqStepTitle"></h3>
+          <p id="eqStepBody"></p>
+          <div class="eq-caution" id="eqCaution" hidden><strong>Watch out:</strong><span id="eqCautionText"></span></div>
+        </div>
+        <ol class="eq-list" id="eqList" aria-label="All steps"></ol>
+      </div>
+    </div>
+  </section>
 </main>
 
 <div class="cropper" id="cropper" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
@@ -731,6 +870,503 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
+/* ===================== EQUIPMENT GUIDES ===================== */
+// Hand-inked isometric figures with step-by-step animated procedures.
+// To add a tool: push an object onto EQ_TOOLS with base state, steps and a draw(st) function.
+// Each step's keys are [time 0–1, {state values}]; values tween from where the previous step ended.
+const EQ = (() => {
+  const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6);
+  const P = ([x, y, z]) => [(x - y) * C, (x + y) * S - z];
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const norm = a => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const VIEW = [1, 1, 1];
+  const LIGHT = norm([0.2, 0.55, 1]);
+  const f = n => Math.round(n * 10) / 10;
+  const pts = arr => arr.map(p => { const [a, b] = P(p); return f(a) + ',' + f(b); }).join(' ');
+  const tone = (n, m) => { const d = dot(n, LIGHT); return d > .75 ? m.l : d > .32 ? m.m : m.d; };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp01 = t => Math.max(0, Math.min(1, t));
+  const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  // Materials: light / mid / dark faces
+  const M = {
+    steel:  { l: '#EEF0F1', m: '#C4CBCF', d: '#8B959B' },
+    dark:   { l: '#5E646C', m: '#454A51', d: '#2E3238' },
+    amber:  { l: '#F6C76E', m: '#E8A33D', d: '#9E6A1E' },
+    pine:   { l: '#7FD3AE', m: '#34B37E', d: '#1F6E4D' },
+    rust:   { l: '#EE8A78', m: '#D9604C', d: '#8A3426' },
+    copper: { l: '#F7C08C', m: '#D98A4E', d: '#8E5426' },
+    tin:    { l: '#FBF1C9', m: '#E2CF8C', d: '#A8924F' },
+  };
+
+  // Extrude a 2D profile [[u,v]...] along W. Frame maps u→U, v→V from origin o.
+  function prism(profile, fr, w0, w1, m, cls = '') {
+    const at = (p, w) => add(add(add(fr.o, mul(fr.U, p[0])), mul(fr.V, p[1])), mul(fr.W, w));
+    const A = profile.map(p => at(p, w0)), B = profile.map(p => at(p, w1));
+    let area = 0;
+    for (let i = 0; i < profile.length; i++) { const p = profile[i], q = profile[(i + 1) % profile.length]; area += p[0] * q[1] - q[0] * p[1]; }
+    const sg = area > 0 ? 1 : -1;
+    const sides = [];
+    for (let i = 0; i < profile.length; i++) {
+      const j = (i + 1) % profile.length, p = profile[i], q = profile[j];
+      const du = q[0] - p[0], dv = q[1] - p[1];
+      if (Math.abs(du) + Math.abs(dv) < 1e-6) continue;
+      const n = norm(add(mul(fr.U, dv * sg), mul(fr.V, -du * sg)));
+      if (dot(n, VIEW) <= 1e-6) continue;
+      const quad = [A[i], A[j], B[j], B[i]];
+      const mid = mul(add(add(A[i], A[j]), add(B[i], B[j])), .25);
+      sides.push({ d: dot(mid, VIEW), s: `<polygon points="${pts(quad)}" fill="${tone(n, m)}"/>` });
+    }
+    sides.sort((a, b) => a.d - b.d);
+    const Wn = norm(mul(fr.W, w1 > w0 ? 1 : -1));
+    const capFront = dot(Wn, VIEW) > 0 ? B : A, capN = dot(Wn, VIEW) > 0 ? Wn : mul(Wn, -1);
+    return `<g${cls ? ` class="${cls}"` : ''}>${sides.map(s => s.s).join('')}<polygon points="${pts(capFront)}" fill="${tone(capN, m)}"/></g>`;
+  }
+  const XZ = o => ({ o, U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] });   // profile drawn side-on, thickness along y
+  const XY = o => ({ o, U: [1, 0, 0], V: [0, 1, 0], W: [0, 0, 1] });   // profile drawn top-down, height along z
+  const box = (x0, y0, z0, x1, y1, z1, m) => prism([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], XY([0, 0, 0]), z0, z1, m);
+
+  // A round tube along a 3D polyline, drawn as layered strokes
+  function tube(path3, d, m, cap = 'round') {
+    if (path3.length < 2) return '';
+    const s = path3.map(P).map((p, i) => (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1])).join('');
+    return `<g fill="none" stroke-linecap="${cap}" stroke-linejoin="round" class="eq-noink">`
+      + `<path d="${s}" stroke="var(--eq-ink)" stroke-width="${f(d + 2.6)}"/>`
+      + `<path d="${s}" stroke="${m.m}" stroke-width="${f(d)}"/>`
+      + `<path d="${s}" stroke="${m.l}" stroke-width="${f(Math.max(.8, d * .32))}" transform="translate(0 ${f(-d * .2)})"/></g>`;
+  }
+
+  // Text printed on a face lying in the x–z plane (facing +y)
+  function faceText(p3, str, size = 6) {
+    const [X, Y] = P(p3);
+    return `<text class="eq-face-text" transform="matrix(${f(C)} ${f(S)} 0 1 ${f(X)} ${f(Y)})" font-size="${size}" text-anchor="middle">${str}</text>`;
+  }
+
+  // Plate with a mat grid
+  function plate(x0, y0, x1, y1, z, thick, gridStep) {
+    const pm = { l: 'var(--eq-plate-l)', m: 'var(--eq-plate-m)', d: 'var(--eq-plate-d)' };
+    let s = box(x0, y0, z - thick, x1, y1, z, pm);
+    let g = '';
+    for (let i = x0 + gridStep; i < x1; i += gridStep) g += `<polyline points="${pts([[i, y0 + 4, z], [i, y1 - 4, z]])}"/>`;
+    for (let i = y0 + gridStep; i < y1; i += gridStep) g += `<polyline points="${pts([[x0 + 4, i, z], [x1 - 4, i, z]])}"/>`;
+    return s + `<g class="eq-grid eq-noink">${g}</g>`;
+  }
+
+  // Soft shadow of side-on profiles dropped onto the plate (light from above, viewer's right)
+  function shadow(profiles, pz = 0) {
+    const drop = ([x, y, z]) => [x - (z - pz) * .05, y + (z - pz) * .16, pz + .2];
+    return `<g class="eq-shadow eq-noink" filter="url(#eqBlur)">${profiles.map(pr => `<polygon points="${pts(pr.map(drop))}"/>`).join('')}</g>`;
+  }
+
+  const rot = ([x, z], [cx, cz], a) => {
+    const c = Math.cos(a), s = Math.sin(a), dx = x - cx, dz = z - cz;
+    return [cx + dx * c - dz * s, cz + dx * s + dz * c];
+  };
+  // Rounded strip between two points (u,v), half-width hw0 → hw1
+  function strip(A, B, hw0, hw1, seg = 6) {
+    const dx = B[0] - A[0], dz = B[1] - A[1], L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, nx = -uz, nz = ux;
+    const out = [];
+    for (let i = 0; i <= seg; i++) { const a = Math.PI / 2 - Math.PI * i / seg; out.push([B[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw1, B[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw1]); }
+    for (let i = 0; i <= seg; i++) { const a = -Math.PI / 2 - Math.PI * i / seg; out.push([A[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw0, A[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw0]); }
+    return out;
+  }
+  const circle = ([cx, cz], r, n = 16) => Array.from({ length: n }, (_, i) => [cx + r * Math.cos(i / n * 2 * Math.PI), cz + r * Math.sin(i / n * 2 * Math.PI)]);
+  const along = (A, B, t) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t)];
+
+  return { P, prism, XZ, XY, box, tube, faceText, plate, shadow, rot, strip, circle, along, M, lerp, clamp01, ease, f, pts };
+})();
+
+/* ---------- Fig. 01: Ratchet crimper ---------- */
+const CRIMPER = (() => {
+  const { prism, XZ, tube, faceText, plate, shadow, rot, strip, circle, along, M, lerp, P } = EQ;
+  const Y0 = 104, Y1 = 118;                 // tool thickness (y)
+  const JAW = 120;                          // top of the fixed jaw (z)
+  const NESTS = [{ x: 33, r: 3, label: '28–26' }, { x: 54, r: 4, label: '24–22' }, { x: 75, r: 5, label: '20–18' }];
+  const PIVOT = [128, 129];
+  const PZ = 44;                             // top of the mat (z)
+  const PL = [16, 40, 316, 300];             // mat extent x0, y0, x1, y1
+  const UP_A = PIVOT, UP_B = [292, 111];     // upper handle centre line, closed
+  const LO_A = [118, 101], LO_B = [292, 72]; // lower handle centre line
+
+  function lowerArm() {
+    const p = [[14, 102], [14, 117], [17, JAW]];
+    for (const n of NESTS) {
+      p.push([n.x - n.r - 1, JAW]);
+      for (let i = 0; i <= 6; i++) { const a = Math.PI + Math.PI * i / 6; p.push([n.x + n.r * Math.cos(a), JAW + n.r * Math.sin(a)]); }
+      p.push([n.x + n.r + 1, JAW]);
+    }
+    p.push([112, JAW], [120, 113]);
+    const top = [[124, 107.5], [288, 78.5]], bot = [[287, 65.5], [114, 95]];
+    p.push(...top, [294, 76], [296, 71], [293, 66], ...bot, [104, 99], [18, 99]);
+    return p;
+  }
+  function upperJaw(gap) {
+    const b = JAW + gap, p = [[112, b + 4]];
+    for (const n of [...NESTS].reverse()) {
+      p.push([n.x + n.r, b], [n.x + n.r * .55, b - 1.8], [n.x - n.r * .55, b - 1.8], [n.x - n.r, b]);
+    }
+    p.push([18, b], [14, b + 3], [14, b + 16], [20, b + 21], [112, b + 21]);
+    return p;
+  }
+
+  function draw(st) {
+    const ang = st.open * 0.27;                        // ≈15° fully open
+    const gap = 1 + st.open * 18;
+    const upB = rot(UP_B, PIVOT, ang);
+    const upper = strip(UP_A, upB, 7, 5.5);
+    const upGrip = strip(along(UP_A, upB, .46), along(UP_A, upB, 1.015), 8.5, 8);
+    const loGrip = strip(along(LO_A, LO_B, .46), along(LO_A, LO_B, 1.015), 8.5, 8);
+    const lower = lowerArm(), jaw = upperJaw(gap);
+    const frame = [[92, 95], [146, 95], [152, 102], [152, 158], [143, 167], [101, 167], [92, 160]];
+    const ratchet = [[160, 98.5], [176, 96], [176, 100], [179, 101], [176, 104], [179, 106], [176, 109], [179, 112], [175, 115], [171, 116], [165, 108]];
+    const pawlTip = rot([174, 117], PIVOT, ang);
+    const pawl = [rot([168, 122], PIVOT, ang), rot([182, 120], PIVOT, ang), pawlTip];
+    const lever = [[176, 87], [200, 83], [205, 75], [199, 72.5], [185, 78], [176, 80]];
+    const toolOp = st.toolFade;
+
+    const at3 = (x, z, y = Y1) => [x, y, z];
+    const side = (pr, y) => pr.map(([x, z]) => [x, y, z]);
+
+    // Terminal + wire assembly, in local coordinates (y along the wire, z up, origin at the terminal's back end)
+    const O = [st.ax, st.ay, st.az], k = st.as;
+    const W = ([x, y, z]) => [O[0] + x * k, O[1] + y * k, O[2] + z * k];
+    function assembly(yMin, yMax) {
+      const oct = (r, h = r) => Array.from({ length: 8 }, (_, i) => { const a = (i + .5) / 8 * 2 * Math.PI; return [r * Math.cos(a), h * Math.sin(a) + st.tZ]; });
+      const clipRound = (r, h, y0, y1, m) => {
+        const a = Math.max(y0, yMin), b = Math.min(y1, yMax);
+        return b > a ? prism(oct(r, h), { o: O, U: [k, 0, 0], V: [0, 0, k], W: [0, k, 0] }, a, b, m) : '';
+      };
+      const clipBox = (x0, y0, z0, x1, y1, z1, m) => {
+        const a = Math.max(y0, yMin), b = Math.min(y1, yMax);
+        if (b <= a) return '';
+        z0 += st.tZ; z1 += st.tZ;
+        return prism([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], { o: O, U: [k, 0, 0], V: [0, 0, k], W: [0, k, 0] }, a, b, m);
+      };
+      const clipTube = (y0, y1, d, m, x = 0, z = 0) => {
+        const a = Math.max(y0, yMin), b = Math.min(y1, yMax);
+        return b > a ? tube([W([x, a, z]), W([x, b, z])], d * k, m, 'butt') : '';
+      };
+      let s = '';
+      const t = st.tY, wy = st.wY, cr = st.crimped;
+      // terminal
+      let term = '';
+      if (st.termOn > 0.01) {
+        term += clipBox(-3.2, t, -3.4, 3.2, t + 8.6, 3.2, M.tin);                        // contact box
+        term += clipBox(-1, t + 2, 3.2, 1, t + 7, 4.2, M.tin);                          // latch
+        if (cr < .5) {
+          term += clipBox(-3.4, t + 10, -3.4, -2.6, t + 23, 4.6, M.tin);                // back wings
+          term += clipBox(-3.4, t + 10, -3.4, 3.4, t + 23, -2.6, M.tin);                // floor
+        }
+      }
+      // wire: conductor, insulation, stripped slug
+      let wire = '';
+      if (st.wireOn > 0.01) {
+        const strip = 6;
+        wire += clipTube(wy, wy + strip + 1, 2.6, M.copper);
+        if (st.slug < .99) {
+          const off = -st.slug * 16;
+          const sl = clipTube(wy + off, wy + strip + off, 4.6, M.rust);
+          wire += sl ? `<g opacity="${EQ.f(1 - st.slug)}">${sl}</g>` : '';
+        }
+        const ins0 = wy + strip;
+        const insEnd = lerp(wy + strip + st.wireLen, Math.max(ins0 + 4, (196 - st.ay) / st.as), st.droop);
+        const a = Math.max(ins0, yMin), b = Math.min(insEnd, yMax);
+        if (b > a) {
+          const path = [W([0, a, 0]), W([0, b, 0])];
+          if (b >= insEnd - .01 && st.droop > .01) {
+            const e = W([0, insEnd, 0]);
+            const run = Math.max(20, PL[3] - 4 - e[1]), land = Math.min(70, run * .6), h = e[2] - PZ - 2.5;
+            for (let i = 1; i <= 12; i++) {
+              const u = i / 12, d = u * run, v = Math.min(1, d / land);
+              const zz = PZ + 2.5 + h * (1 + Math.cos(Math.PI * v)) / 2;
+              path.push([e[0] + Math.sin(u * 2.2) * 10 * st.droop, e[1] + d, lerp(e[2], zz, st.droop)]);
+            }
+          }
+          wire += tube(path, 4.6 * k, M.rust, 'butt');
+          if (st.droop < .5 && b >= insEnd - .01) {              // cut end
+            const [cx, cy] = P(W([0, insEnd, 0]));
+            wire += `<ellipse class="eq-noink" cx="${EQ.f(cx)}" cy="${EQ.f(cy)}" rx="${EQ.f(2.1 * k)}" ry="${EQ.f(2.5 * k)}" fill="${M.rust.d}" stroke="var(--eq-ink)" stroke-width="1.2"/><circle class="eq-noink" cx="${EQ.f(cx)}" cy="${EQ.f(cy)}" r="${EQ.f(1.1 * k)}" fill="${M.copper.m}"/>`;
+          }
+        }
+      }
+      let front = '';
+      if (st.termOn > 0.01) {
+        if (cr < .5) {
+          front += clipBox(2.6, t + 10, -3.4, 3.4, t + 16, 3.4, M.tin);                 // conductor wing, front
+          front += clipBox(2.6, t + 17, -3.4, 3.4, t + 23, 4.6, M.tin);                 // insulation wing, front
+        } else {
+          front += clipRound(3.1, 2.8, t + 11, t + 15.4, M.tin);                        // crimped conductor barrel
+          front += clipRound(3.6, 3.2, t + 15.4, t + 16.1, M.tin);                      // bellmouth flare
+          front += clipRound(3.9, 3.7, t + 17.2, t + 23, M.tin);                        // crimped insulation barrel
+        }
+      }
+      s += `<g opacity="${EQ.f(st.termOn)}">${term}</g>` + `<g opacity="${EQ.f(st.wireOn)}">${wire}</g>` + `<g opacity="${EQ.f(st.termOn)}">${front}</g>`;
+      return s;
+    }
+
+    let svg = plate(...PL, PZ, 10, 30);
+    if (toolOp > .05) svg += `<g opacity="${EQ.f(toolOp)}">${shadow([side(lower, Y1), side(upper, Y1), side(jaw, Y1), side(upGrip, Y1), side(loGrip, Y1), side(frame, Y1), side(lower, Y0), side(upper, Y0), side(loGrip, Y0 - 2), side(upGrip, Y0 - 2)], PZ)}</g>`;
+    svg += assembly(-1e9, (Y1 - st.ay) / st.as);                        // behind the tool
+    let tool = '';
+    tool += prism(lower, XZ([0, 0, 0]), Y0, Y1, M.steel);
+    tool += prism(loGrip, XZ([0, 0, 0]), Y0 - 2, Y1 + 2, M.amber);
+    tool += prism(ratchet, XZ([0, 0, 0]), Y0 + 4, Y1 - 4, M.dark);
+    tool += prism(lever, XZ([0, 0, 0]), Y1, Y1 + 2.5, M.pine);
+    tool += prism(jaw, XZ([0, 0, 0]), Y0, Y1, M.steel);
+    // nest highlight + labels on the fixed jaw face
+    NESTS.forEach((n, i) => {
+      tool += faceText(at3(n.x, JAW - 13.5), n.label, 5.2);
+      if (i === 1 && st.glow > .01) {
+        const ring = circle([n.x, JAW], n.r + 2.2, 20).filter(([, z]) => z <= JAW + .1);
+        tool += `<polyline class="eq-noink eq-glow" opacity="${EQ.f(st.glow)}" points="${EQ.pts(ring.sort((a, b) => a[0] - b[0]).map(([x, z]) => [x, Y1 + .5, z]))}"/>`;
+      }
+    });
+    tool += prism(upper, XZ([0, 0, 0]), Y0, Y1, M.steel);
+    tool += prism(pawl, XZ([0, 0, 0]), Y0 + 4, Y1 - 4, M.dark);
+    tool += prism(upGrip, XZ([0, 0, 0]), Y0 - 2, Y1 + 2, M.amber);
+    tool += prism(frame, XZ([0, 0, 0]), Y1, Y1 + 3, M.steel);
+    tool += prism(circle(PIVOT, 5.5), XZ([0, 0, 0]), Y1 + 3, Y1 + 5.5, M.dark);
+    tool += prism(circle([104, 104], 3), XZ([0, 0, 0]), Y1 + 3, Y1 + 4.5, M.dark);
+    tool += prism(circle([142, 104], 3), XZ([0, 0, 0]), Y1 + 3, Y1 + 4.5, M.dark);
+    svg += toolOp < .99 ? `<g opacity="${EQ.f(toolOp)}">${tool}</g>` : tool;
+    svg += assembly((Y1 - st.ay) / st.as, 1e9);                         // in front of the tool
+
+    const tLocal = (y, z = 0) => [st.ax, st.ay + y * st.as, st.az + z * st.as];
+    const tags = {
+      jaws:     { at: at3(22, JAW + gap + 18), dx: -30, dy: -30, text: 'Jaws' },
+      nests:    { at: at3(54, JAW - 6), dx: -96, dy: 40, text: 'Die nests (AWG)' },
+      ratchet:  { at: at3(172, 108), dx: 34, dy: -56, text: 'Ratchet' },
+      release:  { at: at3(192, 78, Y1 + 2.5), dx: -40, dy: 46, text: 'Release lever' },
+      handles:  { at: (([x, z]) => [x, Y1 + 2, z])(rot([250, 118], PIVOT, ang)), dx: 46, dy: -20, text: 'Handles' },
+      terminal: { at: tLocal(st.tY + 6, 3 + st.tZ), dx: -96, dy: 6, text: 'Terminal' },
+      wire:     { at: tLocal(st.wY + 30), dx: -54, dy: 34, text: 'Wire' },
+      strip:    { at: tLocal(st.wY + 3), dx: -70, dy: -20, text: 'Strip 2–3 mm' },
+      bell:     { at: tLocal(st.tY + 15.8, 3.4), dx: -84, dy: -52, text: 'Bellmouth' },
+      brush:    { at: tLocal(st.tY + 9.9, 1.2), dx: 74, dy: -74, text: 'Strand ends just showing' },
+      insul:    { at: tLocal(st.tY + 21, 3.8), dx: -100, dy: 46, text: 'Grips insulation' },
+    };
+    return { svg, tags, anchors: { ratchet: P(at3(172, 112)) } };
+  }
+
+  return {
+    id: 'crimper', fig: 1, name: 'Ratchet crimper', sub: 'Open-barrel terminals',
+    viewBox: [-272, -132, 522, 408],
+    base: { open: 0, tZ: 0, toolFade: 1, glow: 0, termOn: 0, wireOn: 0, tY: 0, wY: 96, slug: 0, crimped: 0,
+            ax: 54, ay: 100, az: JAW - 4 + 3.4, as: 1, wireLen: 140, droop: 1 },
+    draw,
+    steps: [
+      { title: 'Get to know the tool', dur: 1400,
+        body: 'This crimper closes open-barrel terminals onto wire. Once you start squeezing, the ratchet won\'t let go until the crimp is finished, so every crimp gets the same pressure.',
+        tags: ['jaws', 'nests', 'ratchet', 'release', 'handles'],
+        keys: [[1, { open: 1 }]] },
+      { title: 'Strip the wire', dur: 1600,
+        body: 'Strip the length on the terminal\'s datasheet, usually 2–3 mm. Keep the strands straight and don\'t twist them.',
+        caution: 'If any strands are cut or nicked, cut the end off and strip it again. Missing strands make a weak crimp.',
+        tags: ['wire', 'strip'],
+        keys: [[.25, { wireOn: 1 }], [1, { slug: 1 }]] },
+      { title: 'Pick the die nest', dur: 1000,
+        body: 'Use the nest marked with your wire size. Too big and the crimp is loose; too small and it cuts into the strands.',
+        tags: ['nests'], hot: ['nests'],
+        keys: [[.6, { glow: 1 }]] },
+      { title: 'Load the terminal', dur: 2000,
+        body: 'Drop the terminal into the nest with the open barrel facing up and the contact end toward the back of the tool. Squeeze gently until the jaws just hold it.',
+        tags: ['terminal', 'jaws'], hot: ['terminal'],
+        keys: [[0, { tZ: 46 }], [.15, { termOn: 1 }], [.6, { tZ: 0 }], [.95, { open: .2 }], [1, { glow: 0 }]],
+        flashes: [[.8, 'Click']] },
+      { title: 'Insert the wire', dur: 1600,
+        body: 'Slide the stripped end in until the insulation stops at the insulation barrel. The bare strands should sit fully inside the conductor barrel.',
+        tags: ['wire', 'terminal'], hot: ['wire'],
+        keys: [[1, { wY: 9.2 }]] },
+      { title: 'Squeeze until it releases', dur: 2600,
+        body: 'Squeeze the handles all the way. The ratchet clicks as it closes; keep going until it releases on its own.',
+        caution: 'Stuck halfway because you picked the wrong nest? Push the release lever to open the jaws. Don\'t force it.',
+        tags: ['handles', 'ratchet', 'release'], hot: ['handles'],
+        keys: [[.7, { open: 0 }], [.68, { crimped: 1 }], [1, { open: .08 }]],
+        flashes: [[.2, 'Click'], [.35, 'Click'], [.5, 'Click'], [.65, 'Click'], [.82, 'Released']] },
+      { title: 'Open and take it out', dur: 1800,
+        body: 'Let the handles open fully, then pull the crimped terminal straight out of the nest.',
+        tags: ['terminal'],
+        keys: [[.45, { open: 1 }], [1, { ay: 150 }]] },
+      { title: 'Check the crimp', dur: 1800,
+        body: 'Look for a small bellmouth at the back of the conductor barrel, strand ends just showing past it, and the insulation barrel gripping insulation, not bare wire. Then give it a firm tug; it shouldn\'t move.',
+        caution: 'Strands outside the barrel, insulation under the conductor barrel, or a terminal that pulls off: cut it off and crimp a new one.',
+        tags: ['bell', 'brush', 'insul'],
+        keys: [[1, { toolFade: .15, ax: 196, ay: 60, az: 170, as: 4.4, wireLen: 22, droop: 0 }]] },
+    ],
+  };
+})();
+
+const EQ_TOOLS = [CRIMPER];
+
+/* ---------- Equipment tab controller ---------- */
+const eqUI = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  let tool = EQ_TOOLS[0], step = 0, t = 1, raf = 0, startAt = 0, playing = false, playTimer = 0;
+  const memo = new Map();   // end state of each step, per tool
+
+  function applyKeys(s, prev, tt) {
+    const out = { ...prev };
+    const keys = s.keys || [];
+    const props = new Set(keys.flatMap(([, o]) => Object.keys(o)));
+    for (const p of props) {
+      let t0 = 0, v0 = prev[p], val = v0;
+      for (const [kt, o] of keys) {
+        if (!(p in o)) continue;
+        const v1 = o[p];
+        if (tt >= kt) { t0 = kt; v0 = v1; val = v1; continue; }
+        const u = EQ.clamp01((tt - t0) / ((kt - t0) || 1));
+        val = typeof v1 === 'number' ? v0 + (v1 - v0) * EQ.ease(u) : v0;
+        break;
+      }
+      out[p] = val;
+    }
+    return out;
+  }
+  function startOf(k) {
+    const key = tool.id + ':' + k;
+    if (memo.has(key)) return memo.get(key);
+    const s = k === 0 ? { ...tool.base } : applyKeys(tool.steps[k - 1], startOf(k - 1), 1);
+    memo.set(key, s);
+    return s;
+  }
+
+  function tagSvg(tg, hot) {
+    // Labels grow on narrow screens so they stay readable when the figure is scaled down
+    const z = Math.min(1.6, Math.max(1, 480 / ($('eqFigure').clientWidth || 480)));
+    const [X, Y] = EQ.P(tg.at), cx = X + tg.dx, cy = Y + tg.dy;
+    const w = (tg.text.length * 6.3 + 16) * z, h = 19 * z;
+    return `<g class="eq-tag${hot ? ' hot' : ''}"><path d="M${EQ.f(X)} ${EQ.f(Y)}L${EQ.f(cx)} ${EQ.f(cy)}"/><circle cx="${EQ.f(X)}" cy="${EQ.f(Y)}" r="2.2"/>`
+      + `<rect x="${EQ.f(cx - w / 2)}" y="${EQ.f(cy - h / 2)}" width="${EQ.f(w)}" height="${EQ.f(h)}" rx="${EQ.f(h / 2)}"/>`
+      + `<text x="${EQ.f(cx)}" y="${EQ.f(cy + 3.6 * z)}" text-anchor="middle" font-size="${EQ.f(10.5 * z)}">${esc(tg.text)}</text></g>`;
+  }
+
+  function render() {
+    const s = tool.steps[step];
+    const st = applyKeys(s, startOf(step), t);
+    const out = tool.draw(st);
+    const show = new Set(s.tags || []), hot = new Set(s.hot || []);
+    const tagFade = EQ.clamp01((t - .55) / .3);
+    let tags = '';
+    for (const id of show) if (out.tags[id]) tags += tagSvg(out.tags[id], hot.has(id));
+    let flash = '';
+    const ms = t * s.dur;
+    for (const [ft, text] of s.flashes || []) {
+      const dt = ms - ft * s.dur;
+      if (t < 1 && dt >= 0 && dt < 420) {
+        const [X, Y] = out.anchors.ratchet, rise = dt / 420 * 14;
+        flash += `<text class="eq-flash" x="${EQ.f(X + 26)}" y="${EQ.f(Y - 26 - rise)}" opacity="${EQ.f(1 - dt / 420)}">${esc(text)}</text>`;
+      }
+    }
+    $('eqFigure').innerHTML = `<defs><filter id="eqBlur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.5"/></filter></defs><g class="eq-ink">${out.svg}</g><g opacity="${EQ.f(tagFade)}">${tags}</g>${flash}`;
+  }
+
+  function animate() {
+    cancelAnimationFrame(raf);
+    const dur = tool.steps[step].dur;
+    if (reduce.matches) { t = 1; render(); onDone(); return; }
+    t = 0; startAt = performance.now();
+    const loop = now => {
+      t = Math.min(1, (now - startAt) / dur);
+      render();
+      if (t < 1) raf = requestAnimationFrame(loop); else onDone();
+    };
+    raf = requestAnimationFrame(loop);
+  }
+  function onDone() {
+    clearTimeout(playTimer);
+    if (!playing) return;
+    if (step >= tool.steps.length - 1) { setPlaying(false); return; }
+    playTimer = setTimeout(() => go(step + 1), Math.max(2200, tool.steps[step].body.length * 24));
+  }
+
+  function renderText() {
+    const s = tool.steps[step], n = tool.steps.length;
+    $('eqStepNum').textContent = `Step ${step + 1} of ${n}`;
+    $('eqStepTitle').textContent = s.title;
+    $('eqStepBody').textContent = s.body;
+    $('eqCaution').hidden = !s.caution;
+    $('eqCautionText').textContent = s.caution || '';
+    $('eqPins').innerHTML = tool.steps.map((_, i) => `<span class="pin${i <= step ? ' on' : ''}"></span>`).join('');
+    $('eqBack').disabled = step === 0;
+    $('eqNext').textContent = step === n - 1 ? 'Start over' : 'Next step';
+    $('eqList').querySelectorAll('[data-step]').forEach(li => {
+      const i = +li.dataset.step;
+      li.setAttribute('aria-current', i === step ? 'step' : 'false');
+      li.classList.toggle('done', i < step);
+    });
+  }
+
+  function go(k, { instant = false } = {}) {
+    step = Math.max(0, Math.min(tool.steps.length - 1, k));
+    renderText();
+    if (instant) { cancelAnimationFrame(raf); t = 1; render(); } else animate();
+  }
+
+  function setPlaying(on) {
+    playing = on;
+    clearTimeout(playTimer);
+    $('eqPlay').setAttribute('aria-pressed', on);
+    $('eqPlay').textContent = on ? 'Pause' : 'Play all';
+    if (on) { if (step >= tool.steps.length - 1) go(0); else if (t >= 1) onDone(); }
+  }
+
+  function selectTool(id) {
+    tool = EQ_TOOLS.find(x => x.id === id) || EQ_TOOLS[0];
+    setPlaying(false);
+    $('eqFigure').setAttribute('viewBox', tool.viewBox.join(' '));
+    $('eqFigName').textContent = `Fig. ${String(tool.fig).padStart(2, '0')}`;
+    $('eqFigTitle').textContent = tool.name;
+    $('eqFigSub').textContent = tool.sub;
+    $('eqTools').querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === tool.id));
+    $('eqList').innerHTML = tool.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s.title)}</button></li>`).join('');
+    go(0, { instant: true });
+    animate();
+  }
+
+  function init() {
+    $('eqTools').innerHTML = EQ_TOOLS.map(x =>
+      `<button type="button" class="eq-tool" data-tool="${x.id}" aria-pressed="false"><span class="eq-fig">Fig. ${String(x.fig).padStart(2, '0')}</span><span class="eq-tool-name">${esc(x.name)}</span><span class="eq-tool-sub">${esc(x.sub)}</span></button>`).join('')
+      + `<p class="eq-more">More equipment guides are on the way.</p>`;
+    $('eqTools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) selectTool(b.dataset.tool); });
+    $('eqList').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) { setPlaying(false); go(+b.dataset.step); } });
+    $('eqBack').addEventListener('click', () => { setPlaying(false); go(step - 1); });
+    $('eqNext').addEventListener('click', () => { setPlaying(false); go(step === tool.steps.length - 1 ? 0 : step + 1); });
+    $('eqReplay').addEventListener('click', () => { setPlaying(false); go(step); });
+    $('eqPlay').addEventListener('click', () => setPlaying(!playing));
+    $('eqStage').addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); setPlaying(false); go(step + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setPlaying(false); go(step - 1); }
+    });
+    let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+    selectTool(EQ_TOOLS[0].id);
+  }
+  return { init, rerender: () => render(), replay: () => animate() };
+})();
+
+
+/* ===================== THEME ===================== */
+const THEME_ICONS = {
+  dark: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+  light: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+};
+function showTheme() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  $('themeIcon').innerHTML = THEME_ICONS[dark ? 'dark' : 'light'];
+  const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  $('themeToggle').setAttribute('aria-label', label);
+  $('themeToggle').title = label;
+}
+$('themeToggle').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('ftc-theme', next); } catch { /* storage unavailable */ }
+  showTheme();
+});
+showTheme();
+eqUI.init();
+
 /* ===================== TABS ===================== */
 const tabs = [...document.querySelectorAll('[role="tab"]')];
 function selectTab(tab) {
@@ -741,7 +1377,9 @@ function selectTab(tab) {
     $(t.getAttribute('aria-controls')).hidden = !on;
   });
   history.replaceState(null, '', '#' + tab.dataset.hash);
-  $('setBar').hidden = tab.dataset.hash === 'guide';
+  tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  $('setBar').hidden = tab.dataset.hash === 'guide' || tab.dataset.hash === 'equipment';
+  if (tab.dataset.hash === 'equipment') eqUI.replay();
 }
 tabs.forEach((t, i) => {
   t.addEventListener('click', () => selectTab(t));
@@ -2825,7 +3463,7 @@ $('setTabs').addEventListener('keydown', e => {
   switchSet(next.id).then(() => $('setTabs').querySelector(`[data-set="${next.id}"]`)?.focus());
 });
 renderSetTabs();
-$('setBar').hidden = location.hash === '#guide';
+$('setBar').hidden = location.hash === '#guide' || location.hash === '#equipment';
 
 /* ===================== START ===================== */
 if (isConfigured()) {
