@@ -432,22 +432,22 @@ label.btn { cursor: pointer; }
 
 /* ===================== Equipment tab ===================== */
 .eq-intro { margin-bottom: 1.4rem; }
-.eq { display: flex; flex-direction: column; gap: 1.1rem; }
-.eq-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+/* Wide screens: tools | figure | steps, like Drone Lab's figure list */
+.eq { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 1.1rem 1.75rem; align-items: start; }
+.eq-tools { display: flex; flex-direction: column; gap: .45rem; position: sticky; top: 1rem; }
 .eq-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 360px); gap: 1.6rem 2rem; align-items: start; }
 .eq-right { padding-top: .2rem; }
 .eq-tool {
   appearance: none; text-align: left; cursor: pointer; border: 1px solid transparent; background: transparent;
   border-radius: var(--radius-sm); padding: .65rem .8rem; display: flex; flex-direction: column; gap: .05rem;
 }
-.eq-tool { border-color: var(--line); background: var(--surface); }
-.eq-tool:hover { border-color: var(--muted); }
+.eq-tool:hover { border-color: var(--line); background: var(--surface); }
 .eq-tool[aria-pressed="true"] { background: var(--mat-soft); border-color: var(--mat); }
 .eq-fig { font-family: var(--font-mono); font-size: .78rem; color: var(--muted); }
 .eq-tool-name { font-weight: 700; font-size: 1.02rem; line-height: 1.25; }
 .eq-tool[aria-pressed="true"] .eq-tool-name { color: var(--mat); }
 .eq-tool-sub { font-size: .85rem; color: var(--muted); }
-.eq-more { font-size: .85rem; color: var(--muted); margin: 0 0 0 .5rem; }
+.eq-more { font-size: .85rem; color: var(--muted); margin: .35rem .8rem 0; }
 
 .eq-stage {
   position: relative; background: var(--surface); border: 1px solid var(--line);
@@ -457,7 +457,7 @@ label.btn { cursor: pointer; }
 .eq-figcap { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .75rem; margin: .3rem 0 .6rem; }
 .eq-figcap b { font-family: var(--font-display); font-size: 1.45rem; line-height: 1.1; }
 .eq-figcap .muted { font-size: .92rem; margin-left: auto; }
-#eqFigure { display: block; width: 100%; height: auto; aspect-ratio: 522 / 408; max-height: max(420px, calc(100vh - 440px)); }
+#eqFigure { display: block; width: 100%; height: auto; aspect-ratio: 522 / 408; max-height: max(420px, calc(100vh - 360px)); }
 
 /* figure drawing */
 .eq-ink polygon { stroke: var(--eq-ink); stroke-width: 1.25; stroke-linejoin: round; }
@@ -508,6 +508,13 @@ label.btn { cursor: pointer; }
 .eq-list button[aria-current="step"] { color: var(--ink); font-weight: 600; }
 .eq-list button[aria-current="step"]::before { background: var(--mat); border-color: var(--mat); color: var(--on-accent); }
 
+/* Medium screens: tools move to a row above the figure and steps */
+@media (max-width: 1180px) {
+  .eq { grid-template-columns: 1fr; }
+  .eq-tools { flex-direction: row; flex-wrap: wrap; align-items: center; position: static; }
+  .eq-tool { border-color: var(--line); background: var(--surface); }
+  .eq-more { margin: 0 0 0 .5rem; }
+}
 @media (max-width: 820px) {
   .eq-main { grid-template-columns: 1fr; gap: 1.1rem; }
   .eq-right { padding-top: 0; }
