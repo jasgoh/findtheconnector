@@ -499,6 +499,7 @@ label.btn { cursor: pointer; }
 .eq-mat line { stroke: var(--eq-grid); stroke-width: 1; }
 .eq-mat line.major { stroke-width: 1.6; }
 .eq-pin { filter: drop-shadow(0 0 1.6px rgba(255, 255, 255, .75)) drop-shadow(0 1.5px 2px rgba(0, 0, 0, .55)); }
+.eq-lock-rim { fill: none; stroke: #6A7078; stroke-width: 1; opacity: .7; }
 .eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .14em; fill: #B5560E; }
 .eq-ticks line { stroke: #C9CED4; stroke-width: .8; opacity: .75; }
 .eq-glow-dash { stroke-dasharray: 5 4; }
@@ -1062,7 +1063,7 @@ const PAD11 = (() => {
   const RED = { l: '#F07A6E', m: '#D23C2E', d: '#7E1F17' };
 
   // Dies: real widths 0.7–2.2 mm, drawn a little wider so they read on screen
-  const DIES = [0.7, 1.0, 1.3, 1.6, 1.9, 2.2].map((w, i) => ({ w, x: -61.5 + i * 4.6, dw: .9 + w * 1.2 }));
+  const DIES = [0.7, 1.0, 1.3, 1.6, 1.9, 2.2].map((w, i) => ({ w, x: -38.5 + i * 4.6, dw: .9 + w * 1.2 }));
   // Which dies to use: set from the terminal picker. Indexes into DIES (default 1.6 mm and 1.9 mm).
   const SEL = { c: 3, i: 4 };
   const dieName = i => DIES[i].w.toFixed(1);
@@ -1080,37 +1081,37 @@ const PAD11 = (() => {
     return out;
   }
 
-  /* ----- the two halves of the tool, in the closed position (shapes from Engineer's product photos) ----- */
+  /* ----- the two halves of the tool, in the closed position (proportions from Engineer's product photos) ----- */
   // Back half (arm A): upper jaw, then passes behind the pivot into the lower handle
   const armA = [
-    [-70, .4], [-70, 18], [-67, 22], [-60, 23], [-22, 23], [-12, 19.5], [-2, 14.5], [8, 6],
-    [14, -4.6], [30, -5.6], [46, -4.4], [52, -8], [53, -14], [48, -20], [36, -21.6], [14, -18], [0, -12],
-    [-10, -2], [-14, 4.2], [-18, 6.6], [-29, 6.4], [-32, 2], [-34, .4],
+    [-46, .4], [-46, 14], [-43, 17.6], [-36, 18.6], [-12, 18.6], [-2, 17.6], [9, 16.2], [13, 6],
+    [14, -5.8], [30, -6.6], [37, -7.6], [40, -12], [37, -18], [30, -20.6], [10, -20.6], [0, -14],
+    [-5, -5], [-6.6, 3], [-8.6, 6.4], [-17, 6.4], [-19, 3], [-19.5, .4],
   ];
-  // Front half (arm B): lower jaw, pivot boss, body with the engraving, upper handle
+  // Front half (arm B): lower jaw, then the body plate with the engraving (diagonal left edge), upper handle
   const armB = [
-    [-70, -.4], [-34, -.4], [-32, -2], [-29, -6.4], [-18, -6.6], [-13.4, -3.6],
-    ...arcPts(0, 0, 11.5, 165, 76, 7),
-    [8, 12.8], [26, 13.8], [40, 13], [50, 10.6], [53, 5.5], [50, 1.6],
-    [30, -.2], [24.2, -.5], [22.4, -3.2], [20.6, -.7], [15.6, -1.6],             // cutter edge with stripping notch
-    ...arcPts(0, 0, 11.5, -12, -110, 6),
-    [-6, -15.4], [-14, -20.6], [-22, -23], [-60, -23], [-67, -22], [-70, -18],
+    [-46, -.4], [-19.5, -.4], [-19, -3], [-17, -6.4], [-8.6, -6.4], [-6.6, -4], [-6.6, 3.6], [-4.4, 7.4],
+    [5, 16.6], [20, 16.4], [33, 14.6], [39, 11.4], [40, 5], [37, 2],
+    [30, -2.6], [22.8, -3.2], [21, -5.8], [19.2, -3.4], [12, -4.2],              // cutter edge with stripping notch
+    [10, -8.4], [7, -13], [3, -18.6], [-8, -18.6], [-36, -18.6], [-43, -17.6], [-46, -14],
   ];
-  const coreA = [[40, -12.5], [140, -24]], coreB = [[38, 6.4], [140, 23]];
+  const coreA = [[30, -13], [140, -27]], coreB = [[28, 8.4], [140, 24]];
   // Sculpted grips, drawn in handle terms: u along the handle, v outwards (away from the other handle)
-  const GRIP = [[0, -6.8], [0, 6], [5, 11.6], [17, 12.4], [80, 9.8], [91, 9], [97.5, 6.2], [100, 1.4], [99, -3.4], [94, -7.2], [22, -8.4], [6, -9]];
+  const GU = 1.12;                                  // grips are long: over half the tool's length
+  const GRIP = [[0, -6.8], [0, 6], [5, 11.6], [17, 12.4], [80, 9.8], [91, 9], [97.5, 6.2], [100, 1.4], [99, -3.4], [94, -7.2], [22, -8.4], [6, -9]].map(([u, v]) => [u * GU, v]);
   const GRIP_FACET = [[2, 5.4], [6.5, 10.4], [17, 11], [13, 4.6]];
-  const GRIP_TRI = [[22, 2.6], [31, 7.6], [31, .8]];
-  const GRIP_GROOVE = [[34, -2.4], [88, -1.4], [88, .4], [34, -.6]];
-  const GRIP_RIDGE = [[17, 10.6], [78, 8.4], [78, 7], [17, 8.6]];
+  const GRIP_TRI = [[22, 2.6], [31, 7.6], [31, .8]].map(([u, v]) => [u * GU, v]);
+  const GRIP_GROOVE = [[34, -2.4], [88, -1.4], [88, .4], [34, -.6]].map(([u, v]) => [u * GU, v]);
+  const GRIP_RIDGE = [[17, 10.6], [78, 8.4], [78, 7], [17, 8.6]].map(([u, v]) => [u * GU, v]);
   const gripMap = (A, B, side) => { const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uz = (B[1] - A[1]) / L, nx = -uz * side, nz = ux * side; return ([u, v]) => [A[0] + ux * u + nx * v, A[1] + uz * u + nz * v]; };
-  const gripA = gripMap([49, -14.6], [114, -23.4], -1), gripB = gripMap([47, 8.4], [114, 21.6], 1);
-  // Die plate: a dog-bone shape, split along the die line into an upper and a lower half
+  const gripA = gripMap([38, -16.4], [150, -29], -1), gripB = gripMap([36, 10.8], [150, 24], 1);
+  // Die plate: concave sides with a screw in each corner ear, split along the die line into two halves
+  const PL = { x0: -41, x1: -13, h: 15.2, inset: 2.8 };
   function plateHalf(sgn) {
-    const e = 17 * sgn, i = .4 * sgn;
-    const p = [[-67, i], [-67, e - 2 * sgn], [-65, e]];
-    for (const x of [-59, -43]) p.push([x - 2.3, e], [x - 2.3, e - 3 * sgn], ...arcPts(x, e - 3 * sgn, 2.3, 180, sgn > 0 ? 360 : 0, 6).slice(1, -1), [x + 2.3, e - 3 * sgn], [x + 2.3, e]);
-    p.push([-37, e], [-35, e - 2 * sgn], [-35, i]);
+    const i = .4 * sgn, e = PL.h * sgn, ear = 11.6;
+    const side = (x0, dir) => Array.from({ length: 7 }, (_, k) => { const z = .4 + (ear - .4) * k / 6; return [x0 + dir * PL.inset * (1 - Math.pow(z / ear, 2)), z * sgn]; });
+    const left = side(PL.x0, 1), right = side(PL.x1, -1).reverse();
+    const p = [...left, [PL.x0, (ear + 1.6) * sgn], [PL.x0 + 1.2, (PL.h - .4) * sgn], [PL.x0 + 3.4, e], [PL.x1 - 3.4, e], [PL.x1 - 1.2, (PL.h - .4) * sgn], [PL.x1, (ear + 1.6) * sgn], ...right];
     // dies along the mating edge
     for (const d of [...DIES].reverse()) {
       const w = d.dw;
@@ -1120,11 +1121,13 @@ const PAD11 = (() => {
     return p;
   }
   const UP_PLATE = plateHalf(1), LO_PLATE = plateHalf(-1);
-  // Lock lever: a hub with two angled lobes; flicking it down rotates it clockwise
-  const LOCK_HUB = [33, -16];
+  const PLATE_SCREWS = [[-36.6, 11.4], [-17.4, 11.4]];
+  // Lock lever: a crown-shaped lever on a hub; flicking it down rotates it clockwise
+  const LOCK_HUB = [21, -18.2];
   const lobe = (ang, r0, r1, w0, w1) => { const a = ang * Math.PI / 180, ux = Math.cos(a), uz = Math.sin(a), nx = -uz, nz = ux;
-    return [[ux * r0 + nx * w0, uz * r0 + nz * w0], [ux * r1 + nx * w1, uz * r1 + nz * w1], [ux * (r1 + 1.2), uz * (r1 + 1.2)], [ux * r1 - nx * w1, uz * r1 - nz * w1], [ux * r0 - nx * w0, uz * r0 - nz * w0]]; };
-  const LOCK_LOBES = [lobe(212, 4, 14.5, 5.6, 4.4), lobe(298, 4, 13.5, 5.4, 4.2)];
+    return [[ux * r0 + nx * w0, uz * r0 + nz * w0], [ux * r1 + nx * w1, uz * r1 + nz * w1], [ux * (r1 + 1.6), uz * (r1 + 1.6)], [ux * r1 - nx * w1, uz * r1 - nz * w1], [ux * r0 - nx * w0, uz * r0 - nz * w0]]; };
+  const LOCK_LOBES = [lobe(208, 3.5, 12.5, 5.8, 4.8), lobe(318, 3.5, 12, 5.6, 4.6)];
+  const LOCK_INNER = LOCK_LOBES.map(l => l.map(([a, b]) => { const r = Math.hypot(a, b), k = Math.max(.25, (r - 1.4) / r); return [a * k, b * k]; }));
 
   /* ----- inset: what happens inside the die ----- */
   function inset(st, cx, cy, R) {
@@ -1280,12 +1283,12 @@ const PAD11 = (() => {
     tool += grip(gripA, RA, -1.5, 5.5);
     tool += pr(armA, RA, 0, 4, OXIDE, 'url(#pad-oxide)');
     // cutter blade on arm A, showing below the front half
-    tool += pr([[14.6, -4.5], [32, -4.9], [31.4, -6.4], [15.2, -6.2]], RA, 4, 4.3, OXIDE, 'url(#pad-blade)');
+    tool += pr([[14.2, -5.8], [28, -6.4], [27.4, -7.8], [14.6, -7.3]], RA, 4, 4.3, OXIDE, 'url(#pad-blade)');
     tool += pr(UP_PLATE, RA, 4, FRONT, DIE, 'url(#pad-die)');
     tool += pr(stripPoly(...coreB, 4.6, 4.4), RB, 4, 8, OXIDE, 'url(#pad-oxide)');
     tool += grip(gripB, RB, 2.5, 9.5);
     tool += pr(armB, RB, 4, 8, OXIDE, 'url(#pad-oxide)');
-    tool += pr([[15.6, -1.6], [20.6, -.7], [22.4, -3.2], [24.2, -.5], [32, -.1], [31.6, 1.3], [16.4, .2]], RB, 8, 8.3, OXIDE, 'url(#pad-blade)');
+    tool += pr([[12.2, -4.2], [19.2, -3.4], [21, -5.8], [22.8, -3.2], [28, -2.8], [27.6, -1.4], [12.6, -2.6]], RB, 8, 8.3, OXIDE, 'url(#pad-blade)');
     tool += pr(LO_PLATE, RB, 8, FRONT, DIE, 'url(#pad-die)');
     // "ENGINEER" moulded into the upper grip
     { const [x, z] = RB(gripB([58, 3.2])), [X, Y] = P([x, 9.6, z]), ang = -(TILT + aB) * 180 / Math.PI - 11.2;
@@ -1296,27 +1299,29 @@ const PAD11 = (() => {
       const [sx, sy] = P([x, y + 1.6, z]);
       return prism(poly, XZf(), y, y + 1.6, BOLT, '', cap) + (hex ? '' : `<circle class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" r="${f(r * .45 * K)}" fill="#141619"/>`);
     };
-    tool += bolt([0, 0], RB, 8, 7.2, true);                                       // hex pivot bolt
-    for (const c of [[-59, 14.4], [-43, 14.4]]) tool += bolt(c, RA, FRONT, 2.2, false);
-    for (const c of [[-59, -14.4], [-43, -14.4]]) tool += bolt(c, RB, FRONT, 2.2, false);
-    tool += bolt([20, 10.2], RB, 8, 2.2, false, 'url(#pad-oxide)');                   // pin on the body
+    tool += bolt([0, 0], RB, 8, 5, true);                                         // hex pivot bolt
+    for (const [x, z] of PLATE_SCREWS) tool += bolt([x, z], RA, FRONT, 2.4, false) + bolt([x, -z], RB, FRONT, 2.4, false);
+    tool += bolt([25, 12.4], RB, 8, 1.9, false, 'url(#pad-oxide)');                   // pin on the body
+    { const [hx, hz] = RB([30.5, 12.6]), [X, Y] = P([hx, 8, hz]); tool += `<circle class="eq-noink" cx="${f(X)}" cy="${f(Y)}" r="${f(.55 * K)}" fill="#111316"/>`; }
+    tool += bolt([10, -12.6], RA, 4, 2.1, false);                                     // socket screw by the cutter
     // strip-length scale on the lower jaw
     { const on = ([x, z]) => P([x, 8, z]); let tk = '';
-      for (let i = 0; i <= 12; i++) { const L = i % 5 === 0 ? 2.6 : 1.5, a = on(RB([-30 + i, -11.5])), b = on(RB([-30 + i, -11.5 - L])); tk += `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`; }
+      for (let i = 0; i <= 9; i++) { const L = i % 5 === 0 ? 2.4 : 1.4, z = -8.4 - i * 1, a = on(RB([-11.8, z])), b = on(RB([-11.8 + L, z])); tk += `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`; }
       tool += `<g class="eq-ticks eq-noink">${tk}</g>`; }
     // lock lever on the lower arm
     tool += LOCK_LOBES.map(l => prism(lockPoly(l), XZw, 4, 7.6, DIE, '', 'url(#pad-lock)')).join('');
-    tool += prism(lockPoly(Array.from({ length: 18 }, (_, i) => [7 * Math.cos(i / 18 * 2 * Math.PI), 7 * Math.sin(i / 18 * 2 * Math.PI)])), XZw, 4, 8.4, DIE, '', 'url(#pad-lock)');
-    tool += bolt(LOCK_HUB, RA, 8.4, 3.8, false);
+    tool += LOCK_INNER.map(l => `<polygon class="eq-noink eq-lock-rim" points="${pts(lockPoly(l).map(([x, z]) => [x, 7.7, z]))}"/>`).join('');
+    tool += prism(lockPoly(Array.from({ length: 18 }, (_, i) => [5.6 * Math.cos(i / 18 * 2 * Math.PI), 5.6 * Math.sin(i / 18 * 2 * Math.PI)])), XZw, 4, 8.4, DIE, '', 'url(#pad-lock)');
+    tool += bolt(LOCK_HUB, RA, 8.4, 3.4, false);
     // engraving
     const engr = (c, R, y, str, size, anchor = 'middle', w = 500, rot = 0) => {
       const [x, z] = R(c), [X, Y] = P([x, y, z]), a = (TILT + (R === RA ? aA : aB)) * -180 / Math.PI + rot;
       return `<text class="eq-engrave" x="${f(X)}" y="${f(Y)}" font-size="${f(size * K)}" font-weight="${w}" text-anchor="${anchor}" transform="rotate(${f(a)} ${f(X)} ${f(Y)})">${str}</text>`;
     };
     DIES.forEach((d, i) => { tool += engr([d.x + .6, 9.4 - i * .75], RA, FRONT, d.w.toFixed(1), 2.2, 'middle', 600, -18); });
-    tool += engr([-45, -9.6], RB, FRONT, 'No.11', 2.3, 'middle', 600) + engr([-62, -8.2], RB, FRONT, '14C', 1.5);
-    tool += engr([11.5, 8.2], RB, 8, 'Interchangeable', 2.45, 'start', 700) + engr([11.5, 4.6], RB, 8, 'Crimper', 2.45, 'start', 700);
-    tool += engr([26.5, 4.6], RB, 8, 'Made in Japan', 1.45, 'start') + engr([13.5, .9], RB, 8, 'CUTTER ▼', 1.55, 'start', 600) + engr([44, 6.4], RB, 8, '17L', 1.4);
+    tool += engr([-26, -11], RB, FRONT, 'No.11', 2.1, 'middle', 600) + engr([-35.5, -5], RB, FRONT, '14C', 1.4);
+    tool += engr([8.5, 8.6], RB, 8, 'Interchangeable', 2.35, 'start', 700) + engr([8.5, 5.2], RB, 8, 'Crimper', 2.35, 'start', 700);
+    tool += engr([22.5, 5.2], RB, 8, 'Made in Japan', 1.3, 'start') + engr([13, -1.4], RB, 8, 'CUTTER ▼', 1.5, 'start', 600) + engr([33, -.4], RB, 8, '14C', 1.3);
     // die highlight
     for (const [i, g] of [[SEL.c, st.glowC], [SEL.i, st.glowI]]) {
       if (g < .02) continue;
@@ -1327,7 +1332,7 @@ const PAD11 = (() => {
     }
     // lock highlight ring while it's the step's focus
     if (st.lockGlow > .02) {
-      const ring = Array.from({ length: 28 }, (_, i) => { const a = i / 28 * 2 * Math.PI; return RA([LOCK_HUB[0] + 18 * Math.cos(a), LOCK_HUB[1] + 18 * Math.sin(a)]); });
+      const ring = Array.from({ length: 28 }, (_, i) => { const a = i / 28 * 2 * Math.PI; return RA([LOCK_HUB[0] + 16 * Math.cos(a), LOCK_HUB[1] + 16 * Math.sin(a)]); });
       tool += `<polygon class="eq-noink eq-glow eq-glow-dash" opacity="${f(st.lockGlow)}" points="${pts(ring.map(([x, z]) => [x, 8.6, z]))}"/>`;
     }
 
@@ -1344,8 +1349,8 @@ const PAD11 = (() => {
     const mat = `<g class="eq-mat eq-noink"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>${grid}</g>`;
 
     // overview: whole tool centred; close-up: the dies, leaving room for the magnifier
-    const s0 = 1.18, T0 = [85 - 72 * s0, 14 - 35 * s0];
-    const s1 = 1.8, F = P([-46, 6, 0]), T1 = [-30 - F[0] * s1, 40 - F[1] * s1];
+    const s0 = 1.3, T0 = [85 - 97 * s0, 12 - 46 * s0];
+    const s1 = 2.3, F = P([-16, 2, 0]), T1 = [-28 - F[0] * s1, 50 - F[1] * s1];
     const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     let scene = mat + shadowSvg + assembly(false);
@@ -1367,12 +1372,12 @@ const PAD11 = (() => {
     const tagAt = (y, z = 0) => W([0, y, z]);
     const tags = {
       dies:    { at: at([DIES[2].x, 5], RA, FRONT), dx: -20, dy: -74, text: 'Dies 0.7–2.2 mm' },
-      plates:  { at: at([-58, -17], RB, FRONT), dx: 46, dy: 64, text: 'Swappable die plates' },
-      pivot:   { at: at([0, 5], RB, 9.6), dx: 4, dy: -86, text: 'Pivot' },
-      cutter:  { at: at([38, .2], RB, 8.3), dx: 40, dy: -78, text: 'Wire cutter' },
+      plates:  { at: at([-36.6, -11.4], RB, FRONT), dx: 30, dy: 76, text: 'Swappable die plates' },
+      pivot:   { at: at([0, 3], RB, 9.6), dx: -6, dy: -86, text: 'Pivot' },
+      cutter:  { at: at([25, -3], RB, 8.3), dx: 50, dy: -84, text: 'Wire cutter' },
       lock:    { at: at([LOCK_HUB[0] - 6, LOCK_HUB[1] - 6], RA, 8.4), dx: -60, dy: 56, text: 'Lock switch' },
       handles: { at: at(gripA([46, 4]), RA, 5.5), dx: 40, dy: 54, text: 'Handles' },
-      scale:   { at: at([-24, -14], RB, 8), dx: -84, dy: 34, text: 'Scale (mm)' },
+      scale:   { at: at([-10.6, -12], RB, 8), dx: -84, dy: 40, text: 'Scale (mm)' },
       die16:   { at: at([DIES[SEL.c].x, 4.5], RA, FRONT), dx: -60, dy: -62, text: `${dieName(SEL.c)} mm die` },
       die19:   { at: at([DIES[SEL.i].x, 4.5], RA, FRONT), dx: 10, dy: -78, text: `${dieName(SEL.i)} mm die` },
       terminal:{ at: tagAt(2, .9), dx: -86, dy: 22, text: 'Terminal' },
