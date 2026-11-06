@@ -459,6 +459,25 @@ label.btn { cursor: pointer; }
 .eq-figcap .muted { font-size: .92rem; margin-left: auto; }
 #eqFigure { display: block; width: 100%; height: auto; aspect-ratio: 522 / 408; max-height: max(420px, calc(100vh - 360px)); }
 
+.eq-term { margin: 0 0 1.1rem; padding: .9rem 1rem 1rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.eq-term-label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .35rem; }
+.eq-term-box { position: relative; }
+.eq-term-box input { width: 100%; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--field); }
+.eq-term-box input:focus { outline: none; border-color: var(--mat); }
+.eq-term-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; max-height: 300px; background: var(--surface); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
+.eq-term-list .pick-item { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .5rem; }
+.eq-term-list .pick-item .mono { margin-left: 0; font-size: .8rem; }
+.eq-term-part { font-weight: 600; }
+.eq-term-dies { margin-left: auto; font-size: .8rem; color: var(--ok); font-weight: 600; }
+.eq-term-info { margin-top: .7rem; font-size: .93rem; }
+.eq-term-info p { margin: .3rem 0 .5rem; }
+.eq-term-note { color: var(--muted); font-size: .88rem; }
+.eq-term-sel b { font-size: 1rem; }
+.eq-term-dieline b { color: var(--mat); }
+.eq-term-edit { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: .5rem 0 .7rem; }
+.eq-term-edit label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; font-weight: 600; }
+.eq-term-edit select { padding: .45rem .55rem; }
+
 /* figure drawing */
 .eq-ink polygon { stroke: var(--eq-ink); stroke-width: 1.25; stroke-linejoin: round; }
 .eq-ink .eq-noink polygon { stroke: none; }
@@ -479,6 +498,10 @@ label.btn { cursor: pointer; }
 .eq-mat rect { fill: var(--eq-plate-m); }
 .eq-mat line { stroke: var(--eq-grid); stroke-width: 1; }
 .eq-mat line.major { stroke-width: 1.6; }
+.eq-pin { filter: drop-shadow(0 0 1.6px rgba(255, 255, 255, .75)) drop-shadow(0 1.5px 2px rgba(0, 0, 0, .55)); }
+.eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .14em; fill: #B5560E; }
+.eq-ticks line { stroke: #C9CED4; stroke-width: .8; opacity: .75; }
+.eq-glow-dash { stroke-dasharray: 5 4; }
 .eq-engrave { font-family: var(--font); fill: #C9CED4; opacity: .82; letter-spacing: .02em; }
 .eq-inset-ring { fill: var(--mat); opacity: .9; }
 .eq-inset-bg { fill: #D9DEE3; }
@@ -792,6 +815,14 @@ label.btn { cursor: pointer; }
         </div>
        </div>
        <div class="eq-right">
+        <div class="eq-term" id="eqTerm" hidden>
+          <label for="eqTermSearch" class="eq-term-label">Terminal</label>
+          <div class="eq-term-box">
+            <input type="search" id="eqTermSearch" placeholder="Part number or series, e.g. SPH-002T, PicoBlade" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="eqTermList">
+            <div class="eq-term-list pick-list" id="eqTermList" role="listbox" aria-label="Matching terminals" hidden></div>
+          </div>
+          <div class="eq-term-info" id="eqTermInfo" aria-live="polite"></div>
+        </div>
         <div class="eq-step" aria-live="polite">
           <div class="eq-step-top"><span class="eq-step-num" id="eqStepNum"></span><div class="pins" id="eqPins" aria-hidden="true"></div></div>
           <h3 id="eqStepTitle"></h3>
@@ -1031,12 +1062,14 @@ const PAD11 = (() => {
   const RED = { l: '#F07A6E', m: '#D23C2E', d: '#7E1F17' };
 
   // Dies: real widths 0.7–2.2 mm, drawn a little wider so they read on screen
-  const DIES = [0.7, 1.0, 1.3, 1.6, 1.9, 2.2].map((w, i) => ({ w, x: -57 + i * 5.3, dw: 1.2 + w * 1.25 }));
-  const COND = 3, INS = 4;                         // 1.6 mm for the conductor barrel, 1.9 mm for the insulation barrel
+  const DIES = [0.7, 1.0, 1.3, 1.6, 1.9, 2.2].map((w, i) => ({ w, x: -61.5 + i * 4.6, dw: .9 + w * 1.2 }));
+  // Which dies to use: set from the terminal picker. Indexes into DIES (default 1.6 mm and 1.9 mm).
+  const SEL = { c: 3, i: 4 };
+  const dieName = i => DIES[i].w.toFixed(1);
   const dieX = i => { const a = Math.floor(Math.max(0, Math.min(4.999, i))), t = i - a; return lerp(DIES[a].x, DIES[a + 1].x, t); };
   const OPEN_ANGLE = 15 * Math.PI / 180;
   const FRONT = 10;                                // front face of the die plates (y)
-  const KT = 2.1;                                  // terminal drawn 2.1× real size
+  const KT = 2.6;                                  // terminal drawn 2.6× real size
 
   const rotP = ([x, z], a) => [x * Math.cos(a) - z * Math.sin(a), x * Math.sin(a) + z * Math.cos(a)];
   const arcPts = (cx, cz, r, a0, a1, n = 8) => Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
@@ -1047,49 +1080,51 @@ const PAD11 = (() => {
     return out;
   }
 
-  /* ----- the two halves of the tool, in the closed position ----- */
-  // Front half: upper jaw, body with the pivot, lower handle
-  const armABody = [
-    [-64, .6], [-64, 15], [-61, 19.5], [-40, 21.5], [-22, 21.5], [-15, 18.5],
-    ...arcPts(0, 0, 13, 128, 52, 6),
-    [12, 12.6], [30, 11.6], [40, 7.2], [46.5, 1], [47.5, -6], [44, -13], [28, -15.6],
-    [25.2, -15.7], [24.4, -10.6], [23.6, -10.6], [22.8, -15.8],                  // wire cutter notch
-    [11, -16.2], ...arcPts(0, 0, 13, -58, -195, 9),
-    [-16, 4.4], [-20, 3.4], [-24, .6],
+  /* ----- the two halves of the tool, in the closed position (shapes from Engineer's product photos) ----- */
+  // Back half (arm A): upper jaw, then passes behind the pivot into the lower handle
+  const armA = [
+    [-70, .4], [-70, 18], [-67, 22], [-60, 23], [-22, 23], [-12, 19.5], [-2, 14.5], [8, 6],
+    [14, -4.6], [30, -5.6], [46, -4.4], [52, -8], [53, -14], [48, -20], [36, -21.6], [14, -18], [0, -12],
+    [-10, -2], [-14, 4.2], [-18, 6.6], [-29, 6.4], [-32, 2], [-34, .4],
   ];
-  const armAHandle = [[20, -6], [153, -22]];
-  const armAGrip = stripPoly([52, -10.8], [157, -23.4], 7.6, 10.4);
-  // Back half: lower jaw, upper handle
-  const armBJaw = [
-    [-64, -.6], [-24, -.6], [-20, -3.6], [-16, -6.6], [-11, -8], [-4, -12.6], [6, -13.8],
-    [9, -18], [-14, -21.5], [-40, -21.5], [-61, -19.5], [-64, -15],
+  // Front half (arm B): lower jaw, pivot boss, body with the engraving, upper handle
+  const armB = [
+    [-70, -.4], [-34, -.4], [-32, -2], [-29, -6.4], [-18, -6.6], [-13.4, -3.6],
+    ...arcPts(0, 0, 11.5, 165, 76, 7),
+    [8, 12.8], [26, 13.8], [40, 13], [50, 10.6], [53, 5.5], [50, 1.6],
+    [30, -.2], [24.2, -.5], [22.4, -3.2], [20.6, -.7], [15.6, -1.6],             // cutter edge with stripping notch
+    ...arcPts(0, 0, 11.5, -12, -110, 6),
+    [-6, -15.4], [-14, -20.6], [-22, -23], [-60, -23], [-67, -22], [-70, -18],
   ];
-  const armBHandle = [[-2, -4], [153, 21]];
-  const armBGrip = stripPoly([54, 4.8], [157, 21.6], 7.6, 10.4);
-  // Die plates on the jaws, with the dies cut into their mating edges
-  function upperPlate() {
-    const p = [[-62.5, 17.4], [-62.5, 1.6], [-61.5, .6]];
-    for (const d of DIES) {
-      const w = d.dw, h = w * .95;
-      p.push([d.x - w / 2, .6], [d.x - w / 2, .6 + h * .55], [d.x - w / 4, .6 + h], [d.x, .6 + h * .7], [d.x + w / 4, .6 + h], [d.x + w / 2, .6 + h * .55], [d.x + w / 2, .6]);
-    }
-    p.push([-26, .6], [-25, 1.6], [-25, 17.4]);
-    return p;
-  }
-  function lowerPlate() {
-    const p = [[-62.5, -17.4], [-25, -17.4], [-25, -1.6], [-26, -.6]];
+  const coreA = [[40, -12.5], [140, -24]], coreB = [[38, 6.4], [140, 23]];
+  // Sculpted grips, drawn in handle terms: u along the handle, v outwards (away from the other handle)
+  const GRIP = [[0, -6.8], [0, 6], [5, 11.6], [17, 12.4], [80, 9.8], [91, 9], [97.5, 6.2], [100, 1.4], [99, -3.4], [94, -7.2], [22, -8.4], [6, -9]];
+  const GRIP_FACET = [[2, 5.4], [6.5, 10.4], [17, 11], [13, 4.6]];
+  const GRIP_TRI = [[22, 2.6], [31, 7.6], [31, .8]];
+  const GRIP_GROOVE = [[34, -2.4], [88, -1.4], [88, .4], [34, -.6]];
+  const GRIP_RIDGE = [[17, 10.6], [78, 8.4], [78, 7], [17, 8.6]];
+  const gripMap = (A, B, side) => { const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uz = (B[1] - A[1]) / L, nx = -uz * side, nz = ux * side; return ([u, v]) => [A[0] + ux * u + nx * v, A[1] + uz * u + nz * v]; };
+  const gripA = gripMap([49, -14.6], [114, -23.4], -1), gripB = gripMap([47, 8.4], [114, 21.6], 1);
+  // Die plate: a dog-bone shape, split along the die line into an upper and a lower half
+  function plateHalf(sgn) {
+    const e = 17 * sgn, i = .4 * sgn;
+    const p = [[-67, i], [-67, e - 2 * sgn], [-65, e]];
+    for (const x of [-59, -43]) p.push([x - 2.3, e], [x - 2.3, e - 3 * sgn], ...arcPts(x, e - 3 * sgn, 2.3, 180, sgn > 0 ? 360 : 0, 6).slice(1, -1), [x + 2.3, e - 3 * sgn], [x + 2.3, e]);
+    p.push([-37, e], [-35, e - 2 * sgn], [-35, i]);
+    // dies along the mating edge
     for (const d of [...DIES].reverse()) {
-      const w = d.dw, h = w * .7;
-      p.push([d.x + w / 2, -.6], [d.x + w * .42, -.6 - h * .6], [d.x, -.6 - h], [d.x - w * .42, -.6 - h * .6], [d.x - w / 2, -.6]);
+      const w = d.dw;
+      if (sgn > 0) { const h = w * .95; p.push([d.x + w / 2, i], [d.x + w / 2, i + h * .55], [d.x + w / 4, i + h], [d.x, i + h * .7], [d.x - w / 4, i + h], [d.x - w / 2, i + h * .55], [d.x - w / 2, i]); }
+      else { const h = w * .7; p.push([d.x + w / 2, i], [d.x + w * .42, i - h * .6], [d.x, i - h], [d.x - w * .42, i - h * .6], [d.x - w / 2, i]); }
     }
-    p.push([-61.5, -.6], [-62.5, -1.6]);
     return p;
   }
-  const UP_PLATE = upperPlate(), LO_PLATE = lowerPlate();
-  // grip grooves (recessed panels on the orange handles), in handle-local terms
-  const grooves = (A, B, side) => [.2, .42, .64].map(t0 => stripPoly(
-    [lerp(A[0], B[0], t0) , lerp(A[1], B[1], t0) + side * 1.6],
-    [lerp(A[0], B[0], t0 + .15), lerp(A[1], B[1], t0 + .15) + side * 1.9], 1.5, 1.7, 4));
+  const UP_PLATE = plateHalf(1), LO_PLATE = plateHalf(-1);
+  // Lock lever: a hub with two angled lobes; flicking it down rotates it clockwise
+  const LOCK_HUB = [33, -16];
+  const lobe = (ang, r0, r1, w0, w1) => { const a = ang * Math.PI / 180, ux = Math.cos(a), uz = Math.sin(a), nx = -uz, nz = ux;
+    return [[ux * r0 + nx * w0, uz * r0 + nz * w0], [ux * r1 + nx * w1, uz * r1 + nz * w1], [ux * (r1 + 1.2), uz * (r1 + 1.2)], [ux * r1 - nx * w1, uz * r1 - nz * w1], [ux * r0 - nx * w0, uz * r0 - nz * w0]]; };
+  const LOCK_LOBES = [lobe(212, 4, 14.5, 5.6, 4.4), lobe(298, 4, 13.5, 5.4, 4.2)];
 
   /* ----- inset: what happens inside the die ----- */
   function inset(st, cx, cy, R) {
@@ -1097,11 +1132,13 @@ const PAD11 = (() => {
     const kind = st.insetKind >= .5 ? 'ins' : 'cond';
     const press = st.insetPress;
     const S = R / 4.2;                                     // px per mm inside the magnifier
-    const W = (kind === 'cond' ? 1.6 : 1.9) * S;           // die width
+    const dieW = DIES[kind === 'cond' ? SEL.c : SEL.i].w;
+    const W = dieW * S;                                      // die width
+    const q = dieW / (kind === 'cond' ? 1.6 : 1.9);         // wire scales with the die
     const floorY = cy + 1.3 * S;
     // lower die (anvil) and upper die (punch)
     const anvil = `<path stroke="rgba(0,0,0,.35)" stroke-width="1" d="M${f(cx - R)} ${f(floorY + .25 * S)} L${f(cx - W / 2 - .5 * S)} ${f(floorY + .25 * S)} Q${f(cx - W / 2 - .2 * S)} ${f(floorY + .25 * S)} ${f(cx - W / 2)} ${f(floorY)} Q${f(cx)} ${f(floorY + .55 * S)} ${f(cx + W / 2)} ${f(floorY)} Q${f(cx + W / 2 + .2 * S)} ${f(floorY + .25 * S)} ${f(cx + W / 2 + .5 * S)} ${f(floorY + .25 * S)} L${f(cx + R)} ${f(floorY + .25 * S)} L${f(cx + R)} ${f(cy + R)} L${f(cx - R)} ${f(cy + R)}Z" fill="url(#pad-die-cut)"/>`;
-    const archH = kind === 'cond' ? 1.35 * S : 1.55 * S;      // how high the wings rise before curling
+    const archH = (kind === 'cond' ? 1.35 : 1.55) * S * q;    // how high the wings rise before curling
     const pr = W / 4;
     const closedFace = floorY + .25 * S;
     const faceY = lerp(closedFace - 3.2 * S, closedFace, press);
@@ -1112,14 +1149,14 @@ const PAD11 = (() => {
     // wire: strands (and red insulation for the insulation barrel)
     const curl = kind === 'cond' ? st.crimpC : st.crimpI;
     let wire = '';
-    const wireCY = floorY - (kind === 'cond' ? .55 : .9) * S;
+    const wireCY = floorY - (kind === 'cond' ? .55 : .9) * S * q;
     if (st.insetWire > .02) {
       const squash = kind === 'cond' ? lerp(1, .7, curl) : lerp(1, .9, curl);
       if (kind === 'ins') {
-        const ri = .85 * S;
+        const ri = .85 * S * q;
         wire += `<ellipse cx="${f(cx)}" cy="${f(wireCY)}" rx="${f(ri * lerp(1, 1.06, curl))}" ry="${f(ri * squash)}" fill="#D23C2E" stroke="#7E1F17" stroke-width="1"/>`;
       }
-      const sr = .14 * S, ring = [[0, 0], ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3) * 2, Math.sin(i * Math.PI / 3) * 2])];
+      const sr = .14 * S * q, ring = [[0, 0], ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3) * 2, Math.sin(i * Math.PI / 3) * 2])];
       const strandsAt = kind === 'cond' ? [...ring, ...Array.from({ length: 6 }, (_, i) => [Math.cos(i * Math.PI / 3 + Math.PI / 6) * 3.5, Math.sin(i * Math.PI / 3 + Math.PI / 6) * 3.5])] : ring;
       wire += strandsAt.map(([a, b]) => `<circle cx="${f(cx + a * sr * lerp(1, 1.12, kind === 'cond' ? curl : 0))}" cy="${f(wireCY + b * sr * squash)}" r="${f(sr)}" fill="#E39A5A" stroke="#8E5426" stroke-width=".8"/>`).join('');
       wire = `<g opacity="${f(st.insetWire)}">${wire}</g>`;
@@ -1152,7 +1189,7 @@ const PAD11 = (() => {
       const path = [fl, wl(wing(-1)), wl(wing(1))].map(d => `<path d="${d}" fill="none" stroke="#6B5A2A" stroke-width="${f(sw + 2)}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#E7D7A1" stroke-width="${f(sw)}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
       term = `<g opacity="${f(st.insetTerm)}">${path}</g>`;
     }
-    const label = kind === 'cond' ? 'Conductor barrel, 1.6 mm die' : 'Insulation barrel, 1.9 mm die';
+    const label = kind === 'cond' ? `Conductor barrel, ${dieName(SEL.c)} mm die` : `Insulation barrel, ${dieName(SEL.i)} mm die`;
     return `<g class="eq-inset" opacity="${f(st.inset)}">`
       + `<clipPath id="padInsetClip"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
@@ -1182,7 +1219,7 @@ const PAD11 = (() => {
     function assembly(front) {
       // split at the die plates' front face: parts behind it are drawn before the tool
       const ky = Ay[1] * k;
-      const cut = Math.abs(ky) < 1e-3 ? (O[1] >= FRONT ? -1e9 : 1e9) : (FRONT - O[1]) / ky;
+      const cut = -1e9;                 // drawn in front of the die plate so it's easy to see
       const yMin = front ? cut : -1e9, yMax = front ? 1e9 : cut;
       const clip = (a, b) => [Math.max(a, yMin), Math.min(b, yMax)];
       const bx = (x0, z0, x1, z1, y0, y1, m) => { const [a, b] = clip(y0, y1); return b > a ? prism([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], frame, a, b, m) : ''; };
@@ -1223,50 +1260,79 @@ const PAD11 = (() => {
     }
 
     /* tool */
-    const gripsA = grooves([52, -10.8], [157, -23.4], 1), gripsB = grooves([54, 4.8], [157, 21.6], -1);
-    let tool = '';
-    tool += pr(stripPoly(...armBHandle, 5.4, 5.2), RB, 0, 4, OXIDE, 'url(#pad-oxide)');
-    tool += pr(armBGrip, RB, -1.5, 5.5, TPR, 'url(#pad-tpr)');
-    tool += gripsB.map(g => pr(g, RB, 5.5, 5.6, TPR, 'url(#pad-tpr-dark)')).join('');
-    tool += pr(armBJaw, RB, 0, 4, OXIDE, 'url(#pad-oxide)');
-    tool += pr(LO_PLATE, RB, 4, FRONT, DIE, 'url(#pad-die)');
-    tool += pr(stripPoly(...armAHandle, 5.4, 5.2), RA, 4, 8, OXIDE, 'url(#pad-oxide)');
-    tool += pr(armAGrip, RA, 2.5, 9.5, TPR, 'url(#pad-tpr)');
-    tool += gripsA.map(g => pr(g, RA, 9.5, 9.6, TPR, 'url(#pad-tpr-dark)')).join('');
-    tool += pr(armABody, RA, 4, 8, OXIDE, 'url(#pad-oxide)');
-    tool += pr(UP_PLATE, RA, 8, FRONT, DIE, 'url(#pad-die)');
-    // strap holes in the grip ends
-    for (const [c, R, y] of [[[150, -21.2], RA, 9.5], [[150, 19.6], RB, 5.5]]) { const [x, z] = R(c); const [hx, hy] = P([x, y, z]); tool += `<ellipse class="eq-noink" cx="${f(hx)}" cy="${f(hy)}" rx="${f(2.6 * K)}" ry="${f(1.9 * K)}" fill="#3a1a05" opacity=".85"/>`; }
-    // screws: pivot bolt, die-plate screws, handle lock
-    const bolt = (c, R, y, r, hex = true) => {
-      const [x, z] = R(c), poly = Array.from({ length: hex ? 6 : 14 }, (_, i) => { const a = i / (hex ? 6 : 14) * 2 * Math.PI + .3; return [x + r * Math.cos(a), z + r * Math.sin(a)]; });
-      const [sx, sy] = P([x, y + 1.6, z]);
-      return prism(poly, XZf(), y, y + 1.6, BOLT, '', 'url(#pad-bolt)') + `<circle class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" r="${f(r * .42 * K)}" fill="#15171a"/>`;
+    const lockAng = lerp(-42, 0, st.lock) * Math.PI / 180;           // flicked down = rotated clockwise
+    const lockPt = p => RA([LOCK_HUB[0] + p[0] * Math.cos(lockAng) - p[1] * Math.sin(lockAng), LOCK_HUB[1] + p[0] * Math.sin(lockAng) + p[1] * Math.cos(lockAng)]);
+    const lockPoly = poly => poly.map(lockPt);
+    const XZw = XZf();
+    const prW = (poly, y0, y1, m, cap) => prism(poly, XZw, y0, y1, m, '', cap);
+    const grip = (map, R, y0, y1) => {
+      let g = prW(GRIP.map(map).map(R), y0, y1, TPR, 'url(#pad-tpr)');
+      g += prW(GRIP_FACET.map(map).map(R), y1, y1 + .4, TPR, 'url(#pad-tpr-light)');
+      g += prW(GRIP_RIDGE.map(map).map(R), y1, y1 + .3, TPR, 'url(#pad-tpr-light)');
+      g += prW(GRIP_TRI.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
+      g += prW(GRIP_GROOVE.map(map).map(R), y1, y1 + .1, TPR, 'url(#pad-tpr-dark)');
+      const [hx, hz] = R(map([92, -3.4])), [sx, sy] = P([hx, y1 + .2, hz]);
+      g += `<ellipse class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" rx="${f(2.2 * K)}" ry="${f(1.7 * K)}" fill="#3a1a05" opacity=".85"/>`;
+      return g;
     };
-    tool += bolt([0, 0], RA, 8, 7.4, false) + bolt([0, 0], RA, 9.6, 5.6, true);
-    for (const c of [[-56, 11.6], [-31.5, 11.6]]) tool += bolt(c, RA, FRONT, 2.6, false);
-    for (const c of [[-56, -11.6], [-31.5, -11.6]]) tool += bolt(c, RB, FRONT, 2.6, false);
-    tool += bolt([38, -8.6], RA, 8, 4.4, false);
+    let tool = '';
+    tool += pr(stripPoly(...coreA, 4.6, 4.4), RA, 0, 4, OXIDE, 'url(#pad-oxide)');
+    tool += grip(gripA, RA, -1.5, 5.5);
+    tool += pr(armA, RA, 0, 4, OXIDE, 'url(#pad-oxide)');
+    // cutter blade on arm A, showing below the front half
+    tool += pr([[14.6, -4.5], [32, -4.9], [31.4, -6.4], [15.2, -6.2]], RA, 4, 4.3, OXIDE, 'url(#pad-blade)');
+    tool += pr(UP_PLATE, RA, 4, FRONT, DIE, 'url(#pad-die)');
+    tool += pr(stripPoly(...coreB, 4.6, 4.4), RB, 4, 8, OXIDE, 'url(#pad-oxide)');
+    tool += grip(gripB, RB, 2.5, 9.5);
+    tool += pr(armB, RB, 4, 8, OXIDE, 'url(#pad-oxide)');
+    tool += pr([[15.6, -1.6], [20.6, -.7], [22.4, -3.2], [24.2, -.5], [32, -.1], [31.6, 1.3], [16.4, .2]], RB, 8, 8.3, OXIDE, 'url(#pad-blade)');
+    tool += pr(LO_PLATE, RB, 8, FRONT, DIE, 'url(#pad-die)');
+    // "ENGINEER" moulded into the upper grip
+    { const [x, z] = RB(gripB([58, 3.2])), [X, Y] = P([x, 9.6, z]), ang = -(TILT + aB) * 180 / Math.PI - 11.2;
+      tool += `<text class="eq-moulded" x="${f(X)}" y="${f(Y)}" font-size="${f(3.6 * K)}" text-anchor="middle" transform="rotate(${f(ang)} ${f(X)} ${f(Y)})">ENGINEER</text>`; }
+    // screws
+    const bolt = (c, R, y, r, hex = true, cap = 'url(#pad-bolt)') => {
+      const [x, z] = R(c), n = hex ? 6 : 16, poly = Array.from({ length: n }, (_, i) => { const a = i / n * 2 * Math.PI + .3; return [x + r * Math.cos(a), z + r * Math.sin(a)]; });
+      const [sx, sy] = P([x, y + 1.6, z]);
+      return prism(poly, XZf(), y, y + 1.6, BOLT, '', cap) + (hex ? '' : `<circle class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" r="${f(r * .45 * K)}" fill="#141619"/>`);
+    };
+    tool += bolt([0, 0], RB, 8, 7.2, true);                                       // hex pivot bolt
+    for (const c of [[-59, 14.4], [-43, 14.4]]) tool += bolt(c, RA, FRONT, 2.2, false);
+    for (const c of [[-59, -14.4], [-43, -14.4]]) tool += bolt(c, RB, FRONT, 2.2, false);
+    tool += bolt([20, 10.2], RB, 8, 2.2, false, 'url(#pad-oxide)');                   // pin on the body
+    // strip-length scale on the lower jaw
+    { const on = ([x, z]) => P([x, 8, z]); let tk = '';
+      for (let i = 0; i <= 12; i++) { const L = i % 5 === 0 ? 2.6 : 1.5, a = on(RB([-30 + i, -11.5])), b = on(RB([-30 + i, -11.5 - L])); tk += `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`; }
+      tool += `<g class="eq-ticks eq-noink">${tk}</g>`; }
+    // lock lever on the lower arm
+    tool += LOCK_LOBES.map(l => prism(lockPoly(l), XZw, 4, 7.6, DIE, '', 'url(#pad-lock)')).join('');
+    tool += prism(lockPoly(Array.from({ length: 18 }, (_, i) => [7 * Math.cos(i / 18 * 2 * Math.PI), 7 * Math.sin(i / 18 * 2 * Math.PI)])), XZw, 4, 8.4, DIE, '', 'url(#pad-lock)');
+    tool += bolt(LOCK_HUB, RA, 8.4, 3.8, false);
     // engraving
-    const engr = (c, R, y, str, size, anchor = 'middle', w = 500) => {
-      const [x, z] = R(c), [X, Y] = P([x, y, z]), a = (TILT + (R === RA ? aA : aB)) * -180 / Math.PI;
+    const engr = (c, R, y, str, size, anchor = 'middle', w = 500, rot = 0) => {
+      const [x, z] = R(c), [X, Y] = P([x, y, z]), a = (TILT + (R === RA ? aA : aB)) * -180 / Math.PI + rot;
       return `<text class="eq-engrave" x="${f(X)}" y="${f(Y)}" font-size="${f(size * K)}" font-weight="${w}" text-anchor="${anchor}" transform="rotate(${f(a)} ${f(X)} ${f(Y)})">${str}</text>`;
     };
-    DIES.forEach(d => { tool += engr([d.x, 6.2], RA, FRONT, d.w.toFixed(1), 2.1); });
-    tool += engr([-43.5, -15], RB, FRONT, 'PAD-11', 2.2, 'middle', 600);
-    tool += engr([13, 5.6], RA, 8, 'Interchangeable', 2.5, 'start', 700) + engr([13, 2.2], RA, 8, 'Crimper', 2.5, 'start', 700);
-    tool += engr([13, -1.4], RA, 8, 'Made in Japan', 1.7, 'start') + engr([19.6, -6.6], RA, 8, 'CUTTER ▼', 1.8, 'start', 600);
+    DIES.forEach((d, i) => { tool += engr([d.x + .6, 9.4 - i * .75], RA, FRONT, d.w.toFixed(1), 2.2, 'middle', 600, -18); });
+    tool += engr([-45, -9.6], RB, FRONT, 'No.11', 2.3, 'middle', 600) + engr([-62, -8.2], RB, FRONT, '14C', 1.5);
+    tool += engr([11.5, 8.2], RB, 8, 'Interchangeable', 2.45, 'start', 700) + engr([11.5, 4.6], RB, 8, 'Crimper', 2.45, 'start', 700);
+    tool += engr([26.5, 4.6], RB, 8, 'Made in Japan', 1.45, 'start') + engr([13.5, .9], RB, 8, 'CUTTER ▼', 1.55, 'start', 600) + engr([44, 6.4], RB, 8, '17L', 1.4);
     // die highlight
-    for (const [i, g] of [[COND, st.glowC], [INS, st.glowI]]) {
+    for (const [i, g] of [[SEL.c, st.glowC], [SEL.i, st.glowI]]) {
       if (g < .02) continue;
-      const d = DIES[i], w = d.dw + 2.2;
-      const corners = [[d.x - w / 2, 5], [d.x + w / 2, 5], [d.x + w / 2, -.2], [d.x - w / 2, -.2]].map(RA);
-      const lower = [[d.x + w / 2, .2], [d.x + w / 2, -4.2], [d.x - w / 2, -4.2], [d.x - w / 2, .2]].map(RB);
+      const d = DIES[i], w = d.dw + 1.8;
+      const corners = [[d.x - w / 2, 4.6], [d.x + w / 2, 4.6], [d.x + w / 2, -.2], [d.x - w / 2, -.2]].map(RA);
+      const lower = [[d.x + w / 2, .2], [d.x + w / 2, -3.8], [d.x - w / 2, -3.8], [d.x - w / 2, .2]].map(RB);
       tool += `<polygon class="eq-noink eq-glow" opacity="${f(g)}" points="${pts([...corners, ...lower].map(([x, z]) => [x, FRONT + .2, z]))}"/>`;
+    }
+    // lock highlight ring while it's the step's focus
+    if (st.lockGlow > .02) {
+      const ring = Array.from({ length: 28 }, (_, i) => { const a = i / 28 * 2 * Math.PI; return RA([LOCK_HUB[0] + 18 * Math.cos(a), LOCK_HUB[1] + 18 * Math.sin(a)]); });
+      tool += `<polygon class="eq-noink eq-glow eq-glow-dash" opacity="${f(st.lockGlow)}" points="${pts(ring.map(([x, z]) => [x, 8.6, z]))}"/>`;
     }
 
     // shadow on the mat: the tool's outline, offset and blurred
-    const sh = [[armAGrip, RA], [armBGrip, RB], [armABody, RA], [armBJaw, RB], [stripPoly(...armAHandle, 5.4, 5.2), RA], [stripPoly(...armBHandle, 5.4, 5.2), RB]]
+    const sh = [[GRIP.map(gripA), RA], [GRIP.map(gripB), RB], [armA, RA], [armB, RB], [stripPoly(...coreA, 4.6, 4.4), RA], [stripPoly(...coreB, 4.6, 4.4), RB]]
       .map(([poly, R]) => `<polygon points="${pts(poly.map(R).map(([x, z]) => [x, 0, z]))}"/>`).join('');
     const shadowSvg = `<g class="eq-shadow eq-noink" filter="url(#eqBlurSoft)" transform="translate(${f(5 * K)} ${f(7 * K)})" style="opacity:${f(toolOp * .9)}">${sh}</g>`;
 
@@ -1278,19 +1344,19 @@ const PAD11 = (() => {
     const mat = `<g class="eq-mat eq-noink"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>${grid}</g>`;
 
     // overview: whole tool centred; close-up: the dies, leaving room for the magnifier
-    const s0 = 1.1, T0 = [85 - 101 * s0, 6 - 44 * s0];
-    const s1 = 1.85, F = P([-38, 6, 0]), T1 = [-40 - F[0] * s1, 40 - F[1] * s1];
+    const s0 = 1.18, T0 = [85 - 72 * s0, 14 - 35 * s0];
+    const s1 = 1.8, F = P([-46, 6, 0]), T1 = [-30 - F[0] * s1, 40 - F[1] * s1];
     const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     let scene = mat + shadowSvg + assembly(false);
     scene += toolOp < .99 ? `<g opacity="${f(toolOp)}">${tool}</g>` : tool;
-    scene += assembly(true);
+    scene += `<g class="eq-pin">${assembly(true)}</g>`;
     let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
 
     // magnifier, with a dashed line to the die it shows
     const IC = [278, -122], IR = 76;
     if (st.inset > .02) {
-      const di = st.insetKind >= .5 ? INS : COND;
+      const di = st.insetKind >= .5 ? SEL.i : SEL.c;
       const [x, z] = RA([DIES[di].x, 2]);
       const [dx, dy] = cam(P([x, FRONT, z]));
       svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`;
@@ -1300,14 +1366,15 @@ const PAD11 = (() => {
     const at = (c, R, y) => { const [x, z] = R(c); return [x, y, z]; };
     const tagAt = (y, z = 0) => W([0, y, z]);
     const tags = {
-      dies:    { at: at([DIES[2].x, 4], RA, FRONT), dx: 0, dy: -72, text: 'Dies 0.7–2.2 mm' },
-      plates:  { at: at([-50, -14], RB, FRONT), dx: 22, dy: 84, text: 'Swappable die plates' },
-      pivot:   { at: at([0, 6], RA, 9.6), dx: -10, dy: -78, text: 'Pivot' },
-      cutter:  { at: at([24, -11], RA, 8), dx: 6, dy: 74, text: 'Wire cutter' },
-      lock:    { at: at([38, -8.6], RA, 9.6), dx: 92, dy: -34, text: 'Handle lock' },
-      handles: { at: at([120, -17.5], RA, 9.5), dx: 30, dy: 50, text: 'Handles' },
-      die16:   { at: at([DIES[COND].x, 4.5], RA, FRONT), dx: -60, dy: -62, text: '1.6 mm die' },
-      die19:   { at: at([DIES[INS].x, 4.5], RA, FRONT), dx: 10, dy: -78, text: '1.9 mm die' },
+      dies:    { at: at([DIES[2].x, 5], RA, FRONT), dx: -20, dy: -74, text: 'Dies 0.7–2.2 mm' },
+      plates:  { at: at([-58, -17], RB, FRONT), dx: 46, dy: 64, text: 'Swappable die plates' },
+      pivot:   { at: at([0, 5], RB, 9.6), dx: 4, dy: -86, text: 'Pivot' },
+      cutter:  { at: at([38, .2], RB, 8.3), dx: 40, dy: -78, text: 'Wire cutter' },
+      lock:    { at: at([LOCK_HUB[0] - 6, LOCK_HUB[1] - 6], RA, 8.4), dx: -60, dy: 56, text: 'Lock switch' },
+      handles: { at: at(gripA([46, 4]), RA, 5.5), dx: 40, dy: 54, text: 'Handles' },
+      scale:   { at: at([-24, -14], RB, 8), dx: -84, dy: 34, text: 'Scale (mm)' },
+      die16:   { at: at([DIES[SEL.c].x, 4.5], RA, FRONT), dx: -60, dy: -62, text: `${dieName(SEL.c)} mm die` },
+      die19:   { at: at([DIES[SEL.i].x, 4.5], RA, FRONT), dx: 10, dy: -78, text: `${dieName(SEL.i)} mm die` },
       terminal:{ at: tagAt(2, .9), dx: -86, dy: 22, text: 'Terminal' },
       wire:    { at: tagAt(st.wY + 14), dx: 78, dy: 26, text: 'Stripped wire' },
       strip:   { at: tagAt(st.wY + 1), dx: 84, dy: -12, text: 'Strip 1.5–2 mm' },
@@ -1316,7 +1383,7 @@ const PAD11 = (() => {
       insul:   { at: tagAt(8.6, 1), dx: 50, dy: -56, text: 'Grips the insulation' },
     };
     for (const t of Object.values(tags)) t.xy = cam(P(t.at));
-    return { svg, tags, anchors: { flash: cam(P(at([-40, 0], RA, FRONT))) } };
+    return { svg, tags, anchors: { flash: cam(P(at([-40, 0], RA, FRONT))), lock: cam(P(at([LOCK_HUB[0] + 4, LOCK_HUB[1] - 26], RA, 8.4))) } };
   }
 
   const defs = `
@@ -1324,30 +1391,47 @@ const PAD11 = (() => {
     <linearGradient id="pad-die" x1="0" y1="0" x2=".2" y2="1"><stop offset="0" stop-color="#6B7179"/><stop offset=".5" stop-color="#3E434A"/><stop offset="1" stop-color="#2A2D33"/></linearGradient>
     <linearGradient id="pad-die-cut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7C828A"/><stop offset="1" stop-color="#3A3E45"/></linearGradient>
     <linearGradient id="pad-tpr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFB073"/><stop offset=".35" stop-color="#F7852D"/><stop offset="1" stop-color="#D9620F"/></linearGradient>
+    <linearGradient id="pad-tpr-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFCB9C"/><stop offset="1" stop-color="#F9993F"/></linearGradient>
+    <linearGradient id="pad-blade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EEF1F3"/><stop offset=".5" stop-color="#B9C0C6"/><stop offset="1" stop-color="#8C949B"/></linearGradient>
+    <linearGradient id="pad-lock" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#5B6068"/><stop offset=".45" stop-color="#2E3237"/><stop offset="1" stop-color="#16181B"/></linearGradient>
     <linearGradient id="pad-tpr-dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B9520B"/><stop offset="1" stop-color="#E06D17"/></linearGradient>
     <radialGradient id="pad-bolt" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#8A9098"/><stop offset=".6" stop-color="#454A51"/><stop offset="1" stop-color="#25282D"/></radialGradient>
     <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
+  const MOVE_KEY = { die: 4, glowI: 1 };
+  function setDies(c, i) {
+    SEL.c = c; SEL.i = i;
+    this.base.die = c; MOVE_KEY.die = i;
+  }
+
   return {
+    setDies, dieName, dieSizes: DIES.map(d => d.w),
+    vars: () => ({ C: dieName(SEL.c), I: dieName(SEL.i) }),
+    picker: true,
     id: 'pad11', fig: 1, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
     viewBox: [-215, -212, 600, 430],
     look: 'real', defs,
-    base: { open: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: COND, ty: 48, wY: 26, slug: 0,
+    base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 48, wY: 26, slug: 0,
             crimpC: 0, crimpI: 0, wireLen: 120, inset: 0, insetKind: 0, insetPress: 0, insetWire: 0, insetTerm: 0,
             insp: 0, ix: -21, iy: 40, iz: 6.5, as: 9, zoom: 0 },
     draw,
     steps: [
-      { title: 'Get to know the PAD-11', dur: 1400,
-        body: 'A precision crimper for small open-barrel terminals such as JST, Molex PicoBlade and TE contacts. It has six dies from 0.7 to 2.2 mm and no ratchet, so you control the pressure by feel.',
+      { title: 'Get to know the PAD-11', dur: 900,
+        body: 'A precision crimper for small open-barrel terminals such as JST, Molex PicoBlade and TE contacts. It has six dies from 0.7 to 2.2 mm, a wire cutter, and no ratchet, so you control the pressure by feel.',
         tags: ['dies', 'plates', 'pivot', 'cutter', 'lock', 'handles'],
-        keys: [[1, { open: 1 }]] },
+        keys: [] },
+      { title: 'Unlock the handles', dur: 2200,
+        body: 'The handles are locked shut for storage. Flick the lock switch down with your thumb and the handles spring open.',
+        tags: ['lock'], hot: ['lock'],
+        keys: [[.2, { lockGlow: 1 }], [.55, { lock: 0 }], [.95, { open: 1 }], [1, { lockGlow: 0 }]],
+        flashes: [[.5, 'Unlocked', 'lock']] },
       { title: 'Strip the wire', dur: 1500,
-        body: 'Strip the length given on the terminal\'s datasheet, usually 1.5–2 mm for small terminals. The stripping hole beside the cutter works for fine wire. Keep the strands straight and untwisted.',
+        body: 'Strip the length given on the terminal\'s datasheet, usually 1.5–2 mm for small terminals. You can check it against the scale on the head. Keep the strands straight and untwisted.',
         caution: 'Nicked or missing strands make a weak crimp. If you cut any, trim the end and strip again.',
-        tags: ['wire', 'strip'], hot: ['strip'],
+        tags: ['wire', 'strip', 'scale'], hot: ['strip'],
         keys: [[.25, { wireOn: 1 }], [1, { slug: 1 }]] },
       { title: 'Pick the die', dur: 1100,
-        body: 'Measure the width of the terminal\'s conductor barrel and use the die that matches. If there\'s no exact match, round up: a 1.5 mm barrel goes in the 1.6 mm die.',
+        body: 'Use the {C} mm die for the conductor barrel. For a terminal that isn\'t set up yet, measure the barrel width with its wings parallel and use the die that matches. If there\'s no exact match, round up: a 1.5 mm barrel goes in the 1.6 mm die.',
         tags: ['die16'], hot: ['die16'],
         keys: [[.6, { glowC: 1, zoom: 1 }]] },
       { title: 'Place the conductor barrel', dur: 2000,
@@ -1363,13 +1447,13 @@ const PAD11 = (() => {
         tags: ['handles'], hot: ['handles'],
         keys: [[.6, { open: 0, insetPress: 1, crimpC: 1 }], [1, { open: .5 }]] },
       { title: 'Move to the insulation barrel', dur: 2000,
-        body: 'Move the terminal to the next die up, here 1.9 mm, and push it in so the insulation barrel sits in the centre of the die. That keeps the terminal level while it crimps.',
+        body: 'Move the terminal to the {I} mm die and push it in so the insulation barrel sits in the centre of the die. That keeps the terminal level while it crimps.',
         tags: ['die19', 'terminal'], hot: ['die19'],
-        keys: [[0, { inset: 0 }], [.25, { ty: 6 }], [.55, { die: INS, glowI: 1 }], [.8, { ty: -8.4 }],
+        keys: [[0, { inset: 0 }], [.25, { ty: 6 }], [.55, MOVE_KEY], [.8, { ty: -8.4 }],
                [.85, { insetKind: 1, insetPress: .1 }], [1, { inset: 1, glowI: 0, open: .3 }]] },
       { title: 'Squeeze gently', dur: 2400,
         body: 'Squeeze softly, just enough for the wings to wrap round the insulation. Squeezing hard here cuts into the insulation and can damage the strands.',
-        caution: 'This die has no ratchet or stop, so the pressure is up to you. Practise on a spare terminal first.',
+        caution: 'The PAD-11 has no ratchet or stop, so the pressure is up to you. Practise on a spare terminal first.',
         tags: ['handles'], hot: ['handles'],
         keys: [[.75, { open: .04, insetPress: 1, crimpI: 1 }], [1, { open: .5 }]] },
       { title: 'Check the crimp', dur: 1900,
@@ -1377,6 +1461,11 @@ const PAD11 = (() => {
         caution: 'Strands outside the barrel, wings not closed, or a terminal that pulls off: cut it off and crimp a new one.',
         tags: ['bell', 'brush', 'insul'],
         keys: [[0, { inset: 0 }], [.3, { open: 1, ty: 30, zoom: 0 }], [1, { toolFade: .03, insp: 1, wireLen: 7 }]] },
+      { title: 'Close and lock it', dur: 2200,
+        body: 'When you\'re done, squeeze the handles shut and flick the lock switch back up. The tool stays closed, which protects the dies.',
+        tags: ['lock'], hot: ['lock'],
+        keys: [[.3, { termOn: 0, wireOn: 0, toolFade: 1 }], [.35, { insp: 0, ty: 48 }], [.7, { open: 0, lockGlow: 1 }], [.95, { lock: 1 }], [1, { lockGlow: 0 }]],
+        flashes: [[.88, 'Locked', 'lock']] },
     ],
   };
 })();
@@ -1438,11 +1527,11 @@ const eqUI = (() => {
     for (const id of show) if (out.tags[id]) tags += tagSvg(out.tags[id], hot.has(id));
     let flash = '';
     const ms = t * s.dur;
-    for (const [ft, text] of s.flashes || []) {
+    for (const [ft, text, where] of s.flashes || []) {
       const dt = ms - ft * s.dur;
-      if (t < 1 && dt >= 0 && dt < 420) {
-        const [X, Y] = out.anchors.flash, rise = dt / 420 * 14;
-        flash += `<text class="eq-flash" x="${EQ.f(X + 26)}" y="${EQ.f(Y - 26 - rise)}" opacity="${EQ.f(1 - dt / 420)}">${esc(text)}</text>`;
+      if (t < 1 && dt >= 0 && dt < 700) {
+        const [X, Y] = out.anchors[where || 'flash'], rise = dt / 420 * 14;
+        flash += `<text class="eq-flash" x="${EQ.f(X + 26)}" y="${EQ.f(Y - 26 - rise)}" opacity="${EQ.f(Math.min(1, 2.2 * (1 - dt / 700)))}">${esc(text)}</text>`;
       }
     }
     $('eqFigure').innerHTML = `<defs><filter id="eqBlur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.5"/></filter>${tool.defs || ''}</defs><g class="eq-ink${tool.look === 'real' ? ' eq-real' : ''}">${out.svg}</g><g opacity="${EQ.f(tagFade)}">${tags}</g>${flash}`;
@@ -1470,10 +1559,11 @@ const eqUI = (() => {
   function renderText() {
     const s = tool.steps[step], n = tool.steps.length;
     $('eqStepNum').textContent = `Step ${step + 1} of ${n}`;
+    const v = tool.vars ? tool.vars() : {}, fill = str => (str || '').replace(/\{(\w)\}/g, (m, k) => v[k] ?? m);
     $('eqStepTitle').textContent = s.title;
-    $('eqStepBody').textContent = s.body;
+    $('eqStepBody').textContent = fill(s.body);
     $('eqCaution').hidden = !s.caution;
-    $('eqCautionText').textContent = s.caution || '';
+    $('eqCautionText').textContent = fill(s.caution);
     $('eqPins').innerHTML = tool.steps.map((_, i) => `<span class="pin${i <= step ? ' on' : ''}"></span>`).join('');
     $('eqBack').disabled = step === 0;
     $('eqNext').textContent = step === n - 1 ? 'Start over' : 'Next step';
@@ -1504,6 +1594,7 @@ const eqUI = (() => {
     $('eqFigure').setAttribute('viewBox', tool.viewBox.join(' '));
     $('eqFigure').style.aspectRatio = `${tool.viewBox[2]} / ${tool.viewBox[3]}`;
     $('eqTools').querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === tool.id));
+    if (typeof termPicker !== 'undefined') termPicker.showFor(tool.id);
     $('eqList').innerHTML = tool.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s.title)}</button></li>`).join('');
     go(0, { instant: true });
     animate();
@@ -1526,9 +1617,153 @@ const eqUI = (() => {
     let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
     selectTool(EQ_TOOLS[0].id);
   }
-  return { init, rerender: () => render(), replay: () => animate() };
+  // Called when the tool's settings change (e.g. a different terminal): recompute every step and redraw
+  function refresh() { memo.clear(); renderText(); cancelAnimationFrame(raf); t = 1; render(); }
+  return { init, rerender: () => render(), replay: () => animate(), refresh };
 })();
 
+
+// Every terminal Engineer lists as compatible with the PAD-11, from their compatibility tables
+// (engineertools-jp.com/crimping-tool-compatibility-table, JST/HRS 2022-10-03, Molex 2023-03-08, TE/JAE 2022-07-06).
+// Each row: [maker, series, part number, old part number]
+const PAD11_MAKERS = ['JST', 'Molex', 'TE', 'Hirose', 'JAE'];
+const PAD11_TERMINALS = [[0,"ACHF","SACHF-003GAC-P0.2",""],[0,"ADH","SADH-002G-P0.2",""],[0,"APSH, LBT A Type, SH","SSH-003T-P0.2-H",""],[0,"BD, BHS","SBHS-002T-P0.5A",""],[0,"BHS, BHT","SBHSM-002T-P0.5",""],[0,"BHT","SBHT-002T-P0.5",""],[0,"BL, HL, SL","BSF-21T-P1.4",""],[0,"BL, HL, SL","SSF-21T-P1.4",""],[0,"CZF, CZH・CZHW, OTZ, RIC, RIZ, RVE, RWM, RWZ","SCZH-002T-P0.5",""],[0,"DAC, HL, MWP, SL","BSM-21T-P1.4",""],[0,"DAC, HL, MWP, SL","SSM-21T-P1.4",""],[0,"EH","BEH-001T-P0.6",""],[0,"EH","SEH-001T-P0.6",""],[0,"EH","SEH-001T-P0.6L",""],[0,"EH","SEH-002T-P0.6L",""],[0,"EH","SEH-003T-P0.6L",""],[0,"EL","LLF-01T-P1.3E",""],[0,"EL","LLF-41T-P1.3E",""],[0,"EL","LLM-01T-P1.3E",""],[0,"EL","LLM-41T-P1.3E",""],[0,"EL","SLF-01T-P1.3E",""],[0,"EL","SLF-41T-P1.3E",""],[0,"EL","SLM-01T-P1.3E",""],[0,"EL","SLM-41T-P1.3E",""],[0,"GH","SSHL-002T-P0.2",""],[0,"HM, HR, THR","SHR-001T-P0.6",""],[0,"HM","SMR-001T-0.6",""],[0,"JFA J2000","BJ2F-002GF-P1.0",""],[0,"JFA J2000","BJ2F-21GF-P1.0",""],[0,"JFA J2000","SJ2F-002GF-P1.0",""],[0,"JFA J2000","SJ2F-01GF-P1.0",""],[0,"JFA J2000","SJ2F-21GF-P1.0",""],[0,"JFA J2000","SJ2M-01GF-M1.0S",""],[0,"JWPF","SWPR-001T-P025",""],[0,"JWPF","SWPT-001T-P025",""],[0,"LEA, LEX, SFH, SFK","SSFH-001T-P0.5",""],[0,"LEA, LEX, SFH, SFK","SSFH-002T-P0.5",""],[0,"LEB","SLEB-001T-P0.2",""],[0,"LEH","SLEH-001T-P0.15",""],[0,"NH, SM","BHF-001T-0.8BS",""],[0,"NH, SM","SHF-001T-0.8BS",""],[0,"NH","SHF-001T-P0.6",""],[0,"NH","SHF-002T-0.8BS",""],[0,"NSH, SHL","SSHL-003T-P0.2",""],[0,"PA, PBV, PHD","BPHD-001T-P0.5",""],[0,"PA, PBV, PHD","BPHD-002T-P0.5",""],[0,"PA","SPA-001T-P0.5",""],[0,"PA","SPAL-001T-P0.5",""],[0,"PA","SPAL-002T-P0.5",""],[0,"PA, PBV, PHD","SPHD-001T-P0.5",""],[0,"PA, PBV, PHD","SPHD-002T-P0.5",""],[0,"PAD","SPH-001T-P0.5L",""],[0,"PAD, PH","SPH-002T-P0.5L",""],[0,"PAD, PND, PNI","SPND-001T-C0.5",""],[0,"PAD, PND, PNI","SPND-002T-C0.5",""],[0,"PH","BPH-002T-P0.5S",""],[0,"PH","BPH-004T-P0.5S",""],[0,"PH","SPH-002T-P0.5S",""],[0,"PH","SPH-004T-P0.5S",""],[0,"PNI","SPNI-001T-P0.5",""],[0,"PNI","SPNI-002T-P0.5",""],[0,"PS, RPZ","SPS-01T-110",""],[0,"PUD","SPUD-001T-P0.5",""],[0,"PUD","SPUD-002T-P0.5",""],[0,"RA","RA-SC1290",""],[0,"RCY, SM","BYM-001T-P0.6",""],[0,"RCY","SYF-001T-P0.6",""],[0,"RCY, SM","SYM-001T-P0.6",""],[0,"RE, RF","RF-SC2210",""],[0,"RE, RF","RF-SC2290",""],[0,"SAN","SAN-002T-0.8A",""],[0,"SAN","SAN-002T-0.8K",""],[0,"SBN","SBN-001T-1.0",""],[0,"SCN","SCN-001T-1.0K",""],[0,"SCN","SCN-001T-P1.0",""],[0,"SHD","SSH-003GA-P0.2",""],[0,"SHLD, SHLV","SSHL-003GA1-P0.2",""],[0,"SIN","SIN-002T-1.0S",""],[0,"SIN","SIN-002T-1.2N",""],[0,"SIN","SIN-01T-1.8N",""],[0,"SJN","SJN-002PT-0.9",""],[0,"SMF","SMF-01T-1.0",""],[0,"SUH","SSUH-003T-P0.15",""],[0,"SV","SVF-01T-1.5N",""],[0,"SZN","SZN-002T-P0.7K",""],[0,"SZN","SZN-003T-P0.7K",""],[0,"WPJ","SWPJR-21T-M0.5A",""],[0,"XA, XAD, XAG, XM","BXA-001T-P0.6",""],[0,"XA, XAD, XAG, XM","BXA-01T-P0.6",""],[0,"XA, XAD","BXAM-001T-P0.6",""],[0,"XA, XAD, XAG, XM","SXA-001T-P0.6",""],[0,"XA, XAD, XM, XMD","SXA-001T-P0.6L",""],[0,"XA, XAD, XAG, XM","SXA-01T-P0.6",""],[0,"XA, XAD","SXAM-001T-P0.6",""],[0,"XA, XAD","SXAM-01T-P0.6",""],[0,"XH","BXH-001T-P0.6",""],[0,"XH","BXH-001T-P0.6N",""],[0,"XH","SXH-001T-P0.6",""],[0,"XH","SXH-001T-P0.6N",""],[0,"XH","SXH-002T-P0.6",""],[0,"XL","SXF-01T-P0.7",""],[0,"XL","SYM-01T-P0.7",""],[0,"XM, XMA","SXM-001T-P0.6",""],[0,"XM","SXM-01T-P0.6",""],[0,"XNI","SXNI-001T-P0.6",""],[0,"YL, YLN","SYF-01T-P0.5A",""],[0,"YL, YLN","SYM-01T-P0.5A",""],[0,"ZE","SZE-002T-P0.3",""],[0,"ZE","SZE-003T-P0.3",""],[0,"ZH","BZH-002T-P0.5",""],[0,"ZH","BZH-003T-P0.5",""],[0,"ZH","SZH-002T-P0.5",""],[0,"ZH","SZH-003T-P0.5",""],[0,"ZL","SZF-01T-P0.7",""],[0,"ZL","SZM-01T-P0.7",""],[0,"ZM","SMM-003T-P0.5",""],[0,"ZPD","SZPD-002T-P0.3",""],[0,"丸形ターミナル","SRC-01T-2.5",""],[1,"Board-In","50034-8000",""],[1,"Board-In","50034-8100",""],[1,"Board-In","50097-8000",""],[1,"Board-In","50097-8100",""],[1,"Board-In","50098-8000",""],[1,"Board-In","50098-8100",""],[1,"Cat Ear, KK","08-70-0048","5159PBT"],[1,"Cat Ear, KK","08-70-0049","5159PBTL"],[1,"Cat Ear, KK","08-70-0064","5159T"],[1,"Cat Ear, KK","08-70-0069","5159TL"],[1,"CLIK-Mate, IllumiMate","502381-0000",""],[1,"CLIK-Mate","502438-0000",""],[1,"CLIK-Mate","502438-0100",""],[1,"CLIK-Mate","502579-0000",""],[1,"CLIK-Mate","502579-0100",""],[1,"CLIK-Mate, IllumiMate","50641-8041",""],[1,"CLIK-Mate, IllumiMate","50641-8141",""],[1,"CP-2.5 Mini, CP-3.3","50397-8000",""],[1,"CP-2.5 Mini, CP-3.3","50397-8100",""],[1,"CP-2.5 Mini, CP-3.3","50398-8000",""],[1,"CP-2.5 Mini, CP-3.3","50398-8100",""],[1,"CRC","56118-8228",""],[1,"CRC","56118-8328",""],[1,"CRC","56120-8428",""],[1,"CRC","56120-8528",""],[1,"CyClone, SL","16-02-0069","70058-0004"],[1,"CyClone, SL","16-02-0087","70058-0024"],[1,"CyClone, SL","16-02-0103","70058-0224"],[1,"Duo-Clasp","501930-1100",""],[1,"DuraClik, Mi II, Micro-Latch, Sherlock","50212-8000",""],[1,"DuraClik, Mi II, Micro-Latch, Sherlock","50212-8100",""],[1,"Flexi-Mate","503485-0000",""],[1,"iGrid","501647-1000",""],[1,"iGrid","501647-1100",""],[1,"iGrid","501648-1000",""],[1,"KK 254","08-55-0130","2759-(558)B"],[1,"KK 254","08-55-0131","2759-(558)L"],[1,"KK 396, KK 508","08-50-0107","2578-(P909)"],[1,"KK 396, KK 508","08-50-0107","2578-(P909)L"],[1,"MicroBlade","50011-8000",""],[1,"MicroBlade","50011-8100",""],[1,"MicroBlade","50012-8000",""],[1,"MicroBlade","50012-8100",""],[1,"MicroClasp, MUO 2.5","56134-9000",""],[1,"MicroClasp, MUO 2.5","56134-9100",""],[1,"Micro-Fit 3.0","43030-0001",""],[1,"Micro-Fit 3.0","43030-0004",""],[1,"Micro-Fit 3.0","43030-0007",""],[1,"Micro-Fit 3.0","43030-0010",""],[1,"Micro-Fit 3.0","43031-0001",""],[1,"Micro-Fit 3.0","43031-0004",""],[1,"Micro-Fit 3.0","43031-0007",""],[1,"Micro-Fit 3.0","43031-0010",""],[1,"MicroTPA, MUO 2.5","59370-8000",""],[1,"MicroTPA, MUO 2.5","59370-8100",""],[1,"Milli-Grid","50394-8051",""],[1,"Milli-Grid","50394-8100",""],[1,"Mini-Fit","39-00-0038","5556T"],[1,"Mini-Fit","39-00-0039","5556TL"],[1,"Mini-Fit","39-00-0040","5558T"],[1,"Mini-Fit","39-00-0041","5558TL"],[1,"Mini-Fit","39-00-0046","5556T2"],[1,"Mini-Fit","39-00-0047","5556T2L"],[1,"Mini-Fit","39-00-0048","5558T2"],[1,"Mini-Fit","39-00-0049","5558T2L"],[1,"Mini-Fit","39-00-0059","5556PBT"],[1,"Mini-Fit","39-00-0060","5556PBTL"],[1,"Mini-Fit","39-00-0061","5558PBT"],[1,"Mini-Fit","39-00-0062","5558PBTL"],[1,"Mini-Fit","39-00-0065","5556PBT2"],[1,"Mini-Fit","39-00-0066","5556PBT2L"],[1,"Mini-Fit","39-00-0067","5558-PBT2"],[1,"Mini-Fit","39-00-0068","5558PBT2L"],[1,"Mini-Latch","08-70-0102","5241T"],[1,"Mini-Latch","08-70-0103","5241TL"],[1,"Mini-Latch","50802-8000",""],[1,"Mini-Latch","50802-8100",""],[1,"Mini-Latch","50802-9001",""],[1,"Mini-Latch","50802-9101",""],[1,"Mini-Lock","50351-8000",""],[1,"Mini-Lock","50351-8100",""],[1,"Mini-Lock","50837-8000",""],[1,"Mini-Lock","50837-8100",""],[1,"Mini-SPOX","08-70-1039","5263PBT"],[1,"Mini-SPOX","08-70-1040","5263PBTL"],[1,"Mizu-P25 Waterproof","50147-8000",""],[1,"Mizu-P25 Waterproof","50147-8100",""],[1,"Mizu-P25 Waterproof","50148-8000",""],[1,"Mizu-P25 Waterproof","50148-8100",""],[1,"PanelMate","50753-8041",""],[1,"PanelMate","50753-8141",""],[1,"PicoBlade","50058-8000",""],[1,"PicoBlade","50058-8100",""],[1,"PicoBlade","50079-8000",""],[1,"PicoBlade","50079-8100",""],[1,"PicoBlade","50125-8000",""],[1,"PicoBlade","50125-8100",""],[1,"Pico-Clasp","501334-0000",""],[1,"Pico-Clasp","501334-0100",""],[1,"Pico-Ezmate","78172-0411",""],[1,"Pico-SPOX","87421-0000",""],[1,"SL","16-02-0105","70021-0004"],[1,"SL","16-02-0108","70021-0204"],[1,"SPOX","08-70-1028","5225T"],[1,"SPOX","08-70-1029","5225TL"],[1,"Standard .062\"","39-00-0278","1560T"],[1,"Standard .062\"","39-00-0279","1561T"],[1,"Standard .062\"","39-00-0280","1854T"],[1,"Standard .062\"","39-00-0327","1560TL"],[1,"Standard .062\"","39-00-0331","1561TL"],[1,"Standard .062\"","39-00-0335","1854TL"],[1,"Standard .062\"","39-00-0338","1855T"],[1,"Standard .062\"","39-00-0339","1855TL"],[1,"Standard .062\"","39-00-0317","1433AT"],[1,"Standard .062\"","39-00-0318","1433ATL"],[1,"Standard .062\"","39-00-0323","1434T"],[2,"AMP CT","179518-1",""],[2,"AMP CT","179609-1",""],[2,"AMP Mini CT","353918-1",""],[2,"AMPMODU IV/V","182206-2",""],[2,"Commercial MATE-N-LOK","61173-1",""],[2,"Dynamic 1000","1827569-2",""],[2,"Dynamic 1000","1827571-2",""],[2,"Dynamic 1000","1827586-2",""],[2,"Dynamic 1000","1827587-2",""],[2,"Dynamic 1000","1827588-2",""],[2,"Dynamic 1000","1827589-2",""],[2,"Dynamic 1000","1903112-2",""],[2,"Dynamic 1000","1903115-2",""],[2,"Dynamic 1000","1903116-2",""],[2,"Dynamic 1000","1903117-2",""],[2,"Dynamic 1000","1903118-2",""],[2,"Dynamic 2000","1318106-1",""],[2,"Dynamic 2000","1318107-1",""],[2,"Dynamic 2000","1318108-1",""],[2,"Dynamic 2000","1318112-1",""],[2,"Dynamic 3000","175216-2",""],[2,"Economy Power","1375819-3",""],[2,"","170429-1",""],[2,"Mini-Universal MATE-N-LOK","170363-1",""],[2,"Mini-Universal MATE-N-LOK","170364-1",""],[2,"Mini-Universal MATE-N-LOK","170365-1",""],[2,"Mini-Universal MATE-N-LOK","770985-1",""],[2,"Multilock Connector System","1376700-1",""],[2,"Multilock Connector System","316838-1",""],[2,"TH/.025 Connector System","1318143-1",""],[2,"Universal MATE- N-LOK","350689-1",""],[3,"A3B","A3B-2630SCFC","CL0621-0301-7-00"],[3,"DF11","DF11-2428SC","CL0543-0501-5-00"],[3,"DF13","DF13-2630SCF","CL0536-0300-5-41"],[3,"DF14","DF14-2628SCF","CL0538-0001-7-00"],[3,"DF14","DF14-3032SCF","CL0538-0003-2-00"],[3,"DF1E","DF1E-2428PC","CL0541-0940-2-00"],[3,"DF3","DF3-2428SC","CL0543-0002-5-00"],[3,"DF33C","DF33A-2022SC","CL0676-1094-8-00"],[3,"FX15","FX15-2830PCFB[CL0575-2002-0-00",""],[3,"GT25","GT25H-2024SCF[CL0775-0039-6-0",""],[4,"IL-G","IL-G-C2-SC-0001",""],[4,"IL-Z","IL-Z-C3-A-0001",""],[4,"MX34","M34S75C4F1",""],[4,"MX34","M34S75C4F2",""]];
+
+/* ---------- PAD-11 terminal picker ---------- */
+// Die sizes are recorded by the lab (measure the barrel, round up to the next die) and shared through
+// Supabase table pad11_dies (see add-pad11-dies.sql). Without the table, choices last until the page reloads.
+const termPicker = (() => {
+  const dies = new Map();            // key -> { c, i } in mm
+  let current = null, editing = false, results = [], active = -1, tableMissing = false;
+  const keyOf = t => `${PAD11_MAKERS[t[0]]}:${t[2]}`;
+  const label = t => `${PAD11_MAKERS[t[0]]}${t[1] ? ' ' + t[1] : ''}`;
+  const tool = () => EQ_TOOLS.find(x => x.id === 'pad11');
+  const sizes = () => tool().dieSizes;
+  const idx = mm => sizes().findIndex(w => Math.abs(w - mm) < .01);
+
+  function apply(c, i) {
+    const t = tool(), ci = idx(c), ii = idx(i);
+    t.setDies(ci < 0 ? 3 : ci, ii < 0 ? 4 : ii);
+    eqUI.refresh();
+  }
+
+  function search(q) {
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    return PAD11_TERMINALS.filter(t => {
+      const hay = `${PAD11_MAKERS[t[0]]} ${t[1]} ${t[2]} ${t[3]}`.toLowerCase();
+      return words.every(w => hay.includes(w));
+    }).slice(0, 40);
+  }
+
+  function renderList() {
+    const list = $('eqTermList'), input = $('eqTermSearch');
+    if (!results.length) {
+      list.innerHTML = input.value.trim() ? '<div class="pick-empty">No PAD-11 terminal matches that. Check the part number, or search by series.</div>' : '';
+    } else {
+      list.innerHTML = results.map((t, n) => {
+        const d = dies.get(keyOf(t));
+        return `<button type="button" class="pick-item" role="option" data-n="${n}" aria-selected="${n === active}">`
+          + `<span class="eq-term-part">${esc(t[2])}</span><span class="mono">${esc(label(t))}</span>`
+          + (d ? `<span class="eq-term-dies">${d.c.toFixed(1)} / ${d.i.toFixed(1)}</span>` : '') + '</button>';
+      }).join('');
+    }
+    const open = !!input.value.trim();
+    list.hidden = !open;
+    input.setAttribute('aria-expanded', open);
+  }
+
+  function dieSelect(id, val) {
+    return `<select id="${id}">${sizes().map(w => `<option value="${w}"${Math.abs(w - val) < .01 ? ' selected' : ''}>${w.toFixed(1)} mm</option>`).join('')}</select>`;
+  }
+
+  function renderInfo() {
+    const box = $('eqTermInfo');
+    if (!current) {
+      box.innerHTML = '<p class="eq-term-note">Showing an example terminal in the 1.6 mm and 1.9 mm dies. Search above to load yours.</p>';
+      apply(1.6, 1.9);
+      return;
+    }
+    const d = dies.get(keyOf(current));
+    const head = `<div class="eq-term-sel"><b>${esc(current[2])}</b> <span class="muted">${esc(label(current))}${current[3] ? ', was ' + esc(current[3]) : ''}</span></div>`;
+    if (d && !editing) {
+      box.innerHTML = head + `<p class="eq-term-dieline">Conductor barrel <b>${d.c.toFixed(1)} mm</b>, insulation barrel <b>${d.i.toFixed(1)} mm</b></p>`
+        + `<button type="button" class="toggle-link" id="eqTermEdit">Change die sizes</button>`;
+      $('eqTermEdit').addEventListener('click', () => { editing = true; renderInfo(); });
+      apply(d.c, d.i);
+      return;
+    }
+    const c = d ? d.c : 1.6, i = d ? d.i : 1.9;
+    box.innerHTML = head
+      + (d ? '' : '<p class="eq-term-note">Die sizes for this terminal haven\'t been recorded yet. Measure each barrel with its wings parallel and pick the die that matches, or the next size up.</p>')
+      + `<div class="eq-term-edit"><label>Conductor barrel ${dieSelect('eqDieC', c)}</label><label>Insulation barrel ${dieSelect('eqDieI', i)}</label></div>`
+      + `<div class="btn-row"><button type="button" class="btn btn-primary btn-small" id="eqDieSave">Save die sizes</button>`
+      + (d ? '<button type="button" class="btn btn-small" id="eqDieCancel">Cancel</button>' : '') + '</div>'
+      + (tableMissing ? '<p class="eq-term-note">Saving for everyone needs the <span class="mono">pad11_dies</span> table: run <span class="mono">add-pad11-dies.sql</span> in Supabase. Until then this only lasts until the page reloads.</p>' : '');
+    const preview = () => apply(+$('eqDieC').value, +$('eqDieI').value);
+    $('eqDieC').addEventListener('change', preview);
+    $('eqDieI').addEventListener('change', preview);
+    $('eqDieSave').addEventListener('click', save);
+    $('eqDieCancel')?.addEventListener('click', () => { editing = false; renderInfo(); });
+    preview();
+  }
+
+  async function save() {
+    const c = +$('eqDieC').value, i = +$('eqDieI').value, t = current;
+    dies.set(keyOf(t), { c, i });
+    editing = false;
+    renderInfo();
+    if (!db) { toast('Saved for now. Connect Supabase to share die sizes with everyone.'); return; }
+    const { error } = await db.from('pad11_dies').upsert({
+      part_key: keyOf(t), manufacturer: PAD11_MAKERS[t[0]], part_number: t[2], conductor_die: c, insulation_die: i, updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      tableMissing = /pad11_dies|does not exist|schema cache/i.test(error.message || '');
+      const offline = /fetch|network/i.test(error.message || '');
+      toast(tableMissing ? 'Saved for now. Run add-pad11-dies.sql in Supabase to share die sizes.'
+        : offline ? 'Couldn\'t reach Supabase, so the die sizes are only saved until the page reloads.' : `Couldn't save die sizes: ${error.message}`, true);
+      renderInfo();
+    } else toast(`Saved die sizes for ${t[2]}`);
+  }
+
+  function choose(t) {
+    current = t; editing = false;
+    try { localStorage.setItem('pad11-terminal', keyOf(t)); } catch { /* storage unavailable */ }
+    $('eqTermSearch').value = '';
+    results = []; active = -1; renderList();
+    renderInfo();
+  }
+
+  async function load() {
+    if (!db) return;
+    const { data, error } = await db.from('pad11_dies').select('part_key, conductor_die, insulation_die');
+    if (error) { tableMissing = true; return; }
+    for (const r of data) dies.set(r.part_key, { c: +r.conductor_die, i: +r.insulation_die });
+    if (current) renderInfo();
+  }
+
+  function init() {
+    const input = $('eqTermSearch');
+    input.addEventListener('input', () => { results = search(input.value); active = results.length ? 0 : -1; renderList(); });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!results.length) return;
+        e.preventDefault();
+        active = (active + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
+        renderList();
+        $('eqTermList').querySelector(`[data-n="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); choose(results[active]); }
+      else if (e.key === 'Escape') { input.value = ''; results = []; renderList(); }
+    });
+    $('eqTermList').addEventListener('mousedown', e => e.preventDefault());   // keep focus in the search box
+    $('eqTermList').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) choose(results[+b.dataset.n]); });
+    let saved = null;
+    try { saved = localStorage.getItem('pad11-terminal'); } catch { /* storage unavailable */ }
+    current = PAD11_TERMINALS.find(t => keyOf(t) === saved) || null;
+    renderInfo();
+  }
+  return { init, load, showFor: id => { $('eqTerm').hidden = id !== 'pad11'; } };
+})();
 
 /* ===================== THEME ===================== */
 const THEME_ICONS = {
@@ -1550,6 +1785,8 @@ $('themeToggle').addEventListener('click', () => {
 });
 showTheme();
 eqUI.init();
+termPicker.init();
+termPicker.showFor(EQ_TOOLS[0].id);
 
 /* ===================== TABS ===================== */
 const tabs = [...document.querySelectorAll('[role="tab"]')];
@@ -3656,6 +3893,7 @@ if (isConfigured()) {
   $('configBanner').hidden = false;
 }
 loadConnectors();
+termPicker.load();
 modelReady = loadModel();
 modelReady.then(loadClassifier);
 </script>
