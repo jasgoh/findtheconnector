@@ -511,6 +511,14 @@ label.btn { cursor: pointer; }
 .eq-green-text { font-family: var(--font-display); fill: #D9F4EA; letter-spacing: .06em; }
 .eq-edge { fill: none; stroke: #C9CED4; stroke-width: .7; opacity: .8; }
 #eqWireSel { width: 100%; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--field); }
+.eq-cats { display: inline-flex; gap: 0; margin: 0 0 1.2rem; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.eq-cat { appearance: none; border: 0; background: transparent; color: var(--muted); font-weight: 600; font-size: .95rem; padding: .45rem 1.1rem; border-radius: 999px; cursor: pointer; min-height: 38px; }
+.eq-cat:hover { color: var(--ink); }
+.eq-cat[aria-checked="true"] { background: var(--mat); color: var(--on-accent); }
+.eq-empty { color: var(--muted); padding: 2rem 0; }
+.eq-size-label { margin-top: .8rem; }
+.sd-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+.sd-mark { font-family: var(--font-display); font-weight: 700; font-size: 16px; fill: #5a4708; }
 .eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .12em; fill: #B5560E; }
 .eq-ticks line { stroke: #C9CED4; stroke-width: .8; opacity: .75; }
 .eq-glow-dash { stroke-dasharray: 5 4; }
@@ -815,7 +823,12 @@ label.btn { cursor: pointer; }
       <h2>How to use equipment</h2>
       <p class="lead">Pick a tool and follow it step by step. Each step plays as a short animation; replay it as many times as you need.</p>
     </div>
-    <div class="eq">
+    <div class="eq-cats" role="radiogroup" aria-label="Equipment category">
+      <button type="button" class="eq-cat" role="radio" data-cat="electrical" aria-checked="true">Electrical</button>
+      <button type="button" class="eq-cat" role="radio" data-cat="mechanical" aria-checked="false">Mechanical</button>
+    </div>
+    <p class="eq-empty" id="eqEmpty" hidden>No mechanical equipment guides yet. They'll appear here as they're added.</p>
+    <div class="eq" id="eqBody">
       <nav class="eq-tools" id="eqTools" aria-label="Equipment"></nav>
       <div class="eq-main">
        <div class="eq-left">
@@ -830,6 +843,14 @@ label.btn { cursor: pointer; }
         </div>
        </div>
        <div class="eq-right">
+        <div class="eq-term" id="eqTask" hidden>
+          <span class="eq-term-label" id="eqTaskLabel">Task</span>
+          <div class="eq-chips" id="eqTaskChips" role="radiogroup" aria-labelledby="eqTaskLabel"></div>
+          <div id="eqSizeWrap" hidden>
+            <span class="eq-term-label eq-size-label" id="eqSizeLabel">Connector</span>
+            <div class="eq-chips" id="eqSizeChips" role="radiogroup" aria-labelledby="eqSizeLabel"></div>
+          </div>
+        </div>
         <div class="eq-term" id="eqWire" hidden>
           <label for="eqWireSel" class="eq-term-label">Wire size</label>
           <select id="eqWireSel"></select>
@@ -1161,7 +1182,13 @@ const PA14 = (() => {
   function draw(st) {
     EQ.setView(CAMERA);
     const th = st.open * OPEN_ANGLE, aA = -th / 2, aB = th / 2;
-    const RA = p => rotP(p, aA), RB = p => rotP(p, aB);
+    const RA0 = p => rotP(p, aA), RB0 = p => rotP(p, aB);
+    // the quarter turn: the whole tool swings round the wire (the wire runs along y through the hole)
+    const hole0 = HOLES[SEL.h];
+    const hcA = RA0([hole0.x, 0]), hcB = RB0([hole0.x, 0]), pivotHC = [(hcA[0] + hcB[0]) / 2, (hcA[1] + hcB[1]) / 2];
+    const turnA = -st.turn * Math.PI / 2;
+    const spin = p => { const dx = p[0] - pivotHC[0], dz = p[1] - pivotHC[1]; return [pivotHC[0] + dx * Math.cos(turnA) - dz * Math.sin(turnA), pivotHC[1] + dx * Math.sin(turnA) + dz * Math.cos(turnA)]; };
+    const RA = p => spin(RA0(p)), RB = p => spin(RB0(p));
     const XZf = () => ({ o: [0, 0, 0], U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] });
     const pr = (poly, R, y0, y1, m, cap) => prism(poly.map(R), XZf(), y0, y1, m, '', cap);
     const prW = (poly, y0, y1, m, cap) => prism(poly, XZf(), y0, y1, m, '', cap);
@@ -1173,7 +1200,7 @@ const PA14 = (() => {
     const k0 = kOf(hole);
     const k = lerp(k0, st.as, st.insp);
     const cond = hole.mm * .95, od = hole.mm * 2 + .2, strip = STRIP;
-    const hc = [(RA([hole.x, 0])[0] + RB([hole.x, 0])[0]) / 2, (RA([hole.x, 0])[1] + RB([hole.x, 0])[1]) / 2];
+    const hc = pivotHC;                                          // the wire stays put while the tool turns round it
     const U0 = strip + 9;                                        // length shown when inspecting
     const Wp = u => {
       const a = [hc[0], st.tipY + u * k0, hc[1]];
@@ -1348,7 +1375,7 @@ const PA14 = (() => {
     setHole(i) { SEL.h = i; K_INSERT.tipY = -(STRIP * kOf(HOLES[i]) + .3); },
     vars: () => { const h = HOLES[SEL.h]; return { H: String(h.mm), S: h.str, D: h.sol }; },
     base: { open: 1, toolFade: 1, zoom: 0, glow: 0, wireOn: 0, tipY: 40, stripped: 0, slugOn: 0, slugDrop: 0,
-            inset: 0, press: 0, pull: 0, insp: 0, ix: 34, iy: 0, iz: -46, as: 12 },
+            inset: 0, press: 0, pull: 0, turn: 0, insp: 0, ix: 34, iy: 0, iz: -46, as: 12 },
     draw,
     steps: [
       { title: 'Get to know the wire stripper', dur: 900,
@@ -1361,18 +1388,18 @@ const PA14 = (() => {
       { title: 'Insert the wire', dur: 1800,
         body: 'Hold the wire and push its end through the hole until it sticks out the far side of the jaws by the strip length you need. For a crimp terminal, that\'s the length on its datasheet.',
         tags: ['wire', 'hole'], hot: ['wire'], keys: [[0, { wireOn: 1 }], [.85, K_INSERT], [1, { glow: 0 }]] },
-      { title: 'Squeeze to cut the insulation', dur: 2400,
-        body: 'Squeeze the handles fully. The sharpened hole cuts into the insulation without touching the strands. Then, still squeezing, give the stripper a quarter turn around the wire so the cut goes all the way round. That frees the insulation, so it comes off cleanly without dragging or fraying the strands.',
+      { title: 'Squeeze to cut the insulation', dur: 3400,
+        body: 'Squeeze the handles fully. The sharpened hole cuts into the insulation without touching the strands. Then, still squeezing, give the stripper a quarter turn around the wire and back, so the cut goes all the way round. That frees the insulation, so it comes off cleanly without dragging or fraying the strands.',
         caution: 'Turn the tool, not the wire end, and only a quarter turn. Spinning it round and round can score the strands.',
-        tags: ['handles'], hot: ['handles'], keys: [[.45, { open: 0 }], [.55, { inset: 1 }], [.8, { press: 1 }]],
-        flashes: [[.82, 'Quarter turn']] },
+        tags: ['handles'], hot: ['handles'], keys: [[.3, { open: 0 }], [.36, { inset: 1 }], [.5, { press: 1, turn: 0 }], [.74, { turn: 1 }], [.98, { turn: 0 }]],
+        flashes: [[.55, 'Quarter turn'], [.78, 'And back']] },
       { title: 'Pull the wire out', dur: 2000,
         body: 'Keep squeezing and pull the wire straight back toward you. The cut insulation slides off the end and stays behind the jaws, leaving the bare strands.',
         caution: 'Pull straight out. Levering the tool sideways can bend or score the strands.',
         tags: ['slug'], hot: ['slug'], keys: [[.12, { stripped: 1, slugOn: 1 }], [.9, { tipY: FRONT + 3, pull: 1 }]] },
       { title: 'Open and clear the slug', dur: 1700,
         body: 'Let the handles open; the spring does the work. Shake out the insulation slug so it doesn\'t jam the next strip.',
-        tags: ['spring'], keys: [[.3, { press: 0 }], [.5, { open: 1 }], [.85, { slugDrop: 1 }], [1, { inset: 0 }]] },
+        tags: ['spring'], keys: [[.3, { press: 0 }], [.5, { open: 1, turn: 0 }], [.85, { slugDrop: 1 }], [1, { inset: 0 }]] },
       { title: 'Check the strip', dur: 1800,
         body: 'Look at the end: the strands should be straight and complete, with none nicked or cut, and the insulation cut square at the strip length. Twist stranded wire gently so the strands stay together.',
         caution: 'Cut or nicked strands weaken the crimp. Trim the end and strip again, using the next hole up if it keeps happening.',
@@ -2571,7 +2598,405 @@ const FERRULE = (() => {
 })();
 FERRULE.setHole(3);
 
-const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE];
+/* ---------- Fig. 05: Soldering iron (four tasks) ---------- */
+// Side-view illustrations for: tinning wires, splicing wires (IPC mesh splice), XT30/60/90 solder cups,
+// and soldering a wire to a pad. Acceptance points follow IPC J-STD-001, IPC-A-610 and IPC/WHMA-A-620.
+const SOLDER = (() => {
+  const { lerp, f } = EQ;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  /* ----- drawing helpers (screen units) ----- */
+  // the iron: tip at (x, y), body running away at angle a (degrees, 0 = to the right)
+  function iron(x, y, a, hot, op = 1) {
+    if (op < .02) return '';
+    const glow = hot > .02 ? `<circle cx="0" cy="0" r="20" fill="url(#sd-glow)" opacity="${f(hot)}"/>` : '';
+    let ribs = '';
+    for (let i = 0; i < 9; i++) ribs += `<line x1="${104 + i * 8}" y1="-10.5" x2="${104 + i * 8}" y2="10.5" stroke="rgba(0,0,0,.35)" stroke-width="1.6"/>`;
+    return `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(a)})" opacity="${f(op)}">
+      <path d="M176 0 C 230 4, 260 40, 330 60" fill="none" stroke="#202226" stroke-width="7" stroke-linecap="round"/>
+      <rect x="96" y="-11" width="82" height="22" rx="9" fill="url(#sd-grip)" stroke="rgba(0,0,0,.5)"/>${ribs}
+      <rect x="84" y="-8" width="14" height="16" rx="2" fill="url(#sd-nut)" stroke="rgba(0,0,0,.5)"/>
+      <rect x="26" y="-5.5" width="60" height="11" fill="url(#sd-barrel)" stroke="rgba(0,0,0,.45)"/>
+      <path d="M0 0 L8 -1.8 L28 -4.2 L28 4.2 L8 1.8Z" fill="url(#sd-tip)" stroke="rgba(0,0,0,.5)" stroke-width=".8"/>
+      <path d="M0 0 L9 -1.9 L9 1.9Z" fill="#E9ECEF"/>${glow}</g>`;
+  }
+  // solder wire: its end at (x, y), running away at angle a
+  function solder(x, y, a, op = 1) {
+    if (op < .02) return '';
+    const r = a * Math.PI / 180, x2 = x + 300 * Math.cos(r), y2 = y + 300 * Math.sin(r);
+    return `<g opacity="${f(op)}"><line x1="${f(x)}" y1="${f(y)}" x2="${f(x2)}" y2="${f(y2)}" stroke="#3a3d42" stroke-width="5.6" stroke-linecap="round"/>
+      <line x1="${f(x)}" y1="${f(y)}" x2="${f(x2)}" y2="${f(y2)}" stroke="url(#sd-solder)" stroke-width="3.8" stroke-linecap="round"/></g>`;
+  }
+  function smoke(x, y, amt) {
+    if (amt < .02) return '';
+    const w = (dx, h) => `<path d="M${f(x + dx)} ${f(y)} C ${f(x + dx - 8)} ${f(y - h * .3)}, ${f(x + dx + 10)} ${f(y - h * .6)}, ${f(x + dx - 4)} ${f(y - h)}" fill="none" stroke="#DCE1E6" stroke-width="3" stroke-linecap="round"/>`;
+    return `<g opacity="${f(amt * .55)}" class="eq-noink">${w(-6, 46)}${w(4, 62)}${w(12, 40)}</g>`;
+  }
+  // copper strands from x0 (free end) to x1 (insulation), centred on y; fan spreads the ends
+  function strands(x0, x1, y, h, fan, n = 7, color = '#D98A4E', light = '#F7C08C') {
+    let s = '';
+    for (let i = 0; i < n; i++) {
+      const v = (i / (n - 1) - .5);
+      const yIns = y + v * h * .78, yEnd = y + v * h * (.78 + fan * 1.9);
+      s += `<path d="M${f(x1)} ${f(yIns)} Q ${f((x0 + x1) / 2)} ${f(yIns + (yEnd - yIns) * .3)} ${f(x0)} ${f(yEnd)}" fill="none" stroke="#7a4a22" stroke-width="${f(h / n + 1.6)}" stroke-linecap="round"/>`;
+      s += `<path d="M${f(x1)} ${f(yIns)} Q ${f((x0 + x1) / 2)} ${f(yIns + (yEnd - yIns) * .3)} ${f(x0)} ${f(yEnd)}" fill="none" stroke="${color}" stroke-width="${f(h / n)}" stroke-linecap="round"/>`;
+      s += `<path d="M${f(x1)} ${f(yIns - h / n * .2)} Q ${f((x0 + x1) / 2)} ${f(yIns + (yEnd - yIns) * .3)} ${f(x0)} ${f(yEnd - h / n * .2)}" fill="none" stroke="${light}" stroke-width="${f(h / n * .3)}" stroke-linecap="round" opacity=".8"/>`;
+    }
+    return s;
+  }
+  // a tinned section over the strands: silver, but the strand outline still shows (IPC: strands discernible)
+  function tinned(x0, x1, y, h, n = 7) {
+    if (x1 - x0 < .5) return '';
+    let s = `<rect x="${f(x0)}" y="${f(y - h * .47)}" width="${f(x1 - x0)}" height="${f(h * .94)}" rx="${f(h * .45)}" fill="url(#sd-tin)" stroke="rgba(0,0,0,.35)" stroke-width=".8"/>`;
+    for (let i = 0; i < n - 1; i++) {                          // grooves between the strands: the outline stays visible under the solder
+      const v = (i + .5) / (n - 1) - .5, yy = y + v * h * .78;
+      s += `<line x1="${f(x0 + h * .3)}" y1="${f(yy)}" x2="${f(x1 - 2)}" y2="${f(yy)}" stroke="#5E666D" stroke-width="${f(Math.max(.8, h * .05))}" opacity=".55"/>`;
+      s += `<line x1="${f(x0 + h * .3)}" y1="${f(yy - h * .05)}" x2="${f(x1 - 2)}" y2="${f(yy - h * .05)}" stroke="#FFFFFF" stroke-width=".8" opacity=".5"/>`;
+    }
+    return s;
+  }
+  function insulation(x0, x1, y, h, fill) {
+    return `<rect x="${f(x0)}" y="${f(y - h / 2)}" width="${f(x1 - x0)}" height="${f(h)}" rx="${f(h * .18)}" fill="${fill}" stroke="rgba(0,0,0,.45)"/>`
+      + `<rect x="${f(x0)}" y="${f(y - h * .32)}" width="${f(x1 - x0)}" height="${f(h * .18)}" fill="#fff" opacity=".18"/>`;
+  }
+  function shrinkTube(x0, x1, y, h, shrink, op = 1) {
+    const hh = lerp(h * 1.45, h * 1.06, shrink);
+    return `<g opacity="${f(op)}"><rect x="${f(x0)}" y="${f(y - hh / 2)}" width="${f(x1 - x0)}" height="${f(hh)}" rx="${f(hh * .3)}" fill="#2B2E33" fill-opacity="${f(lerp(.45, .92, shrink))}" stroke="rgba(0,0,0,.6)"/>
+      <rect x="${f(x0 + 3)}" y="${f(y - hh * .38)}" width="${f(x1 - x0 - 6)}" height="${f(hh * .12)}" fill="#fff" opacity=".2"/></g>`;
+  }
+  function heatGun(x, y, op) {
+    if (op < .02) return '';
+    let waves = '';
+    for (let i = 0; i < 3; i++) waves += `<path d="M${f(x - 18 + i * 18)} ${f(y - 30)} q -6 -10 0 -20 q 6 -10 0 -20" fill="none" stroke="#F7852D" stroke-width="2" opacity=".55"/>`;
+    return `<g opacity="${f(op)}">${waves}<path d="M${f(x - 26)} ${f(y - 78)} L${f(x + 26)} ${f(y - 78)} L${f(x + 18)} ${f(y - 150)} L${f(x - 18)} ${f(y - 150)}Z" fill="url(#sd-barrel)" stroke="rgba(0,0,0,.5)"/>
+      <rect x="${f(x - 30)}" y="${f(y - 210)}" width="60" height="62" rx="10" fill="#2A2C30" stroke="rgba(0,0,0,.6)"/></g>`;
+  }
+  const label = (x, y, txt) => `<text class="sd-label" x="${f(x)}" y="${f(y)}" text-anchor="middle">${txt}</text>`;
+  function scene(st, body) {
+    // camera: zoom about a focus point
+    const s = lerp(1, st.zs || 1.8, st.zoom || 0), fx = st.fx || 0, fy = st.fy || 0;
+    const tx = 85 - fx * s + (fx - 85) * (1 - (st.zoom || 0)) * 0, ty = 3 - fy * s;
+    const T = (st.zoom || 0) > .001 ? `translate(${f(lerp(0, 85 - fx * s, st.zoom))} ${f(lerp(0, 3 - fy * s, st.zoom))}) scale(${f(s)})` : '';
+    return `<g transform="${T}">${body}</g>`;
+  }
+  function mat(vb) {
+    const b = [vb[0] - 400, vb[1] - 400, vb[2] + 800, vb[3] + 800];
+    let g = '';
+    for (let x = Math.ceil(b[0] / 23) * 23; x < b[0] + b[2]; x += 23) g += `<line x1="${x}" y1="${b[1]}" x2="${x}" y2="${b[1] + b[3]}"${x % 115 === 0 ? ' class="major"' : ''}/>`;
+    for (let y = Math.ceil(b[1] / 23) * 23; y < b[1] + b[3]; y += 23) g += `<line x1="${b[0]}" y1="${y}" x2="${b[0] + b[2]}" y2="${y}"${y % 115 === 0 ? ' class="major"' : ''}/>`;
+    return `<g class="eq-mat eq-noink"><rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}"/>${g}</g>`;
+  }
+  const zoomPt = (st, x, y) => { const z = st.zoom || 0, s = lerp(1, st.zs || 1.8, z); return [lerp(x, x * s + 85 - (st.fx || 0) * s, z), lerp(y, y * s + 3 - (st.fy || 0) * s, z)]; };
+
+  // common opening and iron-prep steps
+  const PREP = { title: 'Get the iron ready', dur: 1600,
+    body: 'Set the iron to about 330–350 °C for leaded solder or 350–380 °C for lead-free; hotter for big joints, but no hotter than you need. Wipe the tip on brass wool or a damp sponge and melt a little fresh solder onto it so it transfers heat well.',
+    caution: 'The tip is hot enough to burn instantly. Always put the iron back in its stand, and work with ventilation for the flux fumes.',
+    tags: ['iron', 'solder'], keys: [[.4, { ironOn: 1, hot: 1 }], [.8, { solderOn: 1 }]] };
+
+  /* ===== Task 1: tinning a stranded wire ===== */
+  const TIN = {
+    key: 'tin', label: 'Tinning wires',
+    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 120, sx: -150, sy: -120, twist: 0, tin: 0, smoke: 0, zoom: 0, zs: 2, fx: -40, fy: 20 },
+    draw(st) {
+      const y = 20, h = 18, x0 = -110, xIns = 20, gap = 18;           // strands from x0 to the insulation at xIns; gap ≈ 1 wire diameter
+      let b = mat(this.viewBox);
+      b += insulation(xIns, 400, y, h + 8, 'url(#sd-red)');
+      b += strands(x0, xIns, y, h, (1 - st.twist) * .55);
+      b += tinned(x0, lerp(x0, xIns - gap, st.tin), y, h);
+      b += smoke(st.ix + 10, y - 10, st.smoke);
+      b += solder(st.sx, st.sy, -128, st.solderOn);
+      b += iron(st.ix, st.iy, 38, st.hot, st.ironOn);
+      const tags = {
+        iron:    { xy: zoomPt(st, st.ix + 60, st.iy + 46), dx: 60, dy: 40, text: 'Iron' },
+        solder:  { xy: zoomPt(st, st.sx - 60, st.sy - 76), dx: -40, dy: -30, text: 'Solder' },
+        strands: { xy: zoomPt(st, -50, y), dx: -30, dy: -90, text: 'Strands, lightly twisted' },
+        heat:    { xy: zoomPt(st, -45, y + h / 2), dx: -90, dy: 70, text: 'Heat from below' },
+        feed:    { xy: zoomPt(st, -60, y - h / 2), dx: -70, dy: -80, text: 'Feed solder on top' },
+        contour: { xy: zoomPt(st, -60, y), dx: -40, dy: -80, text: 'Strand outline still visible' },
+        gap:     { xy: zoomPt(st, xIns - gap / 2, y), dx: 60, dy: -80, text: 'Small gap to insulation' },
+        wick:    { xy: zoomPt(st, xIns + 30, y), dx: 70, dy: 70, text: 'No solder under insulation' },
+      };
+      return { svg: scene(st, b), tags, anchors: { flash: zoomPt(st, -40, y - 40) } };
+    },
+    steps: [
+      PREP,
+      { title: 'Strip and twist the strands', dur: 1500,
+        body: 'Strip the wire to the length you need and give the strands a light twist in their original lay so none stick out. IPC J-STD-001 allows strands to separate by no more than one strand diameter.',
+        tags: ['strands'], hot: ['strands'], keys: [[1, { twist: 1 }]] },
+      { title: 'Heat the strands', dur: 1500,
+        body: 'Put the tip under the strands, near the middle of the stripped length, so the copper heats up rather than the solder.',
+        tags: ['heat'], hot: ['heat'], keys: [[.8, { ix: -45, iy: 32 }]] },
+      { title: 'Feed solder from the other side', dur: 1800,
+        body: 'Touch the solder to the top of the strands, opposite the tip. When the copper is hot enough the solder melts and wicks into the strands. Feed just enough to wet them.',
+        tags: ['feed'], hot: ['feed'], keys: [[.4, { sx: -60, sy: 8 }], [.6, { smoke: 1 }], [1, { tin: .5 }]] },
+      { title: 'Work along to the end', dur: 1800,
+        body: 'Slide the iron and solder slowly towards the free end so the solder follows. Stop about one wire diameter short of the insulation so the solder doesn\'t wick underneath it.',
+        caution: 'Solder wicking under the insulation makes that part stiff, and it will break there with flexing. IPC says wicking mustn\'t reach the part of the wire that needs to stay flexible.',
+        tags: ['gap'], hot: ['gap'], keys: [[.85, { ix: -100, sx: -110, tin: 1 }], [1, { smoke: .2 }]] },
+      { title: 'Check the tinning', dur: 1600,
+        body: 'Take the iron and solder away and let it cool. Good tinning is smooth and shiny, the solder has soaked into the inner strands, and you can still see the outline of each strand. No spikes, no blobs, and the insulation isn\'t melted.',
+        caution: 'A lumpy blob or solder hiding the strands means too much solder; reheat with the iron and a little flux to draw the excess off.',
+        tags: ['contour', 'gap', 'wick'], keys: [[.3, { ironOn: 0, solderOn: 0, smoke: 0 }], [1, { zoom: 1 }]] },
+    ],
+  };
+
+  /* ===== Task 2: splicing two wires (IPC mesh splice) ===== */
+  const SPLICE = {
+    key: 'splice', label: 'Splicing wires',
+    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 140, sx: -150, sy: -140, stripped: 0, fan: 0, mesh: 0, smooth: 0, tin: 0, smoke: 0,
+            tube: 0, tubeOn: 0, shrink: 0, gun: 0, zoom: 0, zs: 2.4, fx: 20, fy: 20 },
+    draw(st) {
+      const y = 20, h = 16, L = 64;                                    // strip length (px)
+      const gapX = lerp(150, 0, st.mesh);                             // distance between the stripped ends
+      const lEnd = 20 - gapX / 2 + L * .55, rEnd = 20 + gapX / 2 - L * .55;   // where each wire's strands end
+      const lIns = lEnd - L, rIns = rEnd + L;
+      let b = mat(this.viewBox);
+      b += insulation(-420, st.stripped > .5 ? lIns : lEnd, y, h + 8, 'url(#sd-red)');
+      b += insulation(st.stripped > .5 ? rIns : rEnd, 460, y, h + 8, 'url(#sd-red)');
+      // heat shrink: parked on the right wire, then slid over the splice and shrunk
+      const tc = lerp(300, 20, st.tube), tw = L * 2.2;
+      if (st.tubeOn > .02) b += shrinkTube(tc - tw / 2, tc + tw / 2, y, h + 8, st.shrink, Math.min(1, st.tubeOn) * (st.tube > .5 ? 1 : .9));
+      if (st.stripped > .5) {
+        const fan = st.fan * (1 - st.smooth);
+        b += strands(lEnd, lIns, y, h, fan);
+        b += strands(rEnd, rIns, y, h, fan);
+        if (st.tin > .01) b += tinned(lerp(20, lIns + 1, st.tin), lerp(20, rIns - 1, st.tin), y, h * lerp(1.2, 1.05, st.smooth));
+      }
+      if (st.tube > .5 && st.tubeOn > .02) b += shrinkTube(tc - tw / 2, tc + tw / 2, y, h + 8, st.shrink, 1);
+      b += smoke(st.ix + 10, y - 12, st.smoke);
+      b += solder(st.sx, st.sy, -128, st.solderOn);
+      b += iron(st.ix, st.iy, 38, st.hot, st.ironOn);
+      b += heatGun(20, y - 20, st.gun);
+      const tags = {
+        iron:   { xy: zoomPt(st, st.ix + 60, st.iy + 46), dx: 60, dy: 40, text: 'Iron' },
+        solder: { xy: zoomPt(st, st.sx - 60, st.sy - 76), dx: -40, dy: -30, text: 'Solder' },
+        tube:   { xy: zoomPt(st, tc, y - h), dx: 30, dy: -80, text: 'Heat shrink' },
+        strip:  { xy: zoomPt(st, lEnd - L / 2, y), dx: -60, dy: -80, text: 'Stripped ends' },
+        fan:    { xy: zoomPt(st, lEnd, y - h), dx: -40, dy: -80, text: 'Strands fanned out' },
+        mesh:   { xy: zoomPt(st, 20, y), dx: 0, dy: -90, text: 'Strands meshed together' },
+        joint:  { xy: zoomPt(st, 20, y), dx: -60, dy: -80, text: 'Solder through, outline visible' },
+        cover:  { xy: zoomPt(st, tc + tw / 2 - 6, y), dx: 70, dy: 60, text: 'Shrink covers both insulations' },
+      };
+      return { svg: scene(st, b), tags, anchors: { flash: zoomPt(st, 20, y - 50) } };
+    },
+    steps: [
+      PREP,
+      { title: 'Put the heat shrink on first', dur: 1400,
+        body: 'Slide a piece of heat shrink onto one wire before you do anything else, well away from where you\'ll be soldering. It\'s easy to forget, and you can\'t add it afterwards.',
+        tags: ['tube'], hot: ['tube'], keys: [[.6, { tubeOn: 1 }]] },
+      { title: 'Strip both ends', dur: 1300,
+        body: 'Strip the same length from both wires, enough for the strands to overlap fully when meshed together.',
+        tags: ['strip'], keys: [[.3, { stripped: 1 }]] },
+      { title: 'Fan the strands out', dur: 1300,
+        body: 'Untwist and spread the strands of each end slightly so they can slide between each other.',
+        tags: ['fan'], keys: [[1, { fan: 1 }]] },
+      { title: 'Push the ends together', dur: 1700,
+        body: 'Push the two ends straight into each other so the strands interlace. This is the mesh splice, one of the four splice methods IPC/WHMA-A-620 accepts (mesh, wrap, hook and lap).',
+        tags: ['mesh'], hot: ['mesh'], keys: [[.6, { mesh: 1 }], [1, { zoom: 1 }]] },
+      { title: 'Smooth the strands down', dur: 1300,
+        body: 'Smooth the strands down along the splice with your fingers so it\'s barely thicker than the wire and no strand ends stick out.',
+        tags: ['mesh'], keys: [[1, { smooth: 1 }]] },
+      { title: 'Solder the splice', dur: 2200,
+        body: 'Heat the middle of the splice from below and feed solder on top. Let it flow right through the strands from one end of the splice to the other, then take the solder and iron away and hold still while it sets.',
+        tags: ['joint'], hot: ['joint'], keys: [[.3, { ix: 20, iy: 30, sx: 20, sy: 10 }], [.45, { smoke: 1 }], [.85, { tin: 1 }], [1, { ironOn: 0, solderOn: 0, smoke: 0 }]] },
+      { title: 'Shrink the tubing over it', dur: 2200,
+        body: 'When it\'s cool, slide the heat shrink over the splice so it covers the insulation on both sides, and shrink it with a heat gun, not the iron.',
+        tags: ['cover'], hot: ['cover'], keys: [[.4, { tube: 1 }], [.55, { gun: 1 }], [.9, { shrink: 1 }], [1, { gun: 0 }]] },
+      { title: 'Check the splice', dur: 1400,
+        body: 'The solder should have flowed through all the strands with their outline still visible, no strands sticking out, no melted insulation, and the shrink tight over both insulated ends. Tug gently: it shouldn\'t move.',
+        tags: ['joint', 'cover'], keys: [] },
+    ],
+  };
+
+  /* ===== Task 3: XT30 / XT60 / XT90 solder cups ===== */
+  const XT_SIZES = [
+    { name: 'XT30', awg: '16', hw: 46, cup: 15, depth: 40, wire: 13 },
+    { name: 'XT60', awg: '12–14', hw: 60, cup: 20, depth: 52, wire: 17 },
+    { name: 'XT90', awg: '8–10', hw: 76, cup: 26, depth: 64, wire: 22 },
+  ];
+  const XT_SEL = { i: 1 };
+  const XT = {
+    key: 'xt', label: 'XT30 / XT60 / XT90',
+    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 140, sx: -150, sy: -140, mated: 0, tinW: 0, fill: 0, wireIn: 0, smoke: 0,
+            tubeOn: 1, tube: 0, shrink: 0, gun: 0, zoom: 0, zs: 1.8, fx: 80, fy: 10 },
+    draw(st) {
+      const s = XT_SIZES[XT_SEL.i], y = 10, cupX0 = 50, cupX1 = cupX0 + s.depth, r = s.cup / 2;
+      let b = mat(this.viewBox);
+      // housing (yellow nylon) and a mated spare plug that keeps the pins aligned and soaks up heat
+      b += `<rect x="${f(cupX0 - 120)}" y="${f(y - s.hw / 2)}" width="120" height="${f(s.hw)}" rx="6" fill="url(#sd-xt)" stroke="rgba(0,0,0,.5)"/>`;
+      b += `<text class="sd-mark" x="${f(cupX0 - 60)}" y="${f(y + 5)}" text-anchor="middle">${s.name}</text>`;
+      if (st.mated > .02) b += `<g opacity="${f(st.mated)}"><rect x="${f(cupX0 - 230)}" y="${f(y - s.hw / 2 - 4)}" width="114" height="${f(s.hw + 8)}" rx="6" fill="url(#sd-xt)" stroke="rgba(0,0,0,.5)" opacity=".85"/>${label(cupX0 - 173, y + s.hw / 2 + 22, 'spare plug')}</g>`;
+      // the cup, cut away so you can see inside: brass wall, solder fill level, then the wire
+      const inner = r * .72, wallT = r - inner;
+      b += `<rect x="${f(cupX0)}" y="${f(y - r)}" width="${f(s.depth)}" height="${f(2 * r)}" rx="${f(r * .3)}" fill="url(#sd-brass)" stroke="rgba(0,0,0,.5)"/>`;
+      b += `<rect x="${f(cupX0 + wallT)}" y="${f(y - inner)}" width="${f(s.depth - wallT)}" height="${f(2 * inner)}" fill="#3a2a10"/>`;
+      // the wire, tinned end first
+      const wTip = lerp(cupX1 + 70, cupX0 + wallT + 2, st.wireIn), strip = s.depth - wallT - 2, wIns = wTip + strip;
+      // solder fill: from the back of the cup towards the mouth
+      const fillLen = (s.depth - wallT) * clamp(st.fill, 0, 1);
+      if (fillLen > .5) b += `<rect x="${f(cupX0 + wallT)}" y="${f(y - inner)}" width="${f(fillLen)}" height="${f(2 * inner)}" fill="url(#sd-tin)" stroke="rgba(0,0,0,.3)"/>`;
+      b += (st.tinW > .5 ? tinned(wTip, wIns, y, s.wire * .78) : strands(wTip, wIns, y, s.wire * .78, 0)) + insulation(wIns, 460, y, s.wire, 'url(#sd-red)');
+      if (st.wireIn > .5 && st.fill > .02) b += `<rect x="${f(cupX0 + wallT)}" y="${f(y - inner)}" width="${f(fillLen)}" height="${f(2 * inner)}" fill="url(#sd-tin)" opacity=".55"/>`;
+      // heat shrink parked on the wire, later slid over the cup
+      const tc = lerp(wIns + 120, cupX0 + s.depth * .55, st.tube), tw = s.depth * 1.5;
+      b += shrinkTube(tc - tw / 2, tc + tw / 2, y, s.wire + (st.tube > .5 ? s.cup - s.wire : 0), st.shrink, st.tubeOn);
+      b += smoke(cupX0 + 20, y - r - 4, st.smoke);
+      b += solder(st.sx, st.sy, -128, st.solderOn);
+      b += iron(st.ix, st.iy, 38, st.hot, st.ironOn);
+      b += heatGun(cupX0 + s.depth * .55, y - s.cup, st.gun);
+      const tags = {
+        iron:   { xy: zoomPt(st, st.ix + 60, st.iy + 46), dx: 60, dy: 40, text: 'Iron' },
+        solder: { xy: zoomPt(st, st.sx - 60, st.sy - 76), dx: -40, dy: -30, text: 'Solder' },
+        tube:   { xy: zoomPt(st, tc, y - s.wire), dx: 30, dy: -80, text: 'Heat shrink' },
+        cup:    { xy: zoomPt(st, cupX0 + s.depth / 2, y - r), dx: -30, dy: -80, text: 'Solder cup' },
+        plug:   { xy: zoomPt(st, cupX0 - 173, y - s.hw / 2), dx: -10, dy: -60, text: 'Spare plug mated' },
+        fill:   { xy: zoomPt(st, cupX0 + wallT + fillLen * .6, y), dx: -40, dy: -90, text: 'Cup at least 75% full' },
+        wire:   { xy: zoomPt(st, wIns + 30, y), dx: 60, dy: 60, text: 'Tinned wire' },
+        depth:  { xy: zoomPt(st, cupX0 + wallT + 3, y + inner), dx: -50, dy: 80, text: 'Wire to the bottom of the cup' },
+        gap:    { xy: zoomPt(st, cupX1 + 4, y + s.wire / 2), dx: 80, dy: 70, text: 'Small gap to insulation' },
+        polar:  { xy: zoomPt(st, cupX0 - 60, y - s.hw / 2), dx: 20, dy: -70, text: 'Red to +, black to −' },
+      };
+      return { svg: scene(st, b), tags, anchors: { flash: zoomPt(st, cupX0 + 20, y - r - 40) } };
+    },
+    steps: [
+      PREP,
+      { title: 'Heat shrink on, then tin the wires', dur: 1600,
+        body: 'Slide heat shrink onto each wire first. Strip each wire to the depth of the cup and tin the strands (see Tinning wires). The tinned end should sit right down in the cup with the insulation just outside it.',
+        tags: ['tube', 'wire'], keys: [[.7, { tinW: 1 }]] },
+      { title: 'Mate a spare plug', dur: 1300,
+        body: 'Plug a spare {X} onto the one you\'re soldering. It holds the pins in line while the plastic is soft and helps soak up heat. Clamp it so both hands are free.',
+        tags: ['plug'], hot: ['plug'], keys: [[1, { mated: 1 }]] },
+      { title: 'Fill the cup', dur: 2200,
+        body: 'Hold the iron against the back of the cup and feed solder into it until it\'s about three-quarters full.',
+        tags: ['cup'], hot: ['cup'], keys: [[.3, { ix: 72, iy: 24, sx: 84, sy: -22 }], [.45, { smoke: 1 }], [.95, { fill: .8 }], [1, { solderOn: 0 }]] },
+      { title: 'Push the wire in', dur: 1800,
+        body: 'Keep the iron on the cup so the solder stays molten and push the tinned wire straight in, right to the bottom of the cup.',
+        tags: ['depth'], hot: ['depth'], keys: [[.85, { wireIn: 1, fill: .92 }]] },
+      { title: 'Hold still while it sets', dur: 1500,
+        body: 'Take the iron away and hold the wire completely still for a few seconds until the solder goes solid. Moving it now leaves a dull, cracked joint.',
+        tags: ['wire'], keys: [[.3, { ironOn: 0, smoke: 0 }]], flashes: [[.5, 'Hold still']] },
+      { title: 'Check the joint', dur: 1500,
+        body: 'IPC J-STD-001 asks for the wire inserted for the full depth of the cup, solder filling at least 75% of the cup, and no solder built up on the outside. The insulation should sit close to the cup without being melted: no more than two wire diameters or 1.5 mm away.',
+        caution: 'A melted or tilted pin means too much heat for too long; let it cool and redo it with a hotter tip for a shorter time.',
+        tags: ['fill', 'depth', 'gap'], keys: [[1, { zoom: 1 }]] },
+      { title: 'Shrink the tubing over the cup', dur: 2000,
+        body: 'Slide the heat shrink over the cup right up to the housing and shrink it with a heat gun. Match the + and − marks on the housing: red to +, black to −.',
+        tags: ['tube', 'polar'], keys: [[0, { zoom: 0 }], [.35, { tube: 1 }], [.5, { gun: 1 }], [.85, { shrink: 1 }], [1, { gun: 0 }]] },
+    ],
+  };
+
+  /* ===== Task 4: soldering a wire to a pad ===== */
+  const PAD = {
+    key: 'pad', label: 'Soldering on pads',
+    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: -40, sx: -150, sy: -140, flux: 0, padTin: 0, wireTin: 0, wireY: -70, joint: 0, smoke: 0, clean: 0,
+            zoom: 0, zs: 1.8, fx: -10, fy: 40 },
+    draw(st) {
+      const boardY = 60, padX0 = -60, padX1 = 40, wireH = 15, coreH = 9;
+      let b = mat(this.viewBox);
+      // board, a neighbouring pad and the pad we're soldering to
+      b += `<rect x="-260" y="${boardY}" width="520" height="30" rx="3" fill="url(#sd-pcb)" stroke="rgba(0,0,0,.5)"/>`;
+      b += `<rect x="-200" y="${boardY - 4}" width="90" height="4" fill="url(#sd-pad)" stroke="rgba(0,0,0,.4)"/>`;
+      b += `<rect x="${padX0}" y="${boardY - 4}" width="${padX1 - padX0}" height="4" fill="url(#sd-pad)" stroke="rgba(0,0,0,.4)"/>`;
+      if (st.flux > .02) b += `<rect x="${padX0 - 4}" y="${boardY - 9}" width="${padX1 - padX0 + 8}" height="6" rx="3" fill="#E8B04A" opacity="${f(st.flux * .5 * (1 - st.clean))}"/>`;
+      // pre-tinned dome on the pad
+      const dome = st.padTin * 5 * (1 - st.joint * .4);
+      if (dome > .1) b += `<path d="M${padX0} ${boardY - 4} Q ${(padX0 + padX1) / 2} ${f(boardY - 4 - dome * 2)} ${padX1} ${boardY - 4}Z" fill="url(#sd-tin)" stroke="rgba(0,0,0,.3)"/>`;
+      // the wire: tinned end trimmed to the pad length, lowered onto the pad
+      const wy = lerp(st.wireY, boardY - 4 - coreH / 2 - dome * .3, 1) ;
+      const cy = st.wireY > -1 ? boardY - 4 - coreH / 2 : st.wireY;
+      const tipX = padX0 + 8, insX = padX1 + 14;
+      b += insulation(insX, 460, cy, wireH, 'url(#sd-red)');
+      b += st.wireTin > .5 ? tinned(tipX, insX, cy, coreH) : strands(tipX, insX, cy, coreH, 0);
+      // the finished fillet: concave slopes from the wire down to the pad
+      if (st.joint > .02) {
+        const top = cy - coreH * .1, foot = boardY - 4;
+        const fl = `M${padX0 + 2} ${foot} Q ${tipX - 2} ${f(foot - 1)} ${tipX} ${f(top)} L${padX1 - 4} ${f(top)} Q ${padX1 - 2} ${f(foot - 1)} ${padX1} ${foot}Z`;
+        b += `<path d="${fl}" fill="url(#sd-tin)" opacity="${f(st.joint * .9)}" stroke="rgba(0,0,0,.3)"/>`;
+        b += tinned(tipX, insX, cy, coreH);
+      }
+      b += smoke(st.ix, boardY - 30, st.smoke);
+      b += solder(st.sx, st.sy, -128, st.solderOn);
+      b += iron(st.ix, st.iy, -32, st.hot, st.ironOn);
+      const tags = {
+        iron:    { xy: zoomPt(st, st.ix + 60, st.iy - 30), dx: 60, dy: -30, text: 'Iron' },
+        solder:  { xy: zoomPt(st, st.sx - 60, st.sy - 76), dx: -40, dy: -30, text: 'Solder' },
+        pad:     { xy: zoomPt(st, (padX0 + padX1) / 2, boardY - 2), dx: -40, dy: 70, text: 'Pad' },
+        flux:    { xy: zoomPt(st, padX0, boardY - 6), dx: -60, dy: -70, text: 'Flux' },
+        dome:    { xy: zoomPt(st, (padX0 + padX1) / 2, boardY - 8), dx: -30, dy: -80, text: 'Thin layer of solder' },
+        wire:    { xy: zoomPt(st, insX + 40, cy), dx: 60, dy: -60, text: 'Tinned wire, trimmed to the pad' },
+        fillet:  { xy: zoomPt(st, padX0 + 4, boardY - 6), dx: -60, dy: -70, text: 'Concave fillet' },
+        contour: { xy: zoomPt(st, (tipX + padX1) / 2, cy - coreH / 2), dx: 10, dy: -90, text: 'Wire outline visible' },
+        gap:     { xy: zoomPt(st, insX - 4, cy), dx: 80, dy: -60, text: 'Gap ≤ 2 wire dia. or 1.5 mm' },
+        bridge:  { xy: zoomPt(st, -155, boardY - 3), dx: -40, dy: 70, text: 'No solder bridging' },
+      };
+      return { svg: scene(st, b), tags, anchors: { flash: zoomPt(st, -10, boardY - 60) } };
+    },
+    steps: [
+      PREP,
+      { title: 'Clean and flux the pad', dur: 1300,
+        body: 'Make sure the pad is clean and bright; wipe it with isopropyl alcohol if it\'s greasy. Add a little flux so the solder flows.',
+        tags: ['pad', 'flux'], hot: ['flux'], keys: [[1, { flux: 1 }]] },
+      { title: 'Put a thin layer of solder on the pad', dur: 1800,
+        body: 'Touch the iron to the pad and add a small amount of solder so the whole pad is covered with a thin, smooth layer.',
+        tags: ['dome'], hot: ['dome'], keys: [[.3, { ix: -10, iy: 52, sx: -40, sy: 52 }], [.5, { smoke: .6 }], [.9, { padTin: 1 }], [1, { ix: 150, iy: -40, sx: -150, sy: -140, smoke: 0 }]] },
+      { title: 'Tin the wire and trim it', dur: 1400,
+        body: 'Tin the stripped end of the wire (see Tinning wires) and trim the tinned part to the length of the pad, so the insulation ends just past the pad.',
+        tags: ['wire'], hot: ['wire'], keys: [[1, { wireTin: 1 }]] },
+      { title: 'Lay the wire on the pad', dur: 1400,
+        body: 'Lay the tinned wire flat along the pad and hold it still. Taping or clamping the wire helps keep it from moving.',
+        tags: ['wire'], keys: [[1, { wireY: 0 }]] },
+      { title: 'Heat through the wire', dur: 2200,
+        body: 'Press the tip on top of the wire. The heat goes through it into the pad, both layers of solder melt and flow together. Add a touch of solder at the side of the joint if it needs it, then lift the iron straight off.',
+        tags: ['iron'], hot: ['iron'], keys: [[.3, { ix: -10, iy: 38 }], [.45, { smoke: 1 }], [.6, { sx: 50, sy: 50 }], [.85, { joint: 1 }], [1, { solderOn: 0 }]] },
+      { title: 'Hold still while it sets', dur: 1400,
+        body: 'Keep the wire still for a few seconds until the solder turns solid.',
+        tags: [], keys: [[.3, { ironOn: 0, smoke: 0 }]], flashes: [[.5, 'Hold still']] },
+      { title: 'Check the joint', dur: 1500,
+        body: 'Look for a smooth, concave fillet that wets both the wire and the pad, with the outline of the wire still visible. The insulation should end close to the joint, no more than two wire diameters or 1.5 mm away, and there must be no solder bridging to the next pad.',
+        caution: 'A ball of solder sitting on the pad, a dull grainy finish, or solder that hasn\'t spread onto the pad means a cold joint. Add flux and reheat.',
+        tags: ['fillet', 'contour', 'gap', 'bridge'], keys: [[1, { zoom: 1 }]] },
+      { title: 'Clean off the flux', dur: 1300,
+        body: 'Clean flux residue off with isopropyl alcohol and a brush, unless you\'re using no-clean flux and your lab allows leaving it.',
+        tags: ['pad'], keys: [[0, { zoom: 0 }], [1, { clean: 1 }]] },
+    ],
+  };
+
+  const MODES = [TIN, SPLICE, XT, PAD];
+  let mode = 0;
+  const defs = `
+    <radialGradient id="sd-glow"><stop offset="0" stop-color="#FFB060" stop-opacity=".95"/><stop offset=".5" stop-color="#FF6A1A" stop-opacity=".45"/><stop offset="1" stop-color="#FF4500" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sd-grip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4FA3E6"/><stop offset=".5" stop-color="#2F6FB0"/><stop offset="1" stop-color="#1D4E80"/></linearGradient>
+    <linearGradient id="sd-nut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6A7078"/><stop offset="1" stop-color="#2A2D32"/></linearGradient>
+    <linearGradient id="sd-barrel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F4F6"/><stop offset=".5" stop-color="#B9C0C6"/><stop offset="1" stop-color="#7E868D"/></linearGradient>
+    <linearGradient id="sd-tip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9AA2A9"/><stop offset=".5" stop-color="#5A6068"/><stop offset="1" stop-color="#33373D"/></linearGradient>
+    <linearGradient id="sd-solder" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6F7"/><stop offset="1" stop-color="#A9B0B6"/></linearGradient>
+    <linearGradient id="sd-tin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBFCFD"/><stop offset=".45" stop-color="#CBD1D6"/><stop offset="1" stop-color="#8E979E"/></linearGradient>
+    <linearGradient id="sd-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE6A5A"/><stop offset=".5" stop-color="#C9362A"/><stop offset="1" stop-color="#8A1F17"/></linearGradient>
+    <linearGradient id="sd-xt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F8E27A"/><stop offset=".5" stop-color="#E8C21E"/><stop offset="1" stop-color="#B8930C"/></linearGradient>
+    <linearGradient id="sd-brass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5D98A"/><stop offset=".5" stop-color="#D4A73C"/><stop offset="1" stop-color="#9C7420"/></linearGradient>
+    <linearGradient id="sd-pcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5A36"/></linearGradient>
+    <linearGradient id="sd-pad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3D99A"/><stop offset="1" stop-color="#C79A3A"/></linearGradient>`;
+
+  const tool = {
+    id: 'solder', fig: 5, name: 'Soldering iron', sub: 'Tinning, splicing, XT connectors, pads', cat: 'electrical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs,
+    modes: MODES.map(m => m.label),
+    get mode() { return mode; },
+    setMode(i) { mode = i; },
+    sizes: XT_SIZES.map(s => s.name),
+    get size() { return XT_SEL.i; },
+    setSize(i) { XT_SEL.i = i; },
+    get steps() { return MODES[mode].steps; },
+    get base() { return MODES[mode].base; },
+    draw(st) { return MODES[mode].draw.call(this, st); },
+    vars: () => ({ X: XT_SIZES[XT_SEL.i].name }),
+  };
+  return tool;
+})();
+
+const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER];
+EQ_TOOLS.forEach(t => { if (!t.cat) t.cat = 'electrical'; });
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
 /* ---------- Equipment tab controller ---------- */
@@ -2727,12 +3152,14 @@ const eqUI = (() => {
   function selectTool(id) {
     tool = EQ_TOOLS.find(x => x.id === id) || EQ_TOOLS[0];
     step = 0;                                    // the new tool may have fewer steps
+    memo.clear();
     setPlaying(false);
     $('eqFigure').setAttribute('viewBox', tool.viewBox.join(' '));
     $('eqFigure').style.aspectRatio = `${tool.viewBox[2]} / ${tool.viewBox[3]}`;
     $('eqTools').querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === tool.id));
     if (typeof termPicker !== 'undefined') termPicker.showFor(tool.id);
     if (typeof wirePicker !== 'undefined') wirePicker.showFor(tool.id);
+    if (typeof taskPicker !== 'undefined') taskPicker.showFor(tool);
     $('eqList').innerHTML = tool.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s.title)}</button></li>`).join('');
     go(0, { instant: true });
     animate();
@@ -2757,7 +3184,19 @@ const eqUI = (() => {
   }
   // Called when the tool's settings change (e.g. a different terminal): recompute every step and redraw
   function refresh() { memo.clear(); renderText(); cancelAnimationFrame(raf); t = 1; render(); }
-  return { init, rerender: () => render(), replay: () => animate(), refresh };
+  // category switch: show only that category's tools
+  let cat = 'electrical';
+  function showCat(c) {
+    cat = c;
+    document.querySelectorAll('.eq-cat').forEach(b => b.setAttribute('aria-checked', b.dataset.cat === c));
+    const list = EQ_TOOLS.filter(t => t.cat === c);
+    $('eqTools').querySelectorAll('[data-tool]').forEach(b => { b.hidden = !list.some(t => t.id === b.dataset.tool); });
+    $('eqEmpty').hidden = list.length > 0;
+    $('eqBody').hidden = list.length === 0;
+    if (list.length && !list.includes(tool)) selectTool(list[0].id);
+  }
+  document.querySelectorAll('.eq-cat').forEach(b => b.addEventListener('click', () => showCat(b.dataset.cat)));
+  return { init, rerender: () => render(), replay: () => animate(), refresh, reload: () => selectTool(tool.id), showCat };
 })();
 
 
@@ -2943,6 +3382,27 @@ const wirePicker = (() => {
   return { init, showFor };
 })();
 
+/* ---------- Task picker (for tools with several procedures, like the soldering iron) ---------- */
+const taskPicker = (() => {
+  let tool = null;
+  function render() {
+    $('eqTaskChips').innerHTML = tool.modes.map((m, i) => `<button type="button" class="eq-chip" role="radio" data-mode="${i}" aria-checked="${i === tool.mode}" aria-pressed="${i === tool.mode}">${esc(m)}</button>`).join('');
+    const showSizes = tool.sizes && tool.modes[tool.mode].startsWith('XT');
+    $('eqSizeWrap').hidden = !showSizes;
+    if (showSizes) $('eqSizeChips').innerHTML = tool.sizes.map((s, i) => `<button type="button" class="eq-chip" role="radio" data-size="${i}" aria-checked="${i === tool.size}" aria-pressed="${i === tool.size}">${esc(s)}</button>`).join('');
+  }
+  function showFor(t) {
+    $('eqTask').hidden = !t.modes;
+    if (!t.modes) return;
+    tool = t; render();
+  }
+  function init() {
+    $('eqTaskChips').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; tool.setMode(+b.dataset.mode); eqUI.reload(); });
+    $('eqSizeChips').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (!b) return; tool.setSize(+b.dataset.size); render(); eqUI.refresh(); });
+  }
+  return { init, showFor };
+})();
+
 /* ===================== THEME ===================== */
 const THEME_ICONS = {
   dark: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
@@ -2965,6 +3425,8 @@ showTheme();
 eqUI.init();
 termPicker.init();
 wirePicker.init();
+taskPicker.init();
+taskPicker.showFor(EQ_TOOLS[0]);
 termPicker.showFor(EQ_TOOLS[0].id);
 wirePicker.showFor(EQ_TOOLS[0].id);
 
