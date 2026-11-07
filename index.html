@@ -508,8 +508,6 @@ label.btn { cursor: pointer; }
 .eq-real .eq-term polygon { stroke: rgba(40, 44, 40, .16); stroke-width: .3; }
 .eq-real .eq-term .eq-barrel-hot polygon { stroke: var(--mat); stroke-width: 1.2; }
 .eq-badge { fill: none; stroke: #B5560E; stroke-width: 1.1; }
-.eq-ideal-logo { font-family: var(--font-display); fill: #1F2124; letter-spacing: .04em; }
-.eq-sleeve-text { font-family: var(--font); font-style: italic; fill: #E6E8EA; }
 .eq-green-text { font-family: var(--font-display); fill: #D9F4EA; letter-spacing: .06em; }
 .eq-edge { fill: none; stroke: #C9CED4; stroke-width: .7; opacity: .8; }
 #eqWireSel { width: 100%; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--field); }
@@ -521,6 +519,9 @@ label.btn { cursor: pointer; }
 .eq-inset-bg { fill: #D9DEE3; }
 .eq-inset-edge { stroke: rgba(0, 0, 0, .35); stroke-width: 1; }
 .eq-inset-link { stroke: var(--mat); stroke-width: 1.6; stroke-dasharray: 4 4; }
+.eq-inset-small { font-family: var(--font-mono); font-size: 10px; font-weight: 600; fill: #2E3238; }
+.eq-guide { stroke: var(--mat); stroke-width: 1; stroke-dasharray: 3 3; }
+.eq-bracket { stroke: var(--mat); stroke-width: 1.6; fill: none; }
 .eq-inset-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
 .eq-flash {
   font-family: var(--font-mono); font-size: 14px; font-weight: 600; fill: var(--mat);
@@ -1063,7 +1064,7 @@ const PA14 = (() => {
   const { prism, tube, M, lerp, f, pts, P } = EQ;
   // Side-on camera, like the how-to photos: the tool stands with its jaw tip up, the jaw face turned partly
   // toward you, and the wire running across the jaw through the hole (free end on the left).
-  const K = 1.95, PHI = 58 * Math.PI / 180, TAU = 16 * Math.PI / 180;
+  const K = 1.95, PHI = 52 * Math.PI / 180, TAU = -10 * Math.PI / 180;
   const cp = Math.cos(PHI), sp = Math.sin(PHI), cT = Math.cos(TAU), sT = Math.sin(TAU);
   const TILT = 0;
   const CAMERA = {
@@ -1086,7 +1087,7 @@ const PA14 = (() => {
     { mm: .95, str: '20–22', sol: '20' }, { mm: 1.15, str: '20', sol: '18' }, { mm: 1.45, str: '18', sol: '16' },
   ].map((h, i) => ({ ...h, x: -54 + i * 5, hd: 1.1 + h.mm * 1.9 }));          // drawn larger than life so they read
   const SEL = { h: 3 };
-  const STRIP = 4.5;                                  // strip length shown (mm)
+  const STRIP = 6.5;                                  // strip length shown (mm)
   const kOf = h => h.hd / h.mm * .9;                  // drawn scale so the wire fits the drawn hole
   const K_INSERT = { tipY: 0 };
   const OPEN_ANGLE = 12 * Math.PI / 180;
@@ -1123,11 +1124,12 @@ const PA14 = (() => {
     [6, 10.4], [16, 12.6], [30, 14.4], [36, 12.4], [34, 7.6], [18, 3.6], [12, -3],
     ...arcPts(0, 0, 10.8, -20, -95, 4), [-2, -13], [-12, -15.2], [-26, -13.6], [-44, -10.4], [-60, -6.8], [-66, -4.6], [-67.4, -2.6],
   ];
-  const coreA = [[22, -10], [118, -24]], coreB = [[22, 10], [118, 24]];
+  const coreA = [[20, -9], [100, -16]], coreB = [[20, 9], [100, 16]];
   // grips (green TPE): shoulder with a thumb stop, long body, rounded end with a strap loop on the lower one
-  const GRIP = [[0, -6.6], [0, 6.4], [5, 10.4], [12, 10.8], [16, 8.6], [74, 8], [86, 8.6], [93, 6.6], [96, 1], [94, -4.6], [86, -6.8], [18, -7.2], [6, -7.8]];
-  const GRIP_TOP = [[2, -5.2], [2, 5.2], [6, 9], [11.6, 9.3], [15.4, 7.2], [74, 6.6], [85, 7.2], [91, 5.6], [93.4, 1], [91.6, -3.8], [85, -5.6], [18, -5.9], [6, -6.4]];
-  const gripA = gripMap([30, -13.6], [130, -27.6], -1), gripB = gripMap([30, 13.6], [130, 27.6], 1);
+  // fuller grips: flared collar by the pivot, slimmer waist, wider end with the strap hook
+  const GRIP = [[0, -8], [0, 7.8], [4, 12.4], [12, 12.8], [16, 10.4], [52, 9.4], [70, 10.6], [76, 9], [78, 2], [76, -6], [70, -8.8], [18, -8.6], [6, -9.4]].map(([u, v]) => [u * 1.04, v]);
+  const GRIP_TOP = [[2, -6.6], [2, 6.6], [5.6, 10.8], [11.6, 11.2], [15.4, 8.9], [52, 7.9], [69, 9.1], [74.4, 7.8], [76.2, 2], [74.4, -5], [69, -7.4], [18, -7.2], [6, -7.8]].map(([u, v]) => [u * 1.04, v]);
+  const gripA = gripMap([28, -13.2], [108, -22], -1), gripB = gripMap([28, 13.2], [108, 22], 1);
 
   /* ----- magnifier: side view of the blades cutting the insulation, then the slug sliding off ----- */
   function inset(st, cx, cy, R) {
@@ -1167,24 +1169,24 @@ const PA14 = (() => {
     const toolOp = st.toolFade;
     const hole = HOLES[SEL.h];
 
-    /* wire: local u runs back from the free end; world y = tipY - u·k, through the hole */
+    /* wire: local u runs from the free end (behind the jaw) back toward the hand (near side); world y = tipY + u·k */
     const k0 = kOf(hole);
     const k = lerp(k0, st.as, st.insp);
     const cond = hole.mm * .95, od = hole.mm * 2 + .2, strip = STRIP;
     const hc = [(RA([hole.x, 0])[0] + RB([hole.x, 0])[0]) / 2, (RA([hole.x, 0])[1] + RB([hole.x, 0])[1]) / 2];
     const U0 = strip + 9;                                        // length shown when inspecting
     const Wp = u => {
-      const a = [hc[0], st.tipY - u * k0, hc[1]];
+      const a = [hc[0], st.tipY + u * k0, hc[1]];
       // inspecting: lay the wire straight across the view, free end on the left
       const d = [0, -cp, sp], t = (u - U0 / 2) * st.as;
       const b = [st.ix + 0 * t, st.iy + d[1] * t, st.iz + d[2] * t];
       return [lerp(a[0], b[0], st.insp), lerp(a[1], b[1], st.insp), lerp(a[2], b[2], st.insp)];
     };
-    const uCut = (st.tipY - FRONT) / k0;                        // where the wire passes the jaws' front face
+    const uCut = (FRONT - st.tipY) / k0;                        // where the wire comes out of the jaws' front face
     const seg = (u0, u1, d, m, front) => {
-      // part of the wire in front of (u < uCut) or behind (u > uCut) the jaws' front face
+      // part of the wire in front of the jaws (u > uCut, drawn over the tool) or inside/behind them (u < uCut)
       let a = u0, b = u1;
-      if (st.insp <= .5) { if (front) b = Math.min(b, uCut); else a = Math.max(a, uCut); }
+      if (st.insp <= .5) { if (front) a = Math.max(a, uCut); else b = Math.min(b, uCut); }
       if (b - a < 1e-3) return '';
       const n = 8, out = [];
       for (let i = 0; i <= n; i++) out.push(Wp(lerp(a, b, i / n)));
@@ -1200,8 +1202,9 @@ const PA14 = (() => {
     }
     function slug() {                                             // the cut-off insulation left in the jaws
       if (st.slugOn < .01 || st.insp > .5) return '';
-      const drop = st.slugDrop, y0 = FRONT + .2, y1 = FRONT + .2 + strip * k0;
-      const p0 = [hc[0] + drop * 40, y0 + drop * 3, hc[1]], p1 = [hc[0] + drop * 40, y1 + drop * 3, hc[1]];
+      // the slug is the insulation that was behind the jaw; it stays there when the wire is pulled toward you
+      const drop = st.slugDrop, y1 = -.2, y0 = y1 - strip * k0;
+      const p0 = [hc[0] + drop * 40, y0 - drop * 3, hc[1]], p1 = [hc[0] + drop * 40, y1 - drop * 3, hc[1]];
       return `<g opacity="${f(st.slugOn * (1 - drop))}">${tube([p0, p1], od * k0 * K, RED, 'butt')}</g>`;
     }
 
@@ -1215,16 +1218,16 @@ const PA14 = (() => {
           const p = R(map([u, v])), p1 = R(map([u + 1, v])), p2 = R(map([u, v - 1]));
           const M3 = faceMatrix([p[0], y1 + .6, p[1]], [p1[0] - p[0], 0, p1[1] - p[1]], [p2[0] - p[0], 0, p2[1] - p[1]]);
           return `<text class="eq-green-text" x="0" y="0" font-size="${f(size)}" font-weight="${w}" text-anchor="middle" transform="${M3}">${str}</text>`; };
-        g += tx(44, 2.4, 'WIRE STRIPPER', 3.1) + prW(on([[34, -3.8], [52, -3.8], [52, -.6], [34, -.6]]), y1 + .5, y1 + .55, GREEN, 'url(#pa-green-dark)')
-          + tx(43, -3.2, 'PA-06', 2.6) + tx(64, -1, 'MADE IN JAPAN', 1.5, 500);
+        g += tx(40, 2.6, 'WIRE STRIPPER', 3.1) + prW(on([[31, -3.8], [49, -3.8], [49, -.6], [31, -.6]]), y1 + .5, y1 + .55, GREEN, 'url(#pa-green-dark)')
+          + tx(40, -3.1, 'PA-06', 2.6) + tx(60, -1, 'MADE IN JAPAN', 1.5, 500);
       } else {
         for (const u of [9, 13, 17]) { const [x, z] = R(map([u, 2])); g += disc(x, y1 + .6, z, .9, '#0b3b2c'); }
         // strap loop at the end
-        g += prW(on([[92, -4], [104, -5], [107, 0], [104, 5], [92, 4]]), y0 + 1.5, y1 - .5, GREEN, 'url(#pa-green-dark)');
-        const [x, z] = R(map([101.5, 0]));
+        g += prW(on([[76, -4], [86, -5], [89, 0], [86, 5], [76, 4]]), y0 + 1.5, y1 - .5, GREEN, 'url(#pa-green-dark)');
+        const [x, z] = R(map([83.5, 0]));
         g += disc(x, y1, z, 1.9, 'var(--eq-plate-m)');
       }
-      const [hx, hz] = R(map([88, 0]));
+      const [hx, hz] = R(map([71, 0]));
       if (upper) g += disc(hx, y1 + .6, hz, 1.5, '#0b3b2c', 'opacity=".85"');
       return g;
     };
@@ -1245,6 +1248,12 @@ const PA14 = (() => {
       }
       tool += `<g class="eq-noink">${c}</g>`; }
     tool += pr(armB, RB, 3, FRONT, OXIDE, 'url(#pad-oxide)');
+    // brushed-steel blade inserts along the hole row (the stepped edge in the product photos)
+    { const inLo = jawEdge(-1).filter(([x]) => x > -59 && x < -20), inUp = jawEdge(1).filter(([x]) => x > -59 && x < -20);
+      tool += pr([...inLo, [inLo[inLo.length - 1][0], -3.4], [inLo[0][0], -3.4]], RB, FRONT, FRONT + .15, OXIDE, 'url(#pad-blade)');
+      tool += pr([...inUp, [inUp[inUp.length - 1][0], 3.4], [inUp[0][0], 3.4]], RA, 3, 3.15, OXIDE, 'url(#pad-blade)'); }
+    { const [x1, z1] = RB([-27, -10]), [x2, z2] = RA([-40, 8.8]);
+      tool += disc(x1, FRONT + .2, z1, 1.9, 'var(--eq-plate-m)') + disc(x2, 3.2, z2, 1.6, 'var(--eq-plate-m)'); }
     // cutter: the straight sharpened section at the tip
     tool += pr([[-66.5, .3], [-57, .3], [-57, 1.3], [-65.5, 1.3]], RA, 2.9, 3.1, OXIDE, 'url(#pad-blade)');
     tool += pr([[-66.5, -.3], [-57, -.3], [-57, -1.3], [-65.5, -1.3]], RB, FRONT, FRONT + .2, OXIDE, 'url(#pad-blade)');
@@ -1291,8 +1300,8 @@ const PA14 = (() => {
     const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const wrap = s => toolOp < .99 ? `<g opacity="${f(toolOp)}">${s}</g>` : s;
-    const ghost = st.insp < .5 && st.wireOn > .01 ? `<g opacity=".28">${wire(false)}</g>` : '';      // the wire behind the jaws, seen through
-    let scene = mat + shadowSvg + `<g class="eq-pin">${wire(false)}</g>` + wrap(tool) + ghost + `<g class="eq-pin">${wire(true)}${slug()}</g>`;
+    const ghost = st.insp < .5 && st.wireOn > .01 ? `<g opacity=".45">${wire(false)}${slug()}</g>` : '';   // what's behind the jaws, seen through
+    let scene = mat + shadowSvg + `<g class="eq-pin">${wire(false)}${slug()}</g>` + wrap(tool) + ghost + `<g class="eq-pin">${wire(true)}</g>`;
     let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
 
     const IC = [278, -122], IR = 76;
@@ -1311,8 +1320,8 @@ const PA14 = (() => {
       spring:  { at: at([19, 0], RB, 4.5), dx: -110, dy: 16, text: 'Spring' },
       handles: { at: at(gripB([60, 0]), RB, 8), dx: 100, dy: -4, text: 'Handles' },
       hole:    { at: at([hole.x, hole.hd / 2], RA, 3), dx: 100, dy: -50, text: `${hole.mm} mm hole` },
-      wire:    { at: Wp(-2), dx: -40, dy: -56, text: 'Wire end' },
-      slug:    { at: [hc[0], FRONT + 3, hc[1]], dx: -70, dy: 60, text: 'Insulation slug' },
+      wire:    { at: Wp(1), dx: 80, dy: -46, text: 'Wire end' },
+      slug:    { at: [hc[0], -2, hc[1]], dx: 90, dy: 30, text: 'Insulation slug' },
       bare:    { at: Wp(strip / 2), dx: -10, dy: -74, text: 'Strip length' },
       edge:    { at: Wp(strip + .2), dx: 70, dy: -60, text: 'Clean, square cut' },
       strands: { at: Wp(strip * .35), dx: 30, dy: 76, text: 'No nicked or cut strands' },
@@ -1336,9 +1345,9 @@ const PA14 = (() => {
     holes: HOLES,
     holeLabel: h => `AWG ${h.str} stranded / AWG ${h.sol} solid`,
     holeNote: h => `Uses the ${h.mm} mm hole: AWG ${h.str} stranded, AWG ${h.sol} solid.`,
-    setHole(i) { SEL.h = i; K_INSERT.tipY = FRONT + STRIP * kOf(HOLES[i]) + .3; },
+    setHole(i) { SEL.h = i; K_INSERT.tipY = -(STRIP * kOf(HOLES[i]) + .3); },
     vars: () => { const h = HOLES[SEL.h]; return { H: String(h.mm), S: h.str, D: h.sol }; },
-    base: { open: 1, toolFade: 1, zoom: 0, glow: 0, wireOn: 0, tipY: -60, stripped: 0, slugOn: 0, slugDrop: 0,
+    base: { open: 1, toolFade: 1, zoom: 0, glow: 0, wireOn: 0, tipY: 40, stripped: 0, slugOn: 0, slugDrop: 0,
             inset: 0, press: 0, pull: 0, insp: 0, ix: 34, iy: 0, iz: -46, as: 12 },
     draw,
     steps: [
@@ -1350,15 +1359,17 @@ const PA14 = (() => {
         caution: 'Too small a hole cuts strands; too big leaves insulation behind. If the cut isn\'t clean, try the next size up.',
         tags: ['hole'], hot: ['hole'], keys: [[.6, { glow: 1, zoom: 1 }]] },
       { title: 'Insert the wire', dur: 1800,
-        body: 'Lay the wire in the hole and push it through until the end sticks out by the strip length you need. For a crimp terminal, that\'s the length on its datasheet.',
+        body: 'Hold the wire and push its end through the hole until it sticks out the far side of the jaws by the strip length you need. For a crimp terminal, that\'s the length on its datasheet.',
         tags: ['wire', 'hole'], hot: ['wire'], keys: [[0, { wireOn: 1 }], [.85, K_INSERT], [1, { glow: 0 }]] },
-      { title: 'Squeeze to cut the insulation', dur: 1800,
-        body: 'Squeeze the handles fully. The sharpened hole cuts through the insulation all the way round without touching the strands.',
-        tags: ['handles'], hot: ['handles'], keys: [[.6, { open: 0 }], [.7, { inset: 1 }], [1, { press: 1 }]] },
+      { title: 'Squeeze to cut the insulation', dur: 2400,
+        body: 'Squeeze the handles fully. The sharpened hole cuts into the insulation without touching the strands. Then, still squeezing, give the stripper a quarter turn around the wire so the cut goes all the way round. That frees the insulation, so it comes off cleanly without dragging or fraying the strands.',
+        caution: 'Turn the tool, not the wire end, and only a quarter turn. Spinning it round and round can score the strands.',
+        tags: ['handles'], hot: ['handles'], keys: [[.45, { open: 0 }], [.55, { inset: 1 }], [.8, { press: 1 }]],
+        flashes: [[.82, 'Quarter turn']] },
       { title: 'Pull the wire out', dur: 2000,
-        body: 'Keep squeezing and pull the wire straight back out of the jaws. The cut insulation slides off the end and stays in the hole.',
-        caution: 'Pull straight. Twisting or levering the tool can score the strands.',
-        tags: ['slug'], hot: ['slug'], keys: [[.12, { stripped: 1, slugOn: 1 }], [.9, { tipY: -40, pull: 1 }]] },
+        body: 'Keep squeezing and pull the wire straight back toward you. The cut insulation slides off the end and stays behind the jaws, leaving the bare strands.',
+        caution: 'Pull straight out. Levering the tool sideways can bend or score the strands.',
+        tags: ['slug'], hot: ['slug'], keys: [[.12, { stripped: 1, slugOn: 1 }], [.9, { tipY: FRONT + 3, pull: 1 }]] },
       { title: 'Open and clear the slug', dur: 1700,
         body: 'Let the handles open; the spring does the work. Shake out the insulation slug so it doesn\'t jam the next strip.',
         tags: ['spring'], keys: [[.3, { press: 0 }], [.5, { open: 1 }], [.85, { slugDrop: 1 }], [1, { inset: 0 }]] },
@@ -1371,302 +1382,7 @@ const PA14 = (() => {
 })();
 PA14.setHole(3);
 
-/* ---------- Fig. 02: IDEAL Custom Stripmaster ---------- */
-// Automatic stripper: one squeeze grips the wire, cuts the insulation and pulls it off. Same front view as the
-// other figures; the wire's free end points at the viewer, so the slug is seen sliding off the end.
-const STRIPMASTER = (() => {
-  const { prism, tube, M, lerp, f, pts, P } = EQ;
-  const K = 1.95, TILT = -9 * Math.PI / 180, OX = .12, OY = .42;
-  const ct = Math.cos(TILT), sn = Math.sin(TILT);
-  const tilt = (x, z) => [x * ct - z * sn, x * sn + z * ct];
-  const CAMERA = {
-    P: ([x, y, z]) => { const [a, b] = tilt(x, z); return [(a - OX * y) * K, (-b + OY * y) * K]; },
-    view: [OX * ct + OY * sn, 1, -OX * sn + OY * ct], light: [-0.25, 0.55, 0.8],
-  };
-  const OXIDE = { l: '#5D636B', m: '#3B4047', d: '#1E2126' };
-  const ZINC = { l: '#E9ECEE', m: '#BFC5CA', d: '#8A9298' };
-  const SLEEVE = { l: '#5A5E64', m: '#3A3D42', d: '#1F2124' };
-  const BLADE = { l: '#6A7078', m: '#43484F', d: '#24272C' };
-  const BOLT = { l: '#70767E', m: '#4A4F56', d: '#2A2D32' };
-  const RED = { l: '#F07A6E', m: '#D23C2E', d: '#7E1F17' };
-  const COPPER = { l: '#F7C08C', m: '#D98A4E', d: '#8E5426' };
-
-  // Die-type blade set for 16–26 AWG (IDEAL's common set). Hole = conductor diameter for that gauge.
-  const HOLES = [
-    { awg: '26', mm: .40 }, { awg: '24', mm: .51 }, { awg: '22', mm: .64 }, { awg: '20', mm: .81 }, { awg: '18', mm: 1.02 }, { awg: '16', mm: 1.29 },
-  ].map((h, i) => ({ ...h, x: -58 + i * 5.3, hd: 1.2 + h.mm * 2 }));
-  const SEL = { h: 2 };
-  const STRIP = 2.2;                                  // strip length shown (mm)
-  const kOf = h => h.hd / h.mm * .9;                  // drawn scale so the wire fits the drawn hole
-  const K_INSERT = { tipY: 0 };
-  const OPEN_ANGLE = 14 * Math.PI / 180;
-  const FRONT = 8.5;                                  // front face of the blades (y)
-  const PULL = 9;                                     // how far the blades travel to pull the insulation off
-
-  const rotP = ([x, z], a) => [x * Math.cos(a) - z * Math.sin(a), x * Math.sin(a) + z * Math.cos(a)];
-  const arcPts = (cx, cz, r, a0, a1, n = 8) => Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
-  function stripPoly(A, B, hw0, hw1, seg = 7) {
-    const dx = B[0] - A[0], dz = B[1] - A[1], L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, nx = -uz, nz = ux, out = [];
-    for (let i = 0; i <= seg; i++) { const a = Math.PI / 2 - Math.PI * i / seg; out.push([B[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw1, B[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw1]); }
-    for (let i = 0; i <= seg; i++) { const a = -Math.PI / 2 - Math.PI * i / seg; out.push([A[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw0, A[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw0]); }
-    return out;
-  }
-  const gripMap = (A, B, side) => { const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uz = (B[1] - A[1]) / L, nx = -uz * side, nz = ux * side; return ([u, v]) => [A[0] + ux * u + nx * v, A[1] + uz * u + nz * v]; };
-
-  /* ----- head, frame and handles (closed position) ----- */
-  function bladeEdge(sgn) {                           // straight blade edge with round die-type holes
-    const e = .3 * sgn, p = [];
-    for (const h of HOLES) {
-      const r = h.hd / 2;
-      p.push([h.x - r - .4, e], ...arcPts(h.x, 0, r, 180, 0, 10).map(([x, z]) => [x, sgn * Math.max(Math.abs(z), .3)]), [h.x + r + .4, e]);
-    }
-    return p;
-  }
-  const BLADE_UP = [[-64, .3], [-64, 7.6], [-62, 9], [-30, 9], [-28, 7.6], [-28, .3], ...bladeEdge(1).reverse()];
-  const BLADE_LO = [[-64, -.3], ...bladeEdge(-1), [-28, -.3], [-28, -7.6], [-30, -9], [-62, -9], [-64, -7.6]];
-  const GRIPPER_UP = [[-67, .3], [-67, 10.6], [-64, 12.4], [-30, 12.4], [-26, 10.6], [-26, .3]];
-  const GRIPPER_LO = GRIPPER_UP.map(([x, z]) => [x, -z]).reverse();
-  // back half (arm A): upper head carrier, then behind the pivot into the lower handle
-  const armA = [[-34, .3], [-34, 13.6], [-20, 16], [-6, 14], [8, 8], [14, 0], [22, -6], [34, -9], [36, -14], [30, -16], [14, -13], [0, -8], [-10, -3], [-16, .3]];
-  // front half (arm B): lower head carrier and upper handle
-  const armB = [[-34, -.3], [-16, -.3], [-10, 3], [0, 8], [14, 13], [30, 16], [36, 14], [34, 9], [22, 6], [14, 0], [8, -8], [-6, -14], [-20, -16], [-34, -13.6]];
-  // the die-cast frame plate over the pivot
-  const FRAME = [[-30, 2], [-22, 14], [-8, 18.5], [6, 17], [16, 11], [20, 3], [19, -6], [13, -14], [0, -18.5], [-14, -17], [-24, -12], [-30, -4]];
-  const coreA = [[24, -10], [118, -26]], coreB = [[24, 10], [118, 26]];
-  // black handle sleeves: plain, slightly fuller at the end
-  const GRIP = [[0, -5.6], [0, 5.6], [6, 7], [70, 6.6], [92, 7.6], [98, 6.2], [100, 1], [98, -4.6], [92, -6.6], [70, -6], [6, -6.6]];
-  const GRIP_TOP = [[2, -4.4], [2, 4.4], [6, 5.6], [70, 5.2], [91, 6.2], [96.4, 5], [98, 1], [96.4, -3.6], [91, -5.2], [70, -4.8], [6, -5.2]];
-  const gripA = gripMap([34, -14.2], [130, -30], -1), gripB = gripMap([34, 14.2], [130, 30], 1);
-
-  /* ----- magnifier: side view of the blades cutting the insulation, then the slug sliding off ----- */
-  function inset(st, cx, cy, R) {
-    if (st.inset < .02) return '';
-    const h = HOLES[SEL.h], cond = h.mm * .95, od = h.mm * 2 + .2;
-    const S = R / (1.7 * od), rc = cond / 2 * S, ro = od / 2 * S;
-    const xc = cx + R * .18, shift = 0, xEnd = cx + R * 1.2, slide = st.pull * R * .9;
-    const drop = st.slugDrop * R * .9;
-    let w = '';
-    // conductor (strands) and the insulation still on the wire
-    w += `<rect x="${f(cx - R * 1.2)}" y="${f(cy - rc)}" width="${f(xEnd - shift - (cx - R * 1.2))}" height="${f(2 * rc)}" fill="#D98A4E" stroke="#8E5426" stroke-width="1"/>`;
-    for (let i = -1; i <= 1; i++) w += `<line x1="${f(cx - R * 1.2)}" y1="${f(cy + i * rc * .5)}" x2="${f(xEnd - shift)}" y2="${f(cy + i * rc * .5)}" stroke="#F7C08C" stroke-width="1" opacity=".7"/>`;
-    w += `<rect x="${f(cx - R * 1.2)}" y="${f(cy - ro)}" width="${f(xc - shift - (cx - R * 1.2))}" height="${f(2 * ro)}" fill="#D23C2E" stroke="#7E1F17" stroke-width="1"/>`;
-    // the slug: the insulation past the cut, which stays in the jaws
-    if (st.slugDrop < .99) w += `<g opacity="${f(1 - st.slugDrop)}"><rect x="${f(xc + slide)}" y="${f(cy - ro + drop)}" width="${f(xEnd - xc)}" height="${f(2 * ro)}" fill="#D23C2E" stroke="#7E1F17" stroke-width="1"/></g>`;
-    // blades: sharp edges coming down and up to the conductor, never into it
-    const reach = lerp(ro + .35 * S, rc + .04 * S, st.press), bw = .55 * S;
-    const bx = xc + slide * (1 - st.slugDrop * 0);
-    const blade = sgn => `<path transform="translate(${f(slide)} 0)" d="M${f(xc - bw * 2.2)} ${f(cy + sgn * R * 1.2)} L${f(xc - bw * 2.2)} ${f(cy + sgn * (reach + bw * 1.6))} L${f(xc)} ${f(cy + sgn * reach)} L${f(xc + bw * 1.4)} ${f(cy + sgn * (reach + bw * .9))} L${f(xc + bw * 1.4)} ${f(cy + sgn * R * 1.2)}Z" fill="url(#pad-die-cut)" stroke="rgba(0,0,0,.4)" stroke-width="1"/>`;
-    w += blade(-1) + blade(1);
-    const label = st.pull > .5 ? 'Blades pull the insulation off' : 'Blades cut only the insulation';
-    return `<g class="eq-inset" opacity="${f(st.inset)}">`
-      + `<clipPath id="smInsetClip"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
-      + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
-      + `<g clip-path="url(#smInsetClip)"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${w}</g>`
-      + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
-      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
-  }
-
-  function draw(st) {
-    EQ.setView(CAMERA);
-    const th = st.open * OPEN_ANGLE, aA = -th / 2, aB = th / 2;
-    const RA = p => rotP(p, aA), RB = p => rotP(p, aB);
-    const XZf = () => ({ o: [0, 0, 0], U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] });
-    const pr = (poly, R, y0, y1, m, cap) => prism(poly.map(R), XZf(), y0, y1, m, '', cap);
-    const prW = (poly, y0, y1, m, cap) => prism(poly, XZf(), y0, y1, m, '', cap);
-    const at = (c, R, y) => { const [x, z] = R(c); return [x, y, z]; };
-    const toolOp = st.toolFade;
-    const hole = HOLES[SEL.h];
-
-    /* wire: local u runs back from the free end; world y = tipY - u·k, through the hole */
-    const k0 = kOf(hole);
-    const k = lerp(k0, st.as, st.insp);
-    const cond = hole.mm, od = hole.mm * 1.8 + .35, strip = STRIP;
-    const bladeY = st.pull * (strip * k0 + 4);                  // blades travel toward the viewer, carrying the slug
-    const hc = [(RA([hole.x, 0])[0] + RB([hole.x, 0])[0]) / 2, (RA([hole.x, 0])[1] + RB([hole.x, 0])[1]) / 2];
-    const U0 = strip + 9;                                        // length shown when inspecting
-    const Wp = u => {
-      const a = [hc[0], st.tipY - u * k0, hc[1]];
-      const b = [st.ix + (U0 - u) * st.as, st.iy, st.iz];
-      return [lerp(a[0], b[0], st.insp), lerp(a[1], b[1], st.insp), lerp(a[2], b[2], st.insp)];
-    };
-    const uCut = (st.tipY - FRONT - bladeY) / k0;               // where the wire passes the blades' front face
-    const seg = (u0, u1, d, m, front) => {
-      // part of the wire in front of (u < uCut) or behind (u > uCut) the jaws' front face
-      let a = u0, b = u1;
-      if (st.insp <= .5) { if (front) b = Math.min(b, uCut); else a = Math.max(a, uCut); }
-      if (b - a < 1e-3) return '';
-      const n = 8, out = [];
-      for (let i = 0; i <= n; i++) out.push(Wp(lerp(a, b, i / n)));
-      return tube(out, d * k * K, m, 'butt');
-    };
-    function wire(front) {
-      if (st.wireOn < .01) return '';
-      const far = st.insp > .5 ? U0 : 150;
-      let s = '';
-      if (st.stripped > .5) { s += seg(0, strip, cond, COPPER, front); s += seg(strip, far, od, RED, front); }
-      else s += seg(0, far, od, RED, front);
-      if (st.insp > .5) {                                         // end view of the cut insulation
-        const [ex, ey] = P(Wp(far));
-        s += `<ellipse class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" rx="${f(od / 2 * k * K * .25)}" ry="${f(od / 2 * k * K)}" fill="${RED.d}"/>`;
-      }
-      return `<g opacity="${f(st.wireOn)}">${s}</g>`;
-    }
-    function slug() {                                             // the cut-off insulation left in the jaws
-      if (st.slugOn < .01 || st.insp > .5) return '';
-      const drop = st.slugDrop, y0 = FRONT + .2 + bladeY, y1 = FRONT + .2 + strip * k0 + bladeY;
-      const p0 = [hc[0] - drop * 6, y0 + drop * 4, hc[1] - drop * 34], p1 = [hc[0] - drop * 6, y1 + drop * 4, hc[1] - drop * 34];
-      return `<g opacity="${f(st.slugOn * (1 - drop))}">${tube([p0, p1], od * k0 * K, RED, 'butt')}</g>`;
-    }
-
-    /* tool */
-    const grip = (map, R, y0, y1, upper) => {
-      const on = poly => poly.map(map).map(R);
-      let g = prW(on(GRIP), y0, y1, SLEEVE, 'url(#sm-sleeve-dark)');
-      g += prW(on(GRIP_TOP), y1, y1 + .5, SLEEVE, 'url(#sm-sleeve)');
-      if (upper) {
-        const ang = -(TILT + aB) * 180 / Math.PI - 7.6;
-        const tx = (u, v, str, size, cls, w = 700) => { const [x, z] = R(map([u, v])), [X, Y] = P([x, y1 + .6, z]);
-          return `<text class="${cls}" x="${f(X)}" y="${f(Y)}" font-size="${f(size * K)}" font-weight="${w}" text-anchor="middle" transform="rotate(${f(ang)} ${f(X)} ${f(Y)})">${str}</text>`; };
-        g += prW(on([[20, -3.2], [32, -3.2], [32, 3.2], [20, 3.2]]), y1 + .5, y1 + .6, SLEEVE, '#F4F5F6');
-        g += tx(26, -1.1, 'IDEAL', 2.7, 'eq-ideal-logo', 800) + tx(54, -1.1, 'Custom Stripmaster®', 3, 'eq-sleeve-text', 700);
-      }
-      return g;
-    };
-    const XZo = dy => ({ o: [0, dy, 0], U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] });
-    let tool = '';
-    tool += pr(stripPoly(...coreA, 4.4, 4.2), RA, 0, 3, OXIDE, 'url(#pad-oxide)');
-    tool += grip(gripA, RA, -1.5, 4.5, false);
-    tool += pr(armA, RA, 0, 3, ZINC, 'url(#sm-zinc)');
-    tool += pr(stripPoly(...coreB, 4.4, 4.2), RB, 3, 5, OXIDE, 'url(#pad-oxide)');
-    tool += grip(gripB, RB, 1.5, 7.5, true);
-    // black coil spring across the handles, behind the frame
-    { const top = RB([26, 9.5]), bot = RA([26, -9.5]), n = 12; let c = '';
-      for (let i = 0; i <= n; i++) { const t = i / n, x = lerp(top[0], bot[0], t), z = lerp(top[1], bot[1], t), [X, Y] = P([x, 4, z]);
-        c += `<ellipse cx="${f(X)}" cy="${f(Y)}" rx="${f(3.6 * K)}" ry="${f(.85 * K)}" fill="none" stroke="#111214" stroke-width="${f(1.8)}"/><ellipse cx="${f(X)}" cy="${f(Y - .6)}" rx="${f(3.4 * K)}" ry="${f(.7 * K)}" fill="none" stroke="#5c6066" stroke-width=".6"/>`; }
-      tool += `<g class="eq-noink">${c}</g>`; }
-    tool += pr(armB, RB, 3, 5, ZINC, 'url(#sm-zinc)');
-    tool += pr(FRAME, RB, 5, 7, ZINC, 'url(#sm-zinc)');
-    // the head: gripper jaws behind, blade holders, then the blades with their die holes
-    tool += pr(GRIPPER_UP, RA, 0, 4.5, BLADE, 'url(#sm-gripper)') + pr(GRIPPER_LO, RB, 0, 4.5, BLADE, 'url(#sm-gripper)');
-    const head = (poly, R, y0, y1, m, cap) => prism(poly.map(R), XZo(bladeY), y0, y1, m, '', cap);
-    tool += head([[-65, .3], [-65, 10], [-29, 10], [-27, .3]], RA, 4.5, 7, ZINC, 'url(#sm-zinc)') + head([[-65, -.3], [-27, -.3], [-29, -10], [-65, -10]], RB, 4.5, 7, ZINC, 'url(#sm-zinc)');
-    tool += head(BLADE_UP, RA, 7, FRONT, BLADE, 'url(#sm-blade)') + head(BLADE_LO, RB, 7, FRONT, BLADE, 'url(#sm-blade)');
-    // bolts: pivot, frame screws, blade screws
-    const bolt = (c, R, y, r, hex, dy = 0) => {
-      const [x, z] = R(c), n = hex ? 6 : 16, poly = Array.from({ length: n }, (_, i) => { const a = i / n * 2 * Math.PI + .3; return [x + r * Math.cos(a), z + r * Math.sin(a)]; });
-      const [sx, sy] = P([x, y + 1.2 + dy, z]);
-      return prism(poly, XZo(dy), y, y + 1.2, BOLT, '', hex ? 'url(#pad-bolt)' : 'url(#sm-zinc)') + `<circle class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" r="${f(r * .42 * K)}" fill="#2a2d31"/>`;
-    };
-    tool += bolt([0, 0], RB, 7, 4.2, false) + bolt([0, 0], RB, 8.2, 2.4, true);
-    for (const c of [[-17, 9.5], [-17, -9.5], [9, 9], [9, -9]]) tool += bolt(c, RB, 7, 1.3, false);
-    for (const x of [-60, -33]) tool += bolt([x, 6], RA, FRONT, 1.2, true, bladeY) + bolt([x, -6], RB, FRONT, 1.2, true, bladeY);
-    // gauge numbers stamped on the lower blade, under each hole
-    const engr = (c, R, y, str, size, anchor = 'middle', w = 600, dy = 0) => {
-      const [x, z] = R(c), [X, Y] = P([x, y + dy, z]), a = (TILT + (R === RA ? aA : aB)) * -180 / Math.PI;
-      return `<text class="eq-engrave" x="${f(X)}" y="${f(Y)}" font-size="${f(size * K)}" font-weight="${w}" text-anchor="${anchor}" transform="rotate(${f(a)} ${f(X)} ${f(Y)})">${str}</text>`;
-    };
-    HOLES.forEach(h => { tool += engr([h.x, -5.4], RB, FRONT, h.awg, 1.9, 'middle', 600, bladeY); });
-    tool += engr([-46, 6.4], RA, FRONT, '16-26 AWG', 1.5, 'middle', 600, bladeY);
-    // hole highlight
-    if (st.glow > .02) {
-      const ring = arcPts(hole.x, 0, hole.hd / 2 + 1.3, 0, 360, 24).map(([x, z]) => [x, FRONT + .3 + bladeY, z]);
-      tool += `<polygon class="eq-noink eq-glow" opacity="${f(st.glow)}" points="${pts(ring.map(([x, y, z]) => { const m = z > 0 ? RA([x, z]) : RB([x, z]); return [m[0], y, m[1]]; }))}"/>`;
-    }
-
-    // shadow and mat
-    const sh = [[GRIP.map(gripA), RA], [GRIP.map(gripB), RB], [armA, RA], [armB, RB], [FRAME, RB], [GRIPPER_UP, RA], [GRIPPER_LO, RB]].map(([poly, R]) => `<polygon points="${pts(poly.map(R).map(([x, z]) => [x, 0, z]))}"/>`).join('');
-    const shadowSvg = `<g class="eq-shadow eq-noink" filter="url(#eqBlurSoft)" transform="translate(${f(5 * K)} ${f(7 * K)})" style="opacity:${f(toolOp * .9)}">${sh}</g>`;
-    const vb0 = this.viewBox, vb = [vb0[0] - 300, vb0[1] - 300, vb0[2] + 600, vb0[3] + 600];
-    let grid = '';
-    for (let x = Math.ceil(vb[0] / 23) * 23; x < vb[0] + vb[2]; x += 23) grid += `<line x1="${x}" y1="${vb[1]}" x2="${x}" y2="${vb[1] + vb[3]}"${x % 115 === 0 ? ' class="major"' : ''}/>`;
-    for (let y = Math.ceil(vb[1] / 23) * 23; y < vb[1] + vb[3]; y += 23) grid += `<line x1="${vb[0]}" y1="${y}" x2="${vb[0] + vb[2]}" y2="${y}"${y % 115 === 0 ? ' class="major"' : ''}/>`;
-    const mat = `<g class="eq-mat eq-noink"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>${grid}</g>`;
-
-    // camera: whole tool, or a close-up of the holes
-    const s0 = 1.25, T0 = [100 - 58 * s0, 14 - 34 * s0];
-    const s1 = 2.3, F = P([hole.x + 6, 0, 0]), T1 = [-40 - F[0] * s1, 30 - F[1] * s1];
-    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
-    const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
-    const wrap = s => toolOp < .99 ? `<g opacity="${f(toolOp)}">${s}</g>` : s;
-    const ghost = st.insp < .5 && st.wireOn > .01 ? `<g opacity=".28">${wire(false)}</g>` : '';      // the wire behind the jaws, seen through
-    let scene = mat + shadowSvg + `<g class="eq-pin">${wire(false)}</g>` + wrap(tool) + ghost + `<g class="eq-pin">${wire(true)}${slug()}</g>`;
-    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
-
-    const IC = [278, -122], IR = 76;
-    if (st.inset > .02) {
-      const [dx, dy] = cam(P([hc[0], FRONT, hc[1]]));
-      svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`;
-      svg += inset(st, IC[0], IC[1], IR);
-    }
-
-    const tags = {
-      blades:  { at: at([HOLES[1].x, -4], RB, FRONT + bladeY), dx: -20, dy: 84, text: 'Blade set (AWG holes)' },
-      gripper: { at: at([-66, 11], RA, 4.5), dx: -14, dy: -60, text: 'Gripper jaws' },
-      frame:   { at: at([-6, 14], RB, 7), dx: 20, dy: -84, text: 'Die-cast frame' },
-      pivot:   { at: at([0, 0], RB, 9.4), dx: 74, dy: -60, text: 'Pivot' },
-      spring:  { at: at([26, -2], RB, 4), dx: 30, dy: 86, text: 'Spring' },
-      handles: { at: at(gripB([62, 0]), RB, 8), dx: 40, dy: -54, text: 'Handles' },
-      hole:    { at: at([hole.x, hole.hd / 2], RA, FRONT), dx: -40, dy: -70, text: `AWG ${hole.awg} hole` },
-      wire:    { at: Wp(-2), dx: 70, dy: 26, text: 'Wire end' },
-      slug:    { at: [hc[0], FRONT + 3 + bladeY, hc[1]], dx: 76, dy: 10, text: 'Insulation slug' },
-      bare:    { at: Wp(strip / 2), dx: -10, dy: -70, text: 'Strip length' },
-      edge:    { at: Wp(strip + .2), dx: -110, dy: 56, text: 'Clean, square cut' },
-      strands: { at: Wp(strip * .35), dx: -20, dy: 74, text: 'No nicked or cut strands' },
-    };
-    for (const t of Object.values(tags)) t.xy = cam(P(t.at));
-    return { svg, tags, anchors: { flash: cam(P([hc[0], FRONT, hc[1]])) } };
-  }
-
-  const defs = `
-    <linearGradient id="pad-oxide" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#5A6068"/><stop offset=".45" stop-color="#33373D"/><stop offset="1" stop-color="#202328"/></linearGradient>
-    <linearGradient id="pad-die-cut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7C828A"/><stop offset="1" stop-color="#3A3E45"/></linearGradient>
-    <linearGradient id="pad-blade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EEF1F3"/><stop offset=".5" stop-color="#B9C0C6"/><stop offset="1" stop-color="#8C949B"/></linearGradient>
-    <radialGradient id="pad-bolt" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#8A9098"/><stop offset=".6" stop-color="#454A51"/><stop offset="1" stop-color="#25282D"/></radialGradient>
-    <linearGradient id="sm-zinc" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#F3F5F6"/><stop offset=".5" stop-color="#C8CDD1"/><stop offset="1" stop-color="#A3AAB0"/></linearGradient>
-    <linearGradient id="sm-blade" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#5E646C"/><stop offset=".5" stop-color="#3A3F46"/><stop offset="1" stop-color="#25282D"/></linearGradient>
-    <linearGradient id="sm-gripper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2F3237"/><stop offset="1" stop-color="#17191C"/></linearGradient>
-    <linearGradient id="sm-sleeve" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6A6E74"/><stop offset=".4" stop-color="#45484E"/><stop offset="1" stop-color="#303236"/></linearGradient>
-    <linearGradient id="sm-sleeve-dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2D31"/><stop offset="1" stop-color="#18191C"/></linearGradient>
-    <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
-
-  return {
-    id: 'stripmaster', fig: 2, name: 'Master stripper', sub: 'Automatic, 16–26 AWG blades',
-    viewBox: [-215, -212, 600, 430], look: 'real', defs,
-    holes: HOLES,
-    holeLabel: h => `AWG ${h.awg}`,
-    holeNote: h => `Uses the AWG ${h.awg} hole. Shown with a 16–26 AWG blade set; check the gauges stamped on your blades.`,
-    setHole(i) { SEL.h = i; K_INSERT.tipY = FRONT + STRIP * kOf(HOLES[i]) + .3; },
-    vars: () => { const h = HOLES[SEL.h]; return { A: h.awg }; },
-    base: { open: 1, toolFade: 1, zoom: 0, glow: 0, wireOn: 0, tipY: -60, stripped: 0, slugOn: 0, slugDrop: 0,
-            inset: 0, press: 0, pull: 0, insp: 0, ix: -24, iy: 40, iz: 2, as: 13 },
-    draw,
-    steps: [
-      { title: 'Get to know the master stripper', dur: 900,
-        body: 'An automatic stripper: one squeeze grips the wire, cuts the insulation and pulls it off. The blade set has a hole for each wire gauge, stamped with its AWG size, and the gripper jaws hold the wire while the blades work.',
-        tags: ['blades', 'gripper', 'frame', 'pivot', 'spring', 'handles'], keys: [] },
-      { title: 'Pick the blade hole', dur: 1300,
-        body: 'Find the hole stamped with your wire\'s gauge, here AWG {A}. Each hole matches the conductor size, so the blades cut the insulation without touching the strands.',
-        caution: 'Too small a hole cuts strands; too big leaves insulation behind. If the strip isn\'t clean, check the gauge printed on the wire.',
-        tags: ['hole'], hot: ['hole'], keys: [[.6, { glow: 1, zoom: 1 }]] },
-      { title: 'Insert the wire', dur: 1800,
-        body: 'Lay the wire between the gripper jaws and into the AWG {A} hole, with the end sticking out past the blades by the strip length you need. A wire stop, if your tool has one, sets the same length every time.',
-        tags: ['wire', 'hole'], hot: ['wire'], keys: [[0, { wireOn: 1 }], [.85, K_INSERT], [1, { glow: 0 }]] },
-      { title: 'Squeeze firmly', dur: 2600,
-        body: 'Squeeze the handles all the way in one smooth stroke. The grippers clamp the wire, the blades cut the insulation, then the blades pull away and slide the insulation off the end.',
-        tags: ['handles', 'slug'], hot: ['handles'], keys: [[.35, { open: 0 }], [.4, { inset: 1 }], [.55, { press: 1, stripped: 1, slugOn: 1 }], [.95, { pull: 1 }]] },
-      { title: 'Release and remove the wire', dur: 1900,
-        body: 'Let go of the handles. The tool resets by itself and drops the insulation slug; take the wire out.',
-        tags: ['spring'], keys: [[.25, { press: 0 }], [.55, { open: 1, pull: 0 }], [.8, { slugDrop: 1 }], [1, { inset: 0 }]] },
-      { title: 'Check the strip', dur: 1800,
-        body: 'The strands should be straight and complete, with none nicked or cut, and the insulation cut square at the strip length. Twist stranded wire gently so the strands stay together.',
-        caution: 'Cut or nicked strands weaken a crimp. Trim the end and strip again; if it keeps happening, check the hole and the blades for wear.',
-        tags: ['bare', 'edge', 'strands'], keys: [[0, { slugOn: 0 }], [.3, { zoom: 0 }], [1, { toolFade: .04, insp: 1 }]] },
-    ],
-  };
-})();
-STRIPMASTER.setHole(2);
-
-/* ---------- Fig. 03: Engineer PAD-11 micro crimper ---------- */
+/* ---------- Fig. 02: Engineer PAD-11 micro crimper ---------- */
 // Front view, as if looking down at the tool on the bench (like the Engineer video).
 // Model units are millimetres. x runs along the tool (jaws left, handles right), z is up the page,
 // y comes out of the tool toward the viewer, which is the direction a terminal enters the die.
@@ -1857,8 +1573,60 @@ const PAD11 = (() => {
   const LOCK_INNER = LOCK_LOBES.map(l => l.map(([a, b]) => { const r = Math.hypot(a, b), k = Math.max(.25, (r - 1.4) / r); return [a * k, b * k]; }));
 
   /* ----- inset: what happens inside the die ----- */
+  /* ----- magnifier, side view: which wing holds what (step 3 strip length, step 6 strands, step 8 insulation) ----- */
+  function sideInset(st, cx, cy, R) {
+    const g = GEO, uStart = g.Lc * .55, span = g.L - uStart + 2.2, S = (2 * R * .9) / span;   // zoom onto the barrels
+    const x0 = cx - R * .04 + st.measure * R * .14 - ((g.cb0 + g.ib1) / 2) * S, X = u => x0 + u * S;   // centre on the two wings
+    const fy = cy + R * .22 - st.measure * R * .2;              // underside of the terminal floor
+    const tin = 'fill="#E6E8E4" stroke="#5E625D" stroke-width="1.1"';
+    let w = '';
+    // contact and the strip between the barrels
+    w += `<rect x="${f(X(0))}" y="${f(fy - g.H * S)}" width="${f(g.Lc * S)}" height="${f(g.H * S)}" rx="2" ${tin}/>`;
+    w += `<rect x="${f(X(g.Lc))}" y="${f(fy - g.t * 2.4 * S)}" width="${f((g.ib1 - g.Lc) * S)}" height="${f(g.t * 2.4 * S)}" ${tin}/>`;
+    // the wire: bare strands then insulation
+    const wireAt = (tipU, yBase) => {
+      let s = '';
+      const insU = tipU + g.strip, right = (cx + R * 1.1 - x0) / S;
+      const cH = g.cond * S, iH = g.od * S, cY = yBase - (g.t + g.cond / 2) * S, iY = yBase - (g.t + g.od / 2) * S;
+      s += `<rect x="${f(X(tipU))}" y="${f(cY - cH / 2)}" width="${f((insU - tipU + .1) * S)}" height="${f(cH)}" fill="#D98A4E" stroke="#8E5426" stroke-width=".8"/>`;
+      for (let i = -1; i <= 1; i++) s += `<line x1="${f(X(tipU))}" y1="${f(cY + i * cH * .28)}" x2="${f(X(insU))}" y2="${f(cY + i * cH * .28)}" stroke="#F7C08C" stroke-width=".8" opacity=".75"/>`;
+      s += `<rect x="${f(X(insU))}" y="${f(iY - iH / 2)}" width="${f((right - insU) * S)}" height="${f(iH)}" fill="#D23C2E" stroke="#7E1F17" stroke-width=".8"/>`;
+      if (st.slug < .99) s += `<rect x="${f(X(tipU - st.slug * g.strip * 1.3))}" y="${f(iY - iH / 2)}" width="${f(g.strip * S)}" height="${f(iH)}" fill="#D23C2E" stroke="#7E1F17" stroke-width=".8" opacity="${f(1 - st.slug)}"/>`;
+      return { s, insU, cY, iY, iH };
+    };
+    let guide = '';
+    if (st.measure > .5) {                                       // step 3: the stripped wire laid under the terminal
+      const yb = fy + R * .5, wa = wireAt(g.tip, yb);
+      w += wa.s;
+      const by = yb + R * .12;
+      guide += [g.tip, wa.insU].map(u => `<line class="eq-guide" x1="${f(X(u))}" y1="${f(fy - g.hwC * S * .2)}" x2="${f(X(u))}" y2="${f(by + 4)}"/>`).join('');
+      guide += `<path class="eq-bracket" d="M${f(X(g.tip))} ${f(by)} L${f(X(wa.insU))} ${f(by)} M${f(X(g.tip))} ${f(by - 4)} L${f(X(g.tip))} ${f(by + 4)} M${f(X(wa.insU))} ${f(by - 4)} L${f(X(wa.insU))} ${f(by + 4)}"/>`
+        + `<text class="eq-inset-small" x="${f((X(g.tip) + X(wa.insU)) / 2)}" y="${f(by + 14)}" text-anchor="middle">strip length</text>`;
+    } else if (st.wireOn > .01) w += wireAt(st.wY, fy).s;      // steps 6 and 8: the wire in the terminal
+    // wings, drawn see-through over the wire so you can see what sits inside them
+    const wing = (u0, u1, h, hot) => {
+      const a = X(u0), b = X(u1), top = fy - h * S, ch = Math.min(1.2, (u1 - u0) * .25) * S;
+      return `<path d="M${f(a)} ${f(fy)} L${f(a)} ${f(top + ch)} L${f(a + ch)} ${f(top)} L${f(b - ch)} ${f(top)} L${f(b)} ${f(top + ch)} L${f(b)} ${f(fy)}Z" fill="#E6E8E4" fill-opacity=".5" stroke="${hot ? 'var(--mat)' : '#5E625D'}" stroke-width="${hot ? 2.6 : 1.1}"/>`;
+    };
+    const hC = st.crimpC >= .5 ? g.cond * 1.2 + g.t * 2 : g.hwC, hI = st.crimpI >= .5 ? g.od + g.t * 2 : g.hwI;
+    w += wing(g.cb0, g.cb1, hC, st.sideHot === 1 || (st.measure > .5)) + wing(g.ib0, g.ib1, hI, st.sideHot === 2);
+    const lab = (u0, u1, h, txt) => `<text class="eq-inset-small" x="${f((X(u0) + X(u1)) / 2)}" y="${f(fy - h * S - 6)}" text-anchor="middle">${txt}</text>`;   // label above a wing
+    // labels sit above the wings, reading outwards from the gap between them so they never overlap
+    const ly = fy - Math.max(hC, hI) * S - 8;
+    w += `<text class="eq-inset-small" x="${f((X(g.cb0) + X(g.cb1)) / 2 + 6)}" y="${f(ly)}" text-anchor="end">1st wing</text>`
+      + `<text class="eq-inset-small" x="${f((X(g.ib0) + X(g.ib1)) / 2 - 6)}" y="${f(ly)}" text-anchor="start">2nd wing</text>` + guide;
+    const label = st.measure > .5 ? 'Strands fill the 1st wing' : st.sideHot === 2 ? 'Insulation in the 2nd wing' : 'Strands sit in the 1st wing';
+    return `<g class="eq-inset" opacity="${f(st.inset)}">`
+      + `<clipPath id="padSideClip"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
+      + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
+      + `<g clip-path="url(#padSideClip)"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${w}</g>`
+      + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
+      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
+  }
+
   function inset(st, cx, cy, R) {
     if (st.inset < .02) return '';
+    if (st.insetSide >= .5) return sideInset(st, cx, cy, R);
     const kind = st.insetKind >= .5 ? 'ins' : 'cond';
     const press = st.insetPress;
     const dieW = DIES[kind === 'cond' ? SEL.c : SEL.i].w;
@@ -2148,7 +1916,7 @@ const PAD11 = (() => {
       const di = st.insetKind >= .5 ? SEL.i : SEL.c;
       const [x, z] = RA([DIES[di].x, 2]);
       const [dx, dy] = cam(P([x, FRONT, z]));
-      svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`;
+      if (st.measure < .5) svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`;
       svg += inset(st, IC[0], IC[1], IR);
     }
 
@@ -2161,12 +1929,12 @@ const PAD11 = (() => {
       cutter:  { at: at([25, -3], RB, 8.3), dx: 50, dy: -84, text: 'Wire cutter' },
       lock:    { at: at([LOCK_HUB[0] - 6, LOCK_HUB[1] - 6], RA, 8.4), dx: -60, dy: 56, text: 'Lock switch' },
       handles: { at: at(gripA([46, 4]), RA, 5.5), dx: 40, dy: 54, text: 'Handles' },
-      scale:   { at: at([-10.6, -12], RB, 8), dx: -84, dy: 40, text: 'Scale (mm)' },
+      scale:   { at: at([-10.6, -12], RB, 8), dx: 60, dy: 66, text: 'Scale (mm)' },
       die16:   { at: at([DIES[SEL.c].x, 4.5], RA, FRONT), dx: -60, dy: -62, text: `${dieName(SEL.c)} mm die` },
       die19:   { at: at([DIES[SEL.i].x, 4.5], RA, FRONT), dx: 10, dy: -78, text: `${dieName(SEL.i)} mm die` },
       terminal:{ at: tagAt(GEO.Lc * .5, GEO.H), dx: -86, dy: 22, text: SPEC.name || 'Terminal' },
       wire:    { at: tagAt(st.wY + GEO.strip + 6, GEO.zi), dx: 78, dy: 26, text: 'Stripped wire' },
-      strip:   { at: tagAt(st.wY + 1), dx: 84, dy: -12, text: 'Strip to the datasheet length' },
+      strip:   { at: tagAt(st.wY + 1), dx: 96, dy: -34, text: 'Strip length' },
       bell:    { at: tagAt(GEO.cb1 - .1, GEO.zc + GEO.cond * .7), dx: -40, dy: -64, text: 'Bellmouth' },
       brush:   { at: tagAt(GEO.cb0 - .15, GEO.zc), dx: -24, dy: 58, text: 'Strand ends showing' },
       insul:   { at: tagAt((GEO.ib0 + GEO.ib1) / 2, GEO.od + GEO.t), dx: 60, dy: -60, text: 'Grips the insulation' },
@@ -2212,11 +1980,11 @@ const PAD11 = (() => {
     vars: () => ({ C: dieName(SEL.c), I: dieName(SEL.i),
       M: SEL.c === SEL.i ? `Keep it in the ${dieName(SEL.i)} mm die but slide it further in` : `Move the terminal to the ${dieName(SEL.i)} mm die and push it in` }),
     picker: true,
-    id: 'pad11', fig: 3, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
+    id: 'pad11', fig: 2, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
     viewBox: [-215, -212, 600, 430],
     look: 'real', defs,
     base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 48, wY: 26, slug: 0,
-            crimpC: 0, crimpI: 0, wireLen: 120, dieAlpha: 0, hotC: 0, hotI: 0, inset: 0, insetKind: 0, insetPress: 0, insetWire: 0, insetTerm: 0,
+            crimpC: 0, crimpI: 0, wireLen: 120, dieAlpha: 0, hotC: 0, hotI: 0, inset: 0, insetKind: 0, insetPress: 0, insetWire: 0, insetTerm: 0, insetSide: 0, measure: 0, sideHot: 0,
             insp: 0, ix: -21, iy: 40, iz: 6.5, as: 9, zoom: 0 },
     draw,
     steps: [
@@ -2230,36 +1998,36 @@ const PAD11 = (() => {
         keys: [[.2, { lockGlow: 1 }], [.55, { lock: 0 }], [.95, { open: 1 }], [1, { lockGlow: 0 }]],
         flashes: [[.5, 'Unlocked', 'lock']] },
       { title: 'Strip the wire', dur: 1500,
-        body: 'Strip the length given on the terminal\'s datasheet: enough bare wire to fill the conductor barrel, with the insulation reaching the insulation barrel. You can check it against the scale on the head. Keep the strands straight and untwisted.',
-        caution: 'Nicked or missing strands make a weak crimp. If you cut any, trim the end and strip again.',
+        body: 'Strip just enough for the bare strands to fill the first wing (the conductor barrel), with the insulation starting where the second wing begins. The magnifier shows the strip length against the terminal; the datasheet gives the exact figure, and you can check it against the scale on the head. Keep the strands straight and untwisted.',
+        caution: 'Too short and the strands won\'t reach through the first wing; too long and bare wire ends up under the second wing. Nicked or missing strands make a weak crimp too: trim and strip again.',
         tags: ['wire', 'strip', 'scale'], hot: ['strip'],
-        keys: [[.25, { wireOn: 1 }], [1, { slug: 1 }]] },
+        keys: [[.2, { wireOn: 1 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
       { title: 'Pick the die', dur: 1100,
         body: 'Use the {C} mm die for the conductor barrel. For a terminal that isn\'t set up yet, measure the barrel width with its wings parallel and use the die that matches. If there\'s no exact match, round up: a 1.5 mm barrel goes in the 1.6 mm die.',
         tags: ['die16'], hot: ['die16'],
-        keys: [[.6, { glowC: 1, zoom: 1 }]] },
+        keys: [[0, { inset: 0, insetSide: 0, measure: 0, sideHot: 0 }], [.6, { glowC: 1, zoom: 1 }]] },
       { title: 'Place the conductor barrel', dur: 2000,
         body: 'Set the terminal in the {C} mm die with its open wings pointing at the upper die, so the conductor barrel sits inside the die. Line the back edge of the barrel up with the chamfered edge of the upper die, so a small bellmouth forms. Close the handles just enough to hold it.',
         tags: ['terminal', 'die16'], hot: ['terminal'],
         keys: [[.1, { termOn: 1 }], [.3, { dieAlpha: 1 }], [.65, K_PLACE], [.7, { hotC: 1 }], [1, { open: .3, glowC: 0, inset: 1, insetTerm: 1, insetPress: .25 }]] },
       { title: 'Insert the stripped wire', dur: 1700,
-        body: 'Slide the wire in from the front until the strands sit fully in the conductor barrel and the insulation reaches the insulation barrel.',
+        body: 'Slide the wire in from the front until the bare strands sit fully inside the first wing (the conductor barrel), with their ends just poking past it. The insulation should stop where the second wing begins.',
         tags: ['wire', 'terminal'], hot: ['wire'],
-        keys: [[.75, K_INSERT], [1, { insetWire: 1 }]] },
+        keys: [[0, { insetSide: 1, sideHot: 1 }], [.75, K_INSERT], [1, { insetWire: 1 }]] },
       { title: 'Squeeze the handles firmly', dur: 2200,
         body: 'Squeeze all the way until the jaws close fully. The upper die curls the wings down into the strands. Then open the handles.',
         tags: ['handles'], hot: ['handles'],
-        keys: [[.6, { open: 0, insetPress: 1, crimpC: 1 }], [1, { open: .5 }]] },
+        keys: [[0, { insetSide: 0, sideHot: 0 }], [.6, { open: 0, insetPress: 1, crimpC: 1 }], [1, { open: .5 }]] },
       { title: 'Move to the insulation barrel', dur: 2000,
-        body: '{M} so the insulation barrel sits in the centre of the die. That keeps the terminal level while it crimps.',
+        body: '{M} so the insulation barrel sits in the centre of the die. The insulation should sit inside the second wing, ready to be wrapped. Keeping it centred keeps the terminal level while it crimps.',
         tags: ['die19', 'terminal'], hot: ['die19'],
         keys: [[0, { inset: 0, hotC: 0 }], [.25, { ty: 6 }], [.55, MOVE_KEY], [.8, K_INS_TY], [.82, { hotI: 1 }],
-               [.85, { insetKind: 1, insetPress: .1 }], [1, { inset: 1, glowI: 0, open: .3 }]] },
+               [.85, { insetKind: 1, insetPress: .1, insetSide: 1, sideHot: 2 }], [1, { inset: 1, glowI: 0, open: .3 }]] },
       { title: 'Squeeze gently', dur: 2400,
         body: 'Squeeze softly, just enough for the wings to wrap round the insulation. Squeezing hard here cuts into the insulation and can damage the strands.',
         caution: 'The PAD-11 has no ratchet or stop, so the pressure is up to you. Practise on a spare terminal first.',
         tags: ['handles'], hot: ['handles'],
-        keys: [[.75, { open: .04, insetPress: 1, crimpI: 1 }], [1, { open: .5 }]] },
+        keys: [[0, { insetSide: 0, sideHot: 0 }], [.75, { open: .04, insetPress: 1, crimpI: 1 }], [1, { open: .5 }]] },
       { title: 'Check the crimp', dur: 1900,
         body: 'Take the terminal out and check it: a small bellmouth at the back of the conductor barrel, strand ends just showing past it, and the insulation barrel holding insulation, not bare wire. Give it a firm tug; it shouldn\'t move.',
         caution: 'Strands outside the barrel, wings not closed, or a terminal that pulls off: cut it off and crimp a new one.',
@@ -2274,7 +2042,7 @@ const PAD11 = (() => {
   };
 })();
 
-const EQ_TOOLS = [PA14, STRIPMASTER, PAD11];
+const EQ_TOOLS = [PA14, PAD11];
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
 /* ---------- Equipment tab controller ---------- */
@@ -2310,17 +2078,49 @@ const eqUI = (() => {
   }
 
   function tagSvg(tg, hot) {
-    // Labels grow on narrow screens so they stay readable when the figure is scaled down
     // Keep labels about the same size on screen, whatever size the figure is drawn at
-    const fig = $('eqFigure'), [, , vw, vh] = tool.viewBox;
+    const fig = $('eqFigure'), [vx, vy, vw, vh] = tool.viewBox;
     const drawn = Math.min(fig.clientWidth, fig.clientHeight * vw / vh) || 520;
     const z = Math.min(1.6, Math.max(.7, 600 / drawn)) * vw / 522;
-    const [X, Y] = tg.xy || EQ.P(tg.at), cx = X + tg.dx, cy = Y + tg.dy;
-    const w = (tg.text.length * 6.3 + 16) * z, h = 19 * z;
-    return `<g class="eq-tag${hot ? ' hot' : ''}"><path d="M${EQ.f(X)} ${EQ.f(Y)}L${EQ.f(cx)} ${EQ.f(cy)}"/><circle cx="${EQ.f(X)}" cy="${EQ.f(Y)}" r="2.2"/>`
-      + `<rect x="${EQ.f(cx - w / 2)}" y="${EQ.f(cy - h / 2)}" width="${EQ.f(w)}" height="${EQ.f(h)}" rx="${EQ.f(h / 2)}"/>`
-      + `<text x="${EQ.f(cx)}" y="${EQ.f(cy + 3.6 * z)}" text-anchor="middle" font-size="${EQ.f(10.5 * z)}">${esc(tg.text)}</text></g>`;
+    // long labels wrap onto two lines at the space nearest the middle
+    let lines = [tg.text];
+    if (tg.text.length > 16 && tg.text.includes(' ')) {
+      const mid = tg.text.length / 2;
+      let cut = -1;
+      for (let i = 0; i < tg.text.length; i++) if (tg.text[i] === ' ' && (cut < 0 || Math.abs(i - mid) < Math.abs(cut - mid))) cut = i;
+      lines = [tg.text.slice(0, cut), tg.text.slice(cut + 1)];
+    }
+    const lh = 12.5 * z, w = (Math.max(...lines.map(l => l.length)) * 6.3 + 16) * z, h = (lines.length === 1 ? 19 * z : 19 * z + lh);
+    const [X, Y] = tg.xy || EQ.P(tg.at);
+    // keep the whole label inside the picture; only the pointer line stretches
+    const pad = 6 * z;
+    const cx = Math.min(vx + vw - w / 2 - pad, Math.max(vx + w / 2 + pad, X + tg.dx));
+    const cy = Math.min(vy + vh - h / 2 - pad, Math.max(vy + h / 2 + pad, Y + tg.dy));
+    return { X, Y, cx, cy, w, h, z, lh, lines, hot, minY: vy + h / 2 + pad, maxY: vy + vh - h / 2 - pad };
   }
+  // nudge labels that overlap apart vertically, keeping them inside the picture
+  function separate(boxes) {
+    for (let pass = 0; pass < 8; pass++) {
+      let moved = false;
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], b = boxes[j], gap = 4 * a.z;
+        const ox = (a.w + b.w) / 2 + gap - Math.abs(a.cx - b.cx), oy = (a.h + b.h) / 2 + gap - Math.abs(a.cy - b.cy);
+        if (ox <= 0 || oy <= 0) continue;
+        const dir = a.cy <= b.cy ? 1 : -1, push = oy / 2 + .5;
+        a.cy = Math.min(a.maxY, Math.max(a.minY, a.cy - dir * push));
+        b.cy = Math.min(b.maxY, Math.max(b.minY, b.cy + dir * push));
+        moved = true;
+      }
+      if (!moved) break;
+    }
+  }
+  function drawTag(t) {
+    const { X, Y, cx, cy, w, h, z, lh, lines, hot } = t;
+    const text = lines.map((l, i) => `<text x="${EQ.f(cx)}" y="${EQ.f(cy + 3.6 * z + (i - (lines.length - 1) / 2) * lh)}" text-anchor="middle" font-size="${EQ.f(10.5 * z)}">${esc(l)}</text>`).join('');
+    return `<g class="eq-tag${hot ? ' hot' : ''}"><path d="M${EQ.f(X)} ${EQ.f(Y)}L${EQ.f(cx)} ${EQ.f(cy)}"/><circle cx="${EQ.f(X)}" cy="${EQ.f(Y)}" r="2.2"/>`
+      + `<rect x="${EQ.f(cx - w / 2)}" y="${EQ.f(cy - h / 2)}" width="${EQ.f(w)}" height="${EQ.f(h)}" rx="${EQ.f(Math.min(h / 2, 9.5 * z))}"/>${text}</g>`;
+  }
+
 
   function render() {
     const s = tool.steps[step];
@@ -2329,7 +2129,9 @@ const eqUI = (() => {
     const show = new Set(s.tags || []), hot = new Set(s.hot || []);
     const tagFade = EQ.clamp01((t - .55) / .3);
     let tags = '';
-    for (const id of show) if (out.tags[id]) tags += tagSvg(out.tags[id], hot.has(id));
+    const boxes = [...show].filter(id => out.tags[id]).map(id => tagSvg(out.tags[id], hot.has(id)));
+    separate(boxes);
+    tags = boxes.map(drawTag).join('');
     let flash = '';
     const ms = t * s.dur;
     for (const [ft, text, where] of s.flashes || []) {
