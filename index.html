@@ -1418,7 +1418,12 @@ const PAD11 = (() => {
   const dieX = i => { const a = Math.floor(Math.max(0, Math.min(4.999, i))), t = i - a; return lerp(DIES[a].x, DIES[a + 1].x, t); };
   const OPEN_ANGLE = 15 * Math.PI / 180;
   const FRONT = 10;                                // front face of the die plates (y)
-  let KT = 2.1;                                    // terminal drawn larger than life so it matches the drawn dies
+  let KT = 2.1;
+  // In the front view the terminal points at you, so its length is foreshortened. Stretch it along its length:
+  // a little for the contact, a lot from the barrels onwards, so the wings and what sits in them read clearly.
+  const AX_CONTACT = 1.6, AX_BARREL = 5;
+  const axialMap = (y, a1, a2) => { const b = GEO ? GEO.cb0 : 0; return y < b ? y * a1 : b * a1 + (y - b) * a2; };
+  const axialInv = (v, a1, a2) => { const b = GEO ? GEO.cb0 : 0; return v < b * a1 ? v / a1 : b + (v - b * a1) / a2; };                                    // terminal drawn larger than life so it matches the drawn dies
 
   const rotP = ([x, z], a) => [x * Math.cos(a) - z * Math.sin(a), x * Math.sin(a) + z * Math.cos(a)];
   const arcPts = (cx, cz, r, a0, a1, n = 8) => Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
@@ -1732,22 +1737,23 @@ const PAD11 = (() => {
     const toolOp = st.toolFade;
 
     /* terminal + wire, built along its own axis and placed in the die */
-    const k = lerp(KT, st.as, st.insp);
+    const k = lerp(KT, st.as, st.insp), a1 = lerp(AX_CONTACT, 1, st.insp), a2 = lerp(AX_BARREL, 1, st.insp);
+    const A = y => axialMap(y, a1, a2);
     const beta = st.insp * Math.PI / 2;                       // turn side-on for inspection
     const Ay = [Math.sin(beta), Math.cos(beta), 0], Ax = [Math.cos(beta), -Math.sin(beta), 0], Az = [0, 0, 1];
     const nest = RB([dieX(st.die), -.6]);
     const dwNow = lerp(DIES[Math.floor(Math.min(4.999, st.die))].dw, DIES[Math.min(5, Math.floor(st.die) + 1)].dw, st.die % 1);
     const seatO = [nest[0], st.ty, nest[1] - dwNow * .7];
     const O = [lerp(seatO[0], st.ix, st.insp), lerp(seatO[1], st.iy, st.insp), lerp(seatO[2], st.iz, st.insp)];
-    const W = ([x, y, z]) => [O[0] + (Ax[0] * x + Ay[0] * y) * k, O[1] + (Ax[1] * x + Ay[1] * y) * k, O[2] + z * k];
+    const W = ([x, y, z]) => { const yy = A(y); return [O[0] + (Ax[0] * x + Ay[0] * yy) * k, O[1] + (Ax[1] * x + Ay[1] * yy) * k, O[2] + z * k]; };
     const frame = { o: O, U: Ax.map(v => v * k), V: Az.map(v => v * k), W: Ay.map(v => v * k) };
     function assembly(front) {
       // split at the die plates' front face: parts behind it are drawn before the (see-through) plates
       const g = GEO, ky = Ay[1] * k;
-      const cut = Math.abs(ky) < 1e-3 ? (O[1] >= FRONT ? -1e9 : 1e9) : (FRONT - O[1]) / ky;
+      const cut = Math.abs(ky) < 1e-3 ? (O[1] >= FRONT ? -1e9 : 1e9) : axialInv((FRONT - O[1]) / ky, a1, a2);
       const yMin = front ? cut : -1e9, yMax = front ? 1e9 : cut;
       const clip = (a, b) => [Math.max(a, yMin), Math.min(b, yMax)];
-      const piece = (prof, y0, y1, m = M.tin) => { const [a, b] = clip(y0, y1); return b > a ? prism(prof, frame, a, b, m) : ''; };
+      const piece = (prof, y0, y1, m = M.tin) => { const [a, b] = clip(y0, y1); return b > a ? prism(prof, frame, A(a), A(b), m) : ''; };
       const rect = (x0, z0, x1, z1) => [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
       // a flat sheet-metal tab given by its corners [x, y, z] (local), shaded by which way it faces
       const plate = (corners, m = M.tin) => {
@@ -1767,9 +1773,7 @@ const PAD11 = (() => {
         const w = g.W, h = g.H;
         let t = contact(g, piece, plate, rect);
         t += piece(profU(Math.min(g.bwC, w) * .9, g.t * 2.2, g.t), g.Lc, g.cb0);                     // transition strip
-        if (st.crimpC < .5) t += `<g class="${st.hotC > .5 ? 'eq-barrel-hot' : ''}">${piece(profU(g.bwC, g.hwC, g.t), g.cb0, g.cb1)}</g>`;
         t += piece(profU(g.bwC * .9, g.t * 2.2, g.t), g.cb1, g.ib0);                                  // gap
-        if (st.crimpI < .5) t += `<g class="${st.hotI > .5 ? 'eq-barrel-hot' : ''}">${piece(profV(g.bwI, g.hwI, g.t, g.bwI * .32), g.ib0, g.ib1)}</g>`;
         s += `<g class="eq-term" opacity="${f(st.termOn)}">${t}</g>`;
       }
       // wire: bare strands, insulation, and the stripped-off slug
@@ -1788,9 +1792,13 @@ const PAD11 = (() => {
         }
         s += `<g opacity="${f(st.wireOn)}">${w}</g>`;
       }
-      // crimped barrels sit over the wire
+      // the barrels sit over the wire: open wings slightly see-through so the strands and insulation show inside
       if (st.termOn > .01) {
         let t = '';
+        let open = '';
+        if (st.crimpC < .5) open += `<g class="${st.hotC > .5 ? 'eq-barrel-hot' : ''}">${piece(profU(g.bwC, g.hwC, g.t), g.cb0, g.cb1)}</g>`;
+        if (st.crimpI < .5) open += `<g class="${st.hotI > .5 ? 'eq-barrel-hot' : ''}">${piece(profV(g.bwI, g.hwI, g.t, g.bwI * .32), g.ib0, g.ib1)}</g>`;
+        if (open) t += `<g opacity="${st.wireOn > .5 ? .62 : 1}">${open}</g>`;
         if (st.crimpC >= .5) {
           const hc = g.cond * 1.2 + g.t * 2;
           t += `<g class="${st.hotC > .5 ? 'eq-barrel-hot' : ''}">${piece(profB(g.bwC, hc), g.cb0, g.cb1 - .22)}${piece(profB(g.bwC * 1.12, hc * 1.12), g.cb1 - .22, g.cb1)}</g>`;   // + bellmouth
@@ -1967,8 +1975,8 @@ const PAD11 = (() => {
     const seatY = 8.6;                                      // middle of the lower die's thickness
     const b = this.base;
     b.die = c; MOVE_KEY.die = i;
-    K_PLACE.ty = seatY - (GEO.cb0 + GEO.Lb / 2) * KT;
-    K_INS_TY.ty = seatY - (GEO.ib0 + GEO.Li / 2) * KT;
+    K_PLACE.ty = seatY - axialMap(GEO.cb0 + GEO.Lb / 2, AX_CONTACT, AX_BARREL) * KT;
+    K_INS_TY.ty = seatY - axialMap(GEO.ib0 + GEO.Li / 2, AX_CONTACT, AX_BARREL) * KT;
     b.wY = GEO.L + 14; K_INSERT.wY = GEO.tip;
     b.as = 8; K_INSPECT.wireLen = Math.max(4, 10 - GEO.L * .4);       // true relative size between terminals
     b.ix = 50 - (GEO.L + K_INSPECT.wireLen) * b.as / 2;               // centre it in the view
@@ -2042,7 +2050,524 @@ const PAD11 = (() => {
   };
 })();
 
-const EQ_TOOLS = [PA14, PAD11];
+/* ---------- Shared kit for the front-view ratchet crimpers (lug and ferrule) ---------- */
+const FRONT_KIT = (() => {
+  const { prism, tube, lerp, f, pts, P } = EQ;
+  const K = 1.95, TILT = -9 * Math.PI / 180, OX = .12, OY = .42;
+  const ct = Math.cos(TILT), sn = Math.sin(TILT);
+  const tilt = (x, z) => [x * ct - z * sn, x * sn + z * ct];
+  const CAMERA = {
+    P: ([x, y, z]) => { const [a, b] = tilt(x, z); return [(a - OX * y) * K, (-b + OY * y) * K]; },
+    view: [OX * ct + OY * sn, 1, -OX * sn + OY * ct], light: [-0.25, 0.55, 0.8],
+  };
+  const rotP = ([x, z], a, c = [0, 0]) => { const dx = x - c[0], dz = z - c[1]; return [c[0] + dx * Math.cos(a) - dz * Math.sin(a), c[1] + dx * Math.sin(a) + dz * Math.cos(a)]; };
+  const arcPts = (cx, cz, r, a0, a1, n = 8) => Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
+  const circle = (cx, cz, r, n = 18) => Array.from({ length: n }, (_, i) => [cx + r * Math.cos(i / n * 2 * Math.PI), cz + r * Math.sin(i / n * 2 * Math.PI)]);
+  const XZ = () => ({ o: [0, 0, 0], U: [1, 0, 0], V: [0, 0, 1], W: [0, 1, 0] });
+  const pr = (poly, R, y0, y1, m, cap) => prism(poly.map(R), XZ(), y0, y1, m, '', cap);
+  function stripPoly(A, B, hw0, hw1, seg = 7) {
+    const dx = B[0] - A[0], dz = B[1] - A[1], L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, nx = -uz, nz = ux, out = [];
+    for (let i = 0; i <= seg; i++) { const a = Math.PI / 2 - Math.PI * i / seg; out.push([B[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw1, B[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw1]); }
+    for (let i = 0; i <= seg; i++) { const a = -Math.PI / 2 - Math.PI * i / seg; out.push([A[0] + (ux * Math.cos(a) + nx * Math.sin(a)) * hw0, A[1] + (uz * Math.cos(a) + nz * Math.sin(a)) * hw0]); }
+    return out;
+  }
+  const gripMap = (A, B, side) => { const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uz = (B[1] - A[1]) / L, nx = -uz * side, nz = ux * side; return ([u, v]) => [A[0] + ux * u + nx * v, A[1] + uz * u + nz * v]; };
+  const BOLT = { l: '#70767E', m: '#4A4F56', d: '#2A2D32' };
+  function bolt(c, R, y, r, kind = 'round', cap = 'url(#vk-bolt)') {
+    const [x, z] = R(c), n = kind === 'hex' ? 6 : 16, poly = Array.from({ length: n }, (_, i) => { const a = i / n * 2 * Math.PI + .3; return [x + r * Math.cos(a), z + r * Math.sin(a)]; });
+    const [sx, sy] = P([x, y + 1.3, z]);
+    return prism(poly, XZ(), y, y + 1.3, BOLT, '', cap) + (kind === 'socket' ? `<circle class="eq-noink" cx="${f(sx)}" cy="${f(sy)}" r="${f(r * .45 * K)}" fill="#141619"/>` : kind === 'rivet' ? '' : '');
+  }
+  function engr(c, R, y, str, size, armAngle, anchor = 'middle', w = 600, cls = 'eq-engrave') {
+    const [x, z] = R(c), [X, Y] = P([x, y, z]), a = (TILT + armAngle) * -180 / Math.PI;
+    return `<text class="${cls}" x="${f(X)}" y="${f(Y)}" font-size="${f(size * K)}" font-weight="${w}" text-anchor="${anchor}" transform="rotate(${f(a)} ${f(X)} ${f(Y)})">${str}</text>`;
+  }
+  function mat(vb0) {
+    const vb = [vb0[0] - 300, vb0[1] - 300, vb0[2] + 600, vb0[3] + 600];
+    let grid = '';
+    for (let x = Math.ceil(vb[0] / 23) * 23; x < vb[0] + vb[2]; x += 23) grid += `<line x1="${x}" y1="${vb[1]}" x2="${x}" y2="${vb[1] + vb[3]}"${x % 115 === 0 ? ' class="major"' : ''}/>`;
+    for (let y = Math.ceil(vb[1] / 23) * 23; y < vb[1] + vb[3]; y += 23) grid += `<line x1="${vb[0]}" y1="${y}" x2="${vb[0] + vb[2]}" y2="${y}"${y % 115 === 0 ? ' class="major"' : ''}/>`;
+    return `<g class="eq-mat eq-noink"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>${grid}</g>`;
+  }
+  function shadow(polys, op) {
+    const sh = polys.map(([poly, R]) => `<polygon points="${pts(poly.map(R).map(([x, z]) => [x, 0, z]))}"/>`).join('');
+    return `<g class="eq-shadow eq-noink" filter="url(#eqBlurSoft)" transform="translate(${f(5 * K)} ${f(7 * K)})" style="opacity:${f(op * .9)}">${sh}</g>`;
+  }
+  // ratchet: a toothed sector with a pawl; clicks shown as flashes by the steps
+  function ratchet(RA, RB, at, y) {
+    const [cx, cz] = at, teeth = [];
+    for (let i = 0; i <= 8; i++) { const a = (200 + i * 9) * Math.PI / 180, r = i % 2 ? 6.2 : 7.2; teeth.push([cx + r * Math.cos(a), cz + r * Math.sin(a)]); }
+    const sector = [[cx, cz], ...teeth];
+    return pr(sector, RA, y, y + 1.4, { l: '#5E646C', m: '#3B4047', d: '#1E2126' }, 'url(#vk-steel)');
+  }
+  // magnifier frame
+  function insetFrame(cx, cy, R, inner, label, id) {
+    return `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
+      + `<clipPath id="${id}"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
+      + `<g clip-path="url(#${id})"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${inner}</g>`
+      + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
+      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text>`;
+  }
+  const defs = `
+    <linearGradient id="vk-black" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#4A4F56"/><stop offset=".45" stop-color="#2A2D32"/><stop offset="1" stop-color="#17191C"/></linearGradient>
+    <linearGradient id="vk-steel" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#5A6068"/><stop offset=".45" stop-color="#33373D"/><stop offset="1" stop-color="#202328"/></linearGradient>
+    <linearGradient id="vk-nickel" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#F4F6F7"/><stop offset=".5" stop-color="#C9CED3"/><stop offset="1" stop-color="#9AA2A9"/></linearGradient>
+    <linearGradient id="vk-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6FB6F2"/><stop offset=".4" stop-color="#2F8BDA"/><stop offset="1" stop-color="#1F6BB0"/></linearGradient>
+    <linearGradient id="vk-orange" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFB073"/><stop offset=".4" stop-color="#F7852D"/><stop offset="1" stop-color="#D9620F"/></linearGradient>
+    <linearGradient id="vk-rubber" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#43474D"/><stop offset="1" stop-color="#1E2023"/></linearGradient>
+    <linearGradient id="pad-die-cut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7C828A"/><stop offset="1" stop-color="#3A3E45"/></linearGradient>
+    <radialGradient id="vk-bolt" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#8A9098"/><stop offset=".6" stop-color="#454A51"/><stop offset="1" stop-color="#25282D"/></radialGradient>
+    <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
+  // a wire running toward the viewer (front view): strands, then insulation; local u from the tip
+  return { K, TILT, CAMERA, rotP, arcPts, circle, XZ, pr, stripPoly, gripMap, bolt, engr, mat, shadow, ratchet, insetFrame, defs };
+})();
+
+/* ---------- Fig. 03: Lug crimper (VCELINK GJ707) ---------- */
+// Ratcheting crimper for insulated terminals: three colour-coded nests (red, blue, yellow).
+// Procedure from VCELINK's operation instruction: strip, insert the terminal into the jaws, put the wire in and
+// crimp until the ratchet releases itself, done.
+const LUG = (() => {
+  const { prism, tube, lerp, f, pts, P } = EQ;
+  const KT = FRONT_KIT, K = KT.K;
+  const BLACK = { l: '#5A5F66', m: '#33373D', d: '#16181B' };
+  const BLUE = { l: '#8CC6F5', m: '#2F8BDA', d: '#185A96' };
+  const METAL = { l: '#F4F5F2', m: '#CDD0CB', d: '#8E938D' };
+  const COPPER = { l: '#F7C08C', m: '#D98A4E', d: '#8E5426' };
+  const WIRE = { l: '#7FA9E0', m: '#2F5FA8', d: '#183A6E' };
+  // nests, from the tip: red, blue, yellow. Sizes are the terminal's sleeve (mm, drawn true size)
+  const NESTS = [
+    { name: 'Red', awg: '22–18', mm2: '0.5–1', color: '#E0473A', light: '#F2867B', sleeve: 4.0, barrel: 1.7, len: 5.5, cond: 1.0, od: 2.1, ring: 8 },
+    { name: 'Blue', awg: '16–14', mm2: '1.5–2.5', color: '#2F7FD6', light: '#7DB6F0', sleeve: 5.0, barrel: 2.4, len: 6.5, cond: 1.6, od: 2.9, ring: 9.5 },
+    { name: 'Yellow', awg: '12–10', mm2: '4–6', color: '#E8C21E', light: '#F6DD6A', sleeve: 6.8, barrel: 3.4, len: 8, cond: 2.6, od: 4.1, ring: 12 },
+  ].map((n, i) => ({ ...n, x: -50 + i * 11.5 }));
+  const SEL = { n: 1 };
+  const OPEN = 16 * Math.PI / 180, FRONT = 8;
+  const AX = 1.6;                                            // stretch along the terminal so its parts read in the front view
+
+  // two halves crossing at the pivot (closed position): upper jaw + lower handle, lower jaw + upper handle
+  function jawEdge(sgn) {
+    const e = .4 * sgn, p = [];
+    for (const n of NESTS) {
+      const r = n.sleeve / 2 + .15;
+      if (sgn < 0) p.push([n.x - r - .8, e], ...KT.arcPts(n.x, 0, r, 180, 360, 10).map(([x, z]) => [x, Math.min(z, e)]), [n.x + r + .8, e]);
+      else p.push([n.x - r - .8, e], [n.x - r, r * .7], ...KT.arcPts(n.x, r * .2, r * .5, 180, 0, 6), [n.x + r, r * .7], [n.x + r + .8, e]);
+    }
+    return p;
+  }
+  const armA = [[-60, .4], [-60, 11], [-56, 14.4], [-20, 15.6], [-6, 14], [6, 9], [12, 0], [24, -8], [40, -12], [44, -18], [36, -21], [16, -16], [2, -10], [-8, -2], [-14, .4], ...jawEdge(1).reverse()];
+  const armB = [[-60, -.4], ...jawEdge(-1), [-14, -.4], [-8, 2], [2, 10], [16, 16], [36, 21], [44, 18], [40, 12], [24, 8], [12, 0], [6, -9], [-6, -14], [-20, -15.6], [-56, -14.4], [-60, -11]];
+  const PLATE = [[-22, -11], [-22, 11], [-12, 16.5], [14, 16.5], [30, 12], [34, 0], [30, -12], [14, -16.5], [-12, -16.5]];   // compound-action side plate
+  const coreA = [[36, -16], [148, -30]], coreB = [[36, 16], [148, 30]];
+  const GRIP = [[0, -7.6], [0, 7.6], [4, 11.6], [16, 11], [60, 9.4], [96, 9.8], [104, 7.6], [107, 1], [104, -6.6], [96, -9], [20, -9.2], [6, -9.6]];
+  const GRIP_IN = [[8, -4.4], [8, 4.4], [94, 4.6], [98, 1], [94, -4.4]];
+  const gripA = KT.gripMap([44, -21], [154, -33], -1), gripB = KT.gripMap([44, 21], [154, 33], 1);
+
+  // terminal (insulated ring lug), local y from the ring end toward the wire
+  const TERM = () => { const n = NESTS[SEL.n]; return { n, ring: n.ring, r0: 0, r1: n.ring * .9, b0: n.ring * .9, b1: n.ring * .9 + n.len, s0: n.ring * .9 - .4, s1: n.ring * .9 + n.len + 2.2 }; };
+
+  function inset(st, cx, cy, R) {
+    if (st.inset < .02) return '';
+    const n = NESTS[SEL.n], S = R / (n.sleeve * .95);
+    if (st.side >= .5) {                                          // side view: strip length = the metal barrel
+      const t = TERM(), span = t.s1 + 6, s2 = (2 * R * .9) / span, x0 = cx - R * .85, X = u => x0 + u * s2, fy = cy - R * .05;
+      let w = '';
+      w += `<circle cx="${f(X(t.ring / 2))}" cy="${f(fy)}" r="${f(t.ring / 2 * s2)}" fill="#E6E8E4" stroke="#5E625D" stroke-width="1.1"/><circle cx="${f(X(t.ring / 2))}" cy="${f(fy)}" r="${f(t.ring * .2 * s2)}" class="eq-inset-bg" stroke="#5E625D"/>`;
+      w += `<rect x="${f(X(t.b0))}" y="${f(fy - n.barrel / 2 * s2)}" width="${f(n.len * s2)}" height="${f(n.barrel * s2)}" fill="#E6E8E4" stroke="#5E625D" stroke-width="1.1"/>`;
+      w += `<path d="M${f(X(t.s0))} ${f(fy - n.sleeve / 2 * s2)} L${f(X(t.s1 - 1.4))} ${f(fy - n.sleeve / 2 * s2)} L${f(X(t.s1))} ${f(fy - n.sleeve * .62 * s2)} L${f(X(t.s1))} ${f(fy + n.sleeve * .62 * s2)} L${f(X(t.s1 - 1.4))} ${f(fy + n.sleeve / 2 * s2)} L${f(X(t.s0))} ${f(fy + n.sleeve / 2 * s2)}Z" fill="${n.color}" fill-opacity=".45" stroke="${n.color}" stroke-width="1.3"/>`;
+      const yb = fy + R * .5, tip = t.b0 + .2, ins = t.b1 + .6;
+      w += `<rect x="${f(X(tip))}" y="${f(yb - n.cond / 2 * s2)}" width="${f((ins - tip) * s2)}" height="${f(n.cond * s2)}" fill="#D98A4E" stroke="#8E5426"/>`;
+      w += `<rect x="${f(X(ins))}" y="${f(yb - n.od / 2 * s2)}" width="${f((span - ins + 4) * s2)}" height="${f(n.od * s2)}" fill="${WIRE.m}" stroke="${WIRE.d}"/>`;
+      w += [tip, ins].map(u => `<line class="eq-guide" x1="${f(X(u))}" y1="${f(fy)}" x2="${f(X(u))}" y2="${f(yb + R * .16)}"/>`).join('');
+      w += `<path class="eq-bracket" d="M${f(X(tip))} ${f(yb + R * .14)} L${f(X(ins))} ${f(yb + R * .14)}"/><text class="eq-inset-small" x="${f((X(tip) + X(ins)) / 2)}" y="${f(yb + R * .14 + 13)}" text-anchor="middle">strip length</text>`;
+      w += `<text class="eq-inset-small" x="${f(X((t.b0 + t.b1) / 2))}" y="${f(fy - n.sleeve * .62 * s2 - 6)}" text-anchor="middle">metal barrel</text>`;
+      return `<g class="eq-inset" opacity="${f(st.inset)}">${KT.insetFrame(cx, cy, R, w, 'Strip to the barrel length', 'lugSideClip')}</g>`;
+    }
+    // cross-section in the nest: the upper jaw's indenter dents sleeve, barrel and strands
+    const rs = n.sleeve / 2 * S, rb = n.barrel / 2 * S, rc = n.cond / 2 * S, dent = st.press * rb * .55;
+    const face = lerp(cy - rs - R * .35, cy - rs + dent, st.press);
+    const shape = (r, d) => 'M' + Array.from({ length: 48 }, (_, i) => { const a = i / 48 * 2 * Math.PI; const up = Math.max(0, -Math.sin(a)); const rr = r - d * Math.pow(up, 6); return `${f(cx + rr * Math.cos(a))} ${f(cy + rr * Math.sin(a))}`; }).join(' L') + 'Z';
+    let w = `<path d="M${f(cx - R)} ${f(cy + R)} L${f(cx - R)} ${f(cy + rs * .2)} L${f(cx - rs - 1)} ${f(cy + rs * .2)} A${f(rs + 1)} ${f(rs + 1)} 0 0 0 ${f(cx + rs + 1)} ${f(cy + rs * .2)} L${f(cx + R)} ${f(cy + rs * .2)} L${f(cx + R)} ${f(cy + R)}Z" fill="url(#pad-die-cut)" stroke="rgba(0,0,0,.35)"/>`;
+    w += `<path d="${shape(rs, dent)}" fill="${n.color}" stroke="rgba(0,0,0,.35)"/>`;
+    w += `<path d="${shape(rb, dent * .9)}" fill="#E6E8E4" stroke="#5E625D"/>`;
+    if (st.insetWire > .5) w += `<path d="${shape(rc, dent * .6)}" fill="#D98A4E" stroke="#8E5426"/>`;
+    w += `<path d="M${f(cx - R)} ${f(cy - R)} L${f(cx - R)} ${f(face)} L${f(cx - rs * 1.1)} ${f(face)} Q${f(cx)} ${f(face + rs * .35 + dent * 1.2)} ${f(cx + rs * 1.1)} ${f(face)} L${f(cx + R)} ${f(face)} L${f(cx + R)} ${f(cy - R)}Z" fill="url(#pad-die-cut)" stroke="rgba(0,0,0,.35)"/>`;
+    return `<g class="eq-inset" opacity="${f(st.inset)}">${KT.insetFrame(cx, cy, R, w, `${n.name} nest: indent crimp`, 'lugInsetClip')}</g>`;
+  }
+
+  function draw(st) {
+    EQ.setView(KT.CAMERA);
+    const th = st.open * OPEN, aA = -th / 2, aB = th / 2;
+    const RA = p => KT.rotP(p, aA), RB = p => KT.rotP(p, aB);
+    const n = NESTS[SEL.n], t = TERM();
+    const toolOp = st.toolFade;
+    let tool = '';
+    tool += KT.pr(KT.stripPoly(...coreA, 4.4, 4.2), RA, 0, 4, BLACK, 'url(#vk-black)');
+    const grip = (map, R, y0, y1) => {
+      let g = KT.pr(GRIP.map(map), R, y0, y1, BLUE, 'url(#vk-blue)');
+      g += KT.pr(GRIP_IN.map(map), R, y1, y1 + .5, BLACK, 'url(#vk-rubber)');
+      return g;
+    };
+    tool += grip(gripA, RA, -1.5, 5.5);
+    tool += KT.pr(armA, RA, 0, 4, BLACK, 'url(#vk-black)');
+    tool += KT.ratchet(RA, RB, [30, -4], 4);
+    tool += KT.pr(KT.stripPoly(...coreB, 4.4, 4.2), RB, 4, FRONT, BLACK, 'url(#vk-black)');
+    tool += grip(gripB, RB, 2.5, 9.5);
+    tool += KT.pr(armB, RB, 4, FRONT, BLACK, 'url(#vk-black)');
+    tool += KT.pr(PLATE, RB, FRONT, FRONT + 1.4, BLACK, 'url(#vk-black)');
+    for (const c of [[-14, 9], [-14, -9], [22, 9], [22, -9]]) tool += KT.bolt(c, RB, FRONT + 1.4, 2.4);
+    tool += KT.bolt([0, 0], RB, FRONT + 1.4, 3.6, 'hex');
+    tool += KT.engr([4, -6], RB, FRONT + 1.5, 'VCELINK', 2.6, aB, 'middle', 800) + KT.engr([4, -10], RB, FRONT + 1.5, 'GJ707', 1.6, aB);
+    // colour dots above each nest on the upper jaw, nest highlight
+    for (const m of NESTS) { const [x, z] = RA([m.x, 9]), [X, Y] = P([x, 4, z]); tool += `<circle class="eq-noink" cx="${f(X)}" cy="${f(Y)}" r="${f(1.3 * K)}" fill="${m.color}" stroke="#111" stroke-width=".6"/>`; }
+    if (st.glow > .02) {
+      const ring = KT.circle(n.x, 0, n.sleeve / 2 + 1.4, 26).map(([x, z]) => { const p = z >= 0 ? RA([x, z]) : RB([x, z]); return [p[0], FRONT + .2, p[1]]; });
+      tool += `<polygon class="eq-noink eq-glow" opacity="${f(st.glow)}" points="${pts(ring)}"/>`;
+    }
+
+    /* terminal + wire; local y from the ring end, stretched along its length (AX) */
+    const ax = lerp(AX, 1, st.insp), k = lerp(1, st.as, st.insp), beta = st.insp * Math.PI / 2;
+    const Ay = [Math.sin(beta), Math.cos(beta), 0];
+    const Axv = [Math.cos(beta), 0, Math.sin(beta)], Azv = [0, -Math.sin(beta), Math.cos(beta)];
+    const nest = RB([n.x, -.4]);
+    const seat = [nest[0], st.ty, nest[1] - (n.sleeve / 2) + n.sleeve / 2];
+    const O = [lerp(seat[0], st.ix, st.insp), lerp(seat[1], st.iy, st.insp), lerp(seat[2], st.iz, st.insp)];
+    const W = ([x, y, z]) => [0, 1, 2].map(i => O[i] + (Axv[i] * x + Ay[i] * y * ax + Azv[i] * z) * k);
+    const ky = Ay[1] * k * ax, cut = Math.abs(ky) < 1e-3 ? (O[1] >= FRONT ? -1e9 : 1e9) : (FRONT - O[1]) / ky;
+    const frame = { o: O, U: Axv.map(v => v * k), V: Azv.map(v => v * k), W: Ay.map(v => v * k * ax) };
+    const oct = (r, n2 = 14) => Array.from({ length: n2 }, (_, i) => { const a = (i + .5) / n2 * 2 * Math.PI; return [r * Math.cos(a), r * Math.sin(a)]; });
+    function part(front) {
+      const yMin = front ? cut : -1e9, yMax = front ? 1e9 : cut, clip = (a, b) => [Math.max(a, yMin), Math.min(b, yMax)];
+      const pc = (prof, y0, y1, m, op = 1) => { const [a, b] = clip(y0, y1); return b > a ? (op < 1 ? `<g opacity="${op}">` : '') + prism(prof, frame, a, b, m) + (op < 1 ? '</g>' : '') : ''; };
+      const tb = (y0, y1, d, m) => { const [a, b] = clip(y0, y1); return b > a ? tube([W([0, a, 0]), W([0, b, 0])], d * k * K, m, 'butt') : ''; };
+      let s = '';
+      if (st.termOn > .01) {
+        // ring tongue: a flat ring with the stud hole, then the metal barrel
+        const rc = t.ring / 2, mid = t.r1 / 2;
+        if ((front && mid >= cut) || (!front && mid < cut)) {
+          const outer = Array.from({ length: 28 }, (_, i) => { const a = i / 28 * 2 * Math.PI; return W([rc * Math.cos(a), rc + rc * Math.sin(a) * .95, 0]); });
+          const hole = Array.from({ length: 20 }, (_, i) => { const a = -i / 20 * 2 * Math.PI; return W([rc * .42 * Math.cos(a), rc + rc * .42 * Math.sin(a), 0]); });
+          const neck = [W([-n.barrel / 2, rc * 1.6, 0]), W([n.barrel / 2, rc * 1.6, 0]), W([n.barrel / 2, t.b0 + .2, 0]), W([-n.barrel / 2, t.b0 + .2, 0])];
+          const d = a => 'M' + a.map(p => P(p).map(f).join(' ')).join(' L') + 'Z';
+          s += `<path d="${d(neck)}" fill="${METAL.m}" stroke="rgba(0,0,0,.35)" stroke-width=".6"/><path d="${d(outer)} ${d(hole)}" fill-rule="evenodd" fill="${METAL.l}" stroke="rgba(0,0,0,.4)" stroke-width=".7"/>`;
+        }
+        s += pc(oct(n.barrel / 2), t.b0, t.b1, METAL);
+      }
+      if (st.wireOn > .01) {
+        const wy = st.wY;
+        s += `<g opacity="${f(st.wireOn)}">${tb(wy, wy + n.len + .6, n.cond, COPPER)}${tb(wy + n.len + .6, wy + 120, n.od, WIRE)}</g>`;
+      }
+      if (st.termOn > .01) {
+        const crimp = st.crimped, sl = oct(n.sleeve / 2).map(([x, z]) => [x, z - (z > 0 ? crimp * z * .18 : 0)]);
+        s += pc(sl, t.s0, t.s1 - 1.4, { l: n.light, m: n.color, d: n.color }, st.wireOn > .5 ? .72 : 1);
+        s += pc(oct(n.sleeve * .62), t.s1 - 1.4, t.s1, { l: n.light, m: n.color, d: n.color }, st.wireOn > .5 ? .72 : 1);   // flared entry
+      }
+      return `<g opacity="${f(st.termOn > .01 || st.wireOn > .01 ? 1 : 0)}">${s}</g>`;
+    }
+    const wrap = s => toolOp < .99 ? `<g opacity="${f(toolOp)}">${s}</g>` : s;
+    const shadowSvg = KT.shadow([[GRIP.map(gripA), RA], [GRIP.map(gripB), RB], [armA, RA], [armB, RB]], toolOp);
+    const s0 = 1.15, T0 = [70 - 52 * s0, 6 - 30 * s0];
+    const s1 = 2.2, F = P([n.x, 4, 0]), T1 = [-40 - F[0] * s1, 30 - F[1] * s1];
+    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
+    const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
+    const scene = KT.mat(this.viewBox) + shadowSvg + `<g class="eq-pin">${part(false)}</g>` + wrap(tool) + `<g class="eq-pin">${part(true)}</g>`;
+    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
+    const IC = [278, -122], IR = 76;
+    if (st.inset > .02) {
+      if (st.side < .5) { const [dx, dy] = cam(P([nest[0], FRONT, nest[1]])); svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`; }
+      svg += inset(st, IC[0], IC[1], IR);
+    }
+    const at = (c, R, y) => { const [x, z] = R(c); return [x, y, z]; };
+    const tags = {
+      nests:   { at: at([NESTS[1].x, -2], RB, FRONT), dx: -40, dy: 74, text: 'Colour-coded nests' },
+      jaws:    { at: at([-56, 12], RA, 4), dx: -20, dy: -64, text: 'Jaws' },
+      ratchet: { at: at([30, -6], RA, 5), dx: 30, dy: 80, text: 'Ratchet' },
+      plates:  { at: at([10, 12], RB, FRONT + 1.4), dx: 10, dy: -84, text: 'Compound-action plates' },
+      handles: { at: at(gripB([60, 0]), RB, 9.5), dx: 40, dy: -50, text: 'Handles' },
+      nest:    { at: at([n.x, n.sleeve / 2], RA, 4), dx: -30, dy: -74, text: `${n.name} nest` },
+      terminal:{ at: W([0, t.s1 - 2, n.sleeve / 2]), dx: -86, dy: 16, text: 'Terminal' },
+      wire:    { at: W([0, st.wY + n.len + 8, 0]), dx: 70, dy: 30, text: 'Stripped wire' },
+      strands: { at: W([n.ring * .6, t.b0 + .4, 0]), dx: -60, dy: -60, text: 'Strands fill the barrel' },
+      indent:  { at: W([0, (t.b0 + t.b1) / 2, n.sleeve / 2]), dx: 20, dy: -74, text: 'Crimp indent' },
+      sleeve:  { at: W([0, t.s1 - .6, -n.sleeve / 2]), dx: 50, dy: 60, text: 'Sleeve undamaged' },
+    };
+    for (const tg of Object.values(tags)) tg.xy = cam(P(tg.at));
+    return { svg, tags, anchors: { flash: cam(P(at([30, 2], RA, 6))) } };
+  }
+
+  const K_PLACE = { ty: 0 }, K_INSERT = { wY: 0 };
+  function setHole(i) {
+    SEL.n = i;
+    const t = TERM();
+    K_PLACE.ty = 6 - (t.b0 + t.b1) / 2 * AX;                     // barrel centred in the nest's thickness
+    K_INSERT.wY = t.b0 + .2;
+    this.base.wY = t.s1 + 18;
+  }
+  return {
+    id: 'lug', fig: 3, name: 'Lug crimper', sub: 'Insulated terminals, 22–10 AWG',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: FRONT_KIT.defs,
+    holes: NESTS, defaultHole: 1, holeLabel: h => `${h.name} terminal: ${h.awg} AWG (${h.mm2} mm²)`,
+    holeNote: h => `Uses the ${h.name.toLowerCase()} nest. Match the nest to the terminal's sleeve colour.`,
+    setHole,
+    vars: () => { const n = NESTS[SEL.n]; return { N: n.name.toLowerCase(), A: n.awg }; },
+    base: { open: 1, toolFade: 1, zoom: 0, glow: 0, termOn: 0, wireOn: 0, ty: 40, wY: 30, crimped: 0,
+            inset: 0, side: 0, press: 0, insetWire: 0, insp: 0, ix: -40, iy: 40, iz: 0, as: 4.2 },
+    draw,
+    steps: [
+      { title: 'Get to know the lug crimper', dur: 1000,
+        body: 'A ratcheting crimper for insulated terminals: ring and spade lugs, butt connectors and disconnects. The three nests match the terminal sleeve colours: red for 22–18 AWG, blue for 16–14 AWG and yellow for 12–10 AWG.',
+        tags: ['nests', 'jaws', 'ratchet', 'plates', 'handles'], keys: [] },
+      { title: 'Pick the nest', dur: 1200,
+        body: 'Use the nest that matches the colour of the terminal\'s sleeve, here {N} for {A} AWG wire. The colour dots on the jaw mark each nest.',
+        tags: ['nest'], hot: ['nest'], keys: [[.6, { glow: 1, zoom: 1 }]] },
+      { title: 'Strip the wire', dur: 1600,
+        body: 'Strip the wire to the length of the terminal\'s metal barrel, so the bare strands fill the barrel and the insulation reaches the sleeve. The magnifier shows the strip length against the terminal.',
+        caution: 'Too long and bare wire shows past the sleeve; too short and the strands don\'t fill the barrel.',
+        tags: [], keys: [[0, { glow: 0 }], [.3, { inset: 1, side: 1 }]] },
+      { title: 'Insert the terminal into the jaws', dur: 2000,
+        body: 'Put the terminal into the {N} nest with the sleeve in the nest and the ring end through the jaws. Squeeze gently until the ratchet holds it, without deforming the barrel.',
+        tags: ['terminal', 'nest'], hot: ['terminal'],
+        keys: [[0, { inset: 0, side: 0 }], [.1, { termOn: 1 }], [.65, K_PLACE], [1, { open: .35 }]], flashes: [[.9, 'Click']] },
+      { title: 'Put the wire in', dur: 1700,
+        body: 'Push the stripped wire into the sleeve until the strands sit fully in the metal barrel and the insulation meets the barrel end.',
+        tags: ['wire', 'terminal'], hot: ['wire'], keys: [[0, { wireOn: 1 }], [.85, K_INSERT], [1, { inset: 1, insetWire: 1 }]] },
+      { title: 'Crimp until the ratchet releases', dur: 2600,
+        body: 'Hold the wire in place and squeeze the handles all the way. The ratchet clicks as it closes and releases itself once the crimp is complete.',
+        caution: 'If you have the wrong nest, don\'t force it. Finish the stroke, open the tool and use the right nest with a new terminal.',
+        tags: ['handles', 'ratchet'], hot: ['handles'],
+        keys: [[.7, { open: 0, press: 1, crimped: 1 }], [1, { open: .5 }]],
+        flashes: [[.2, 'Click'], [.35, 'Click'], [.5, 'Click'], [.65, 'Click'], [.82, 'Released']] },
+      { title: 'Check the crimp', dur: 1900,
+        body: 'Take the terminal out. The crimp indent should be in the middle of the barrel, the sleeve undamaged, and no strands outside it. Give the wire a firm tug; it shouldn\'t move.',
+        caution: 'Loose wire, a split sleeve or strands showing: cut it off and crimp a new terminal.',
+        tags: ['indent', 'sleeve'], keys: [[0, { inset: 0 }], [.3, { open: 1, zoom: 0, ty: 30 }], [1, { toolFade: .05, insp: 1 }]] },
+    ],
+  };
+})();
+LUG.setHole(1);
+
+/* ---------- Fig. 04: Ferrule crimper (VCELINK GJ709) ---------- */
+// Self-adjusting ratchet crimper with a four-jaw square crimp, for ferrules from 0.25 to 6 mm².
+// Procedure from VCELINK's operation instruction: strip to the ferrule length, insert the wire, put the ferrule
+// in the jaw, press the handle, done, tension test.
+const FERRULE = (() => {
+  const { prism, tube, lerp, f, pts, P } = EQ;
+  const KT = FRONT_KIT, K = KT.K;
+  const NICKEL = { l: '#F4F6F7', m: '#C9CED3', d: '#8E959B' };
+  const STEEL = { l: '#5A6068', m: '#3B4047', d: '#1E2126' };
+  const ORANGE = { l: '#FFAE6B', m: '#F07A22', d: '#A84B0B' };
+  const RUBBER = { l: '#5A5E64', m: '#33363B', d: '#18191C' };
+  const METAL = { l: '#F4F5F2', m: '#CDD0CB', d: '#8E938D' };
+  const COPPER = { l: '#F7C08C', m: '#D98A4E', d: '#8E5426' };
+  // common insulated ferrules (collar colours per DIN 46228-4; check your ferrule box)
+  const SIZES = [
+    { mm2: '0.5', awg: '20', color: '#F28A2E', cond: .8, tube: 1.0, len: 8 },
+    { mm2: '0.75', awg: '18', color: '#F2F2F2', cond: .98, tube: 1.2, len: 8 },
+    { mm2: '1.0', awg: '18', color: '#F2D02E', cond: 1.13, tube: 1.4, len: 8 },
+    { mm2: '1.5', awg: '16', color: '#E0473A', cond: 1.38, tube: 1.7, len: 8 },
+    { mm2: '2.5', awg: '14', color: '#2F7FD6', cond: 1.78, tube: 2.2, len: 8 },
+    { mm2: '4', awg: '12', color: '#8A9097', cond: 2.26, tube: 2.8, len: 10 },
+    { mm2: '6', awg: '10', color: '#2A2C30', cond: 2.76, tube: 3.5, len: 12 },
+  ];
+  const SEL = { s: 3 };
+  const OPEN = 26 * Math.PI / 180, FRONT = 9;
+  const HEAD = [-46, 0], HR = 20;                              // round crimp head (centre, radius)
+  const AX = 1.4;
+
+  // the handles' steel arms run from under the body plate to the grips
+  const armA = KT.stripPoly([-8, -3], [42, -15], 5.2, 5);
+  const armB = KT.stripPoly([-8, 3], [42, 15], 5.2, 5);
+  // one solid body plate from the head back toward the handles (nickel-plated, like the head)
+  const NECK = [[-34, 13.5], [-8, 13.5], [12, 12], [24, 8.5], [28, 0], [24, -8.5], [12, -12], [-8, -13.5], [-34, -13.5]];
+  const coreA = [[34, -12], [128, -26]], coreB = [[34, 12], [128, 26]];
+  const GRIP = [[0, -7.4], [0, 7.4], [5, 11.6], [20, 12], [48, 9], [80, 10.4], [90, 8.6], [94, 1], [90, -6.8], [80, -9.4], [24, -9.4], [8, -9.8]];
+  const GRIP_IN = [[14, -4.6], [14, 4.8], [50, 4], [84, 4.6], [88, 1], [84, -4.4], [50, -4.4]];
+  const gripA = KT.gripMap([38, -15], [134, -28], -1), gripB = KT.gripMap([38, 15], [134, 28], 1);
+
+  // ferrule, local y from the tube end toward the wire: metal tube, then the coloured collar
+  const FER = () => { const s = SIZES[SEL.s]; const c0 = s.len - .6; return { s, t0: 0, t1: s.len, c0, c1: s.len + 3.2, collarR: s.tube * .5 + .9, flare: s.tube * .5 + 1.5 }; };
+
+  function inset(st, cx, cy, R) {
+    if (st.inset < .02) return '';
+    const s = SIZES[SEL.s];
+    if (st.side >= .5) {                                          // side view: strip length = tube length; strands through the tube
+      const fe = FER(), span = fe.c1 + 6, s2 = (2 * R * .82) / span, x0 = cx - R * .72 + (st.measure > .5 ? R * .22 : 0), X = u => x0 + u * s2;
+      const fy = cy - R * .1 + (st.measure > .5 ? -R * .12 : 0);
+    const x0s = st.measure > .5 ? R * .08 : 0;
+      let w = '';
+      const wireAt = (tipU, y) => {
+        const insU = tipU + s.len;
+        return `<rect x="${f(X(tipU))}" y="${f(y - s.cond / 2 * s2)}" width="${f(s.len * s2)}" height="${f(s.cond * s2)}" fill="#D98A4E" stroke="#8E5426"/>`
+          + `<rect x="${f(X(insU))}" y="${f(y - (s.cond * .5 + .5) * s2)}" width="${f((span - insU + 6) * s2)}" height="${f((s.cond + 1) * s2)}" fill="#C0392B" stroke="#7E1F17"/>`;
+      };
+      if (st.measure > .5) {
+        const yb = fy + R * .5;
+        w += wireAt(0, yb);
+        w += [0, s.len].map(u => `<line class="eq-guide" x1="${f(X(u))}" y1="${f(fy)}" x2="${f(X(u))}" y2="${f(yb + R * .16)}"/>`).join('');
+        w += `<path class="eq-bracket" d="M${f(X(0))} ${f(yb + R * .15)} L${f(X(s.len))} ${f(yb + R * .15)}"/><text class="eq-inset-small" x="${f((X(0) + X(s.len)) / 2)}" y="${f(yb + R * .15 + 13)}" text-anchor="middle">strip = tube length</text>`;
+      } else if (st.wireOn > .01) w += wireAt(st.wY, fy);
+      // tube (see-through) and collar
+      w += `<rect x="${f(X(0))}" y="${f(fy - s.tube / 2 * s2)}" width="${f(s.len * s2)}" height="${f(s.tube * s2)}" fill="#E6E8E4" fill-opacity=".45" stroke="${st.measure < .5 && st.wireOn > .5 ? 'var(--mat)' : '#5E625D'}" stroke-width="${st.measure < .5 && st.wireOn > .5 ? 2.2 : 1.1}"/>`;
+      w += `<path d="M${f(X(fe.c0))} ${f(fy - fe.collarR * s2)} L${f(X(fe.c1 - 1.2))} ${f(fy - fe.collarR * s2)} L${f(X(fe.c1))} ${f(fy - fe.flare * s2)} L${f(X(fe.c1))} ${f(fy + fe.flare * s2)} L${f(X(fe.c1 - 1.2))} ${f(fy + fe.collarR * s2)} L${f(X(fe.c0))} ${f(fy + fe.collarR * s2)}Z" fill="${s.color}" fill-opacity=".55" stroke="rgba(0,0,0,.45)" stroke-width="1.1"/>`;
+      w += `<text class="eq-inset-small" x="${f(X(s.len / 2))}" y="${f(fy - s.tube / 2 * s2 - 7)}" text-anchor="middle">metal tube</text>`;
+      const label = st.measure > .5 ? 'Strip to the tube length' : 'Strands reach the tube end';
+      return `<g class="eq-inset" opacity="${f(st.inset)}">${KT.insetFrame(cx, cy, R, w, label, 'ferSideClip')}</g>`;
+    }
+    // cross-section: four jaws square the round tube
+    const S = R / (s.tube * 1.4), rt = s.tube / 2 * S, sq = st.press;
+    const half = lerp(rt * 1.6, rt * .82, sq);
+    const shape = r => 'M' + Array.from({ length: 64 }, (_, i) => { const a = i / 64 * 2 * Math.PI, c = Math.cos(a), si = Math.sin(a);
+      const p = lerp(2, 5, sq), q = Math.pow(Math.pow(Math.abs(c), p) + Math.pow(Math.abs(si), p), -1 / p); const rr = r * lerp(1, q * .92, sq);
+      return `${f(cx + rr * c)} ${f(cy + rr * si)}`; }).join(' L') + 'Z';
+    let w = `<path d="${shape(rt)}" fill="#E6E8E4" stroke="#5E625D" stroke-width="1.2"/><path d="${shape(rt * .78)}" fill="#D98A4E" stroke="#8E5426"/>`;
+    for (let j = 0; j < 4; j++) {
+      const a = j * Math.PI / 2, c = Math.cos(a), si = Math.sin(a), d = Math.max(half, rt * .82);
+      const jaw = [[d, -rt * .9], [R * 1.3, -rt * 1.6], [R * 1.3, rt * 1.6], [d, rt * .9]].map(([u, v]) => `${f(cx + u * c - v * si)} ${f(cy + u * si + v * c)}`).join(' L');
+      w += `<path d="M${jaw}Z" fill="url(#pad-die-cut)" stroke="rgba(0,0,0,.4)"/>`;
+    }
+    return `<g class="eq-inset" opacity="${f(st.inset)}">${KT.insetFrame(cx, cy, R, w, 'Four jaws square the tube', 'ferInsetClip')}</g>`;
+  }
+
+  function draw(st) {
+    EQ.setView(KT.CAMERA);
+    const th = st.open * OPEN, aA = -th / 2, aB = th / 2, PV = [-10, 0];
+    const RA = p => KT.rotP(p, aA, PV), RB = p => KT.rotP(p, aB, PV), R0 = p => p;
+    const s = SIZES[SEL.s], fe = FER();
+    const toolOp = st.toolFade;
+    let tool = '';
+    tool += KT.pr(KT.stripPoly(...coreA, 4.2, 4), RA, 0, 4, STEEL, 'url(#vk-steel)');
+    const grip = (map, R, y0, y1) => KT.pr(GRIP.map(map), R, y0, y1, ORANGE, 'url(#vk-orange)') + KT.pr(GRIP_IN.map(map), R, y1, y1 + .5, RUBBER, 'url(#vk-rubber)');
+    tool += grip(gripA, RA, -1.5, 5.5);
+    tool += KT.pr(armA, RA, 0, 4, NICKEL, 'url(#vk-nickel)');
+    tool += KT.pr(KT.stripPoly(...coreB, 4.2, 4), RB, 4, FRONT - 1, STEEL, 'url(#vk-steel)');
+    tool += grip(gripB, RB, 2.5, 9.5);
+    tool += KT.pr(armB, RB, 4, FRONT - 1, NICKEL, 'url(#vk-nickel)');
+    // the round head and neck (fixed), with the square opening and four jaws inside
+    tool += KT.pr(NECK, R0, 0, FRONT, NICKEL, 'url(#vk-nickel)');
+    const holeR = 6.2;
+    const ring = [...KT.circle(HEAD[0], HEAD[1], HR, 40)];
+    tool += KT.pr(ring, R0, 0, FRONT, NICKEL, 'url(#vk-nickel)');
+    // jaws: four blocks closing on the centre as the handles close
+    const gap = lerp(fe.s.tube * .41, holeR * .82, Math.min(1, st.open * 1.2));
+    for (let j = 0; j < 4; j++) {
+      const a = j * Math.PI / 2 + Math.PI / 4, c = Math.cos(a), si = Math.sin(a);
+      const blk = [[gap, -1.6], [holeR + 2, -3.4], [holeR + 2, 3.4], [gap, 1.6]].map(([u, v]) => [HEAD[0] + u * c - v * si, HEAD[1] + u * si + v * c]);
+      tool += KT.pr(blk, R0, FRONT - 3, FRONT + .1, STEEL, 'url(#vk-steel)');
+    }
+    // front face around the opening (drawn as a ring so the jaws show through)
+    const face = [...KT.circle(HEAD[0], HEAD[1], HR - .6, 40), ...KT.circle(HEAD[0], HEAD[1], holeR, 24).reverse()];
+    tool += `<path class="eq-noink" d="M${KT.circle(HEAD[0], HEAD[1], HR - .6, 40).map(([x, z]) => P([x, FRONT + .15, z]).map(f).join(' ')).join(' L')}Z M${KT.circle(HEAD[0], HEAD[1], holeR, 24).reverse().map(([x, z]) => P([x, FRONT + .15, z]).map(f).join(' ')).join(' L')}Z" fill="url(#vk-nickel)" fill-rule="evenodd" stroke="rgba(0,0,0,.4)" stroke-width=".6"/>`;
+    for (const c of [[HEAD[0] - 12, 12], [HEAD[0] + 12, -12], [HEAD[0] + 12, 12], [4, 8], [4, -8], [18, 0]]) tool += KT.bolt(c, R0, FRONT + .15, 1.6, 'socket');
+    tool += KT.bolt(PV, RB, FRONT, 3.2, 'hex');
+    tool += KT.engr([HEAD[0], -15.2], R0, FRONT + .2, 'VCELINK', 2.4, 0, 'middle', 800);
+    if (st.glow > .02) tool += `<polygon class="eq-noink eq-glow" opacity="${f(st.glow)}" points="${pts(KT.circle(HEAD[0], HEAD[1], holeR + 1.2, 28).map(([x, z]) => [x, FRONT + .3, z]))}"/>`;
+
+    /* ferrule + wire */
+    const ax = lerp(AX, 1, st.insp), k = lerp(1.6, st.as, st.insp), beta = st.insp * Math.PI / 2;
+    const Ay = [Math.sin(beta), Math.cos(beta), 0], Axv = [Math.cos(beta), -Math.sin(beta), 0];
+    const O = [lerp(HEAD[0], st.ix, st.insp), lerp(st.ty, st.iy, st.insp), lerp(HEAD[1], st.iz, st.insp)];
+    const W = ([x, y, z]) => [O[0] + (Axv[0] * x + Ay[0] * y * ax) * k, O[1] + (Axv[1] * x + Ay[1] * y * ax) * k, O[2] + z * k];
+    const ky = Ay[1] * k * ax, cut = Math.abs(ky) < 1e-3 ? (O[1] >= FRONT ? -1e9 : 1e9) : (FRONT - O[1]) / ky;
+    const frame = { o: O, U: Axv.map(v => v * k), V: [0, 0, k], W: Ay.map(v => v * k * ax) };
+    const roundP = (r, sqr = 0, n2 = 20) => Array.from({ length: n2 }, (_, i) => { const a = (i + .5) / n2 * 2 * Math.PI, c = Math.cos(a), si = Math.sin(a);
+      const p = lerp(2, 5, sqr), q = Math.pow(Math.pow(Math.abs(c), p) + Math.pow(Math.abs(si), p), -1 / p); const rr = r * lerp(1, q * .9, sqr); return [rr * c, rr * si]; });
+    function part(front) {
+      const yMin = front ? cut : -1e9, yMax = front ? 1e9 : cut, clip = (a, b) => [Math.max(a, yMin), Math.min(b, yMax)];
+      const pc = (prof, y0, y1, m, op = 1) => { const [a, b] = clip(y0, y1); return b > a ? (op < 1 ? `<g opacity="${op}">` : '') + prism(prof, frame, a, b, m) + (op < 1 ? '</g>' : '') : ''; };
+      const tb = (y0, y1, d, m) => { const [a, b] = clip(y0, y1); return b > a ? tube([W([0, a, 0]), W([0, b, 0])], d * k * K, m, 'butt') : ''; };
+      let o = '';
+      if (st.wireOn > .01) {
+        const wy = st.wY;
+        o += `<g opacity="${f(st.wireOn)}">${tb(wy, wy + s.len, s.cond, COPPER)}${tb(wy + s.len, wy + 110, s.cond + 1, { l: '#EE8A78', m: '#C0392B', d: '#7E1F17' })}</g>`;
+      }
+      if (st.ferOn > .01) {
+        const col = { l: s.color, m: s.color, d: s.color };
+        o += `<g opacity="${f(st.ferOn)}">${pc(roundP(s.tube / 2, st.crimped), fe.t0, fe.t1, METAL, st.wireOn > .5 ? .6 : 1)}`
+          + `${pc(roundP(fe.collarR), fe.c0, fe.c1 - 1.2, col, st.wireOn > .5 ? .75 : 1)}${pc(roundP(fe.flare), fe.c1 - 1.2, fe.c1, col, st.wireOn > .5 ? .75 : 1)}</g>`;
+      }
+      return o;
+    }
+    const wrap = x => toolOp < .99 ? `<g opacity="${f(toolOp)}">${x}</g>` : x;
+    const shadowSvg = KT.shadow([[GRIP.map(gripA), RA], [GRIP.map(gripB), RB], [armA, RA], [armB, RB], [ring, R0], [NECK, R0]], toolOp);
+    const s0 = 1.25, T0 = [60 - 40 * s0, 6 - 22 * s0];
+    const s1 = 2.4, F = P([HEAD[0], 4, 0]), T1 = [-40 - F[0] * s1, 30 - F[1] * s1];
+    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
+    const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
+    const scene = KT.mat(this.viewBox) + shadowSvg + `<g class="eq-pin">${part(false)}</g>` + wrap(tool) + `<g class="eq-pin">${part(true)}</g>`;
+    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
+    const IC = [278, -122], IR = 76;
+    if (st.inset > .02) {
+      if (st.side < .5) { const [dx, dy] = cam(P([HEAD[0], FRONT, HEAD[1]])); svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`; }
+      svg += inset(st, IC[0], IC[1], IR);
+    }
+    const at = (c, R, y) => { const [x, z] = R(c); return [x, y, z]; };
+    const tags = {
+      head:    { at: [HEAD[0] - 14, FRONT, 10], dx: -30, dy: -80, text: 'Crimp head' },
+      jaws:    { at: [HEAD[0], FRONT, 3], dx: -60, dy: 70, text: 'Self-adjusting jaws' },
+      ratchet: { at: [20, FRONT, -6], dx: 30, dy: 80, text: 'Ratchet (inside)' },
+      handles: { at: at(gripB([50, 0]), RB, 9.5), dx: 50, dy: 46, text: 'Handles' },
+      opening: { at: [HEAD[0], FRONT, holeR], dx: -20, dy: -80, text: 'Crimp opening' },
+      ferrule: { at: W([0, fe.c1 - .5, fe.collarR]), dx: -90, dy: 10, text: 'Ferrule' },
+      wire:    { at: W([0, st.wY + s.len + 6, 0]), dx: 80, dy: 26, text: 'Stripped wire' },
+      square:  { at: W([0, s.len * .5, s.tube / 2]), dx: 10, dy: -74, text: 'Square crimp' },
+      ends:    { at: W([0, 0, 0]), dx: -80, dy: 56, text: 'Strands flush with the end' },
+      collar:  { at: W([0, fe.c1 - 1, -fe.collarR]), dx: 60, dy: 60, text: 'Collar on the insulation' },
+    };
+    for (const tg of Object.values(tags)) tg.xy = cam(P(tg.at));
+    return { svg, tags, anchors: { flash: cam(P(at([22, 3], RA, 6))) } };
+  }
+
+  const K_PLACE = { ty: 0 }, K_INSERT = { wY: 0 };
+  function setHole(i) {
+    SEL.s = i;
+    const fe = FER();
+    K_PLACE.ty = 4.5 - fe.s.len / 2 * 1.6 * AX;                   // tube centred in the head's thickness
+    K_INSERT.wY = 0;
+    this.base.wY = fe.c1 + 16;
+  }
+  return {
+    id: 'ferrule', fig: 4, name: 'Ferrule crimper', sub: 'Self-adjusting, 0.25–6 mm²',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: FRONT_KIT.defs,
+    holes: SIZES, defaultHole: 3, holeLabel: h => `${h.mm2} mm² ferrule (about AWG ${h.awg})`,
+    holeNote: h => `Collar colour shown per DIN 46228-4; colour codes vary by brand, so check the box. The tool adjusts itself to the ferrule.`,
+    setHole,
+    vars: () => { const s = SIZES[SEL.s]; return { S: s.mm2, L: String(s.len) }; },
+    base: { open: 1, toolFade: 1, zoom: 0, glow: 0, ferOn: 0, wireOn: 0, ty: 40, wY: 30, crimped: 0,
+            inset: 0, side: 0, measure: 0, press: 0, insp: 0, ix: -10, iy: 40, iz: 6, as: 4.5 },
+    draw,
+    steps: [
+      { title: 'Get to know the ferrule crimper', dur: 1000,
+        body: 'A ratcheting crimper for wire-end ferrules from 0.25 to 6 mm², insulated or not. Four jaws in the round head close together into a square crimp, and they adjust themselves to the ferrule size, so there\'s no die to choose.',
+        tags: ['head', 'jaws', 'ratchet', 'handles'], keys: [] },
+      { title: 'Strip to the ferrule length', dur: 1700,
+        body: 'Pick a ferrule for your wire, here {S} mm², and strip the cable to the length of its metal tube ({L} mm). The magnifier shows the strip length against the ferrule.',
+        caution: 'Too short and the strands won\'t reach the end of the tube; too long and bare strands stick out past it.',
+        tags: ['wire'], keys: [[.2, { wireOn: 1 }], [.35, { inset: 1, side: 1, measure: 1 }]] },
+      { title: 'Insert the wire into the ferrule', dur: 1800,
+        body: 'Twist the strands lightly together and push the wire into the ferrule until the strands reach the end of the tube and the insulation sits in the collar.',
+        tags: ['ferrule', 'wire'], hot: ['ferrule'],
+        keys: [[0, { measure: 0 }], [.1, { ferOn: 1 }], [.85, K_INSERT]] },
+      { title: 'Put the ferrule in the jaw', dur: 1800,
+        body: 'With the tool open, put the ferrule\'s metal tube into the crimp opening from the front, with the collar just outside the jaws.',
+        tags: ['opening', 'ferrule'], hot: ['opening'],
+        keys: [[0, { inset: 0, side: 0 }], [.25, { glow: 1, zoom: 1 }], [.75, K_PLACE], [1, { glow: 0 }]] },
+      { title: 'Press the handle', dur: 2600,
+        body: 'Squeeze the handles all the way. The four jaws close evenly and square the tube onto the strands; the ratchet clicks and releases itself when the crimp is complete.',
+        tags: ['handles', 'ratchet'], hot: ['handles'],
+        keys: [[.15, { inset: 1 }], [.7, { open: 0, press: 1, crimped: 1 }], [1, { open: .3 }]],
+        flashes: [[.25, 'Click'], [.4, 'Click'], [.55, 'Click'], [.82, 'Released']] },
+      { title: 'Check the crimp', dur: 1900,
+        body: 'Take the ferrule out. The tube should be crimped square along its length, the strands flush with the end, and the collar sitting on the insulation.',
+        caution: 'Strands sticking out past the tube can short to the next terminal. Trim them flush or crimp a new ferrule.',
+        tags: ['square', 'ends', 'collar'], keys: [[0, { inset: 0 }], [.3, { open: 1, zoom: 0, ty: 30 }], [1, { toolFade: .05, insp: 1 }]] },
+      { title: 'Tension test', dur: 1500,
+        body: 'Hold the ferrule and pull the wire firmly. It shouldn\'t move or pull out. If it does, cut it off and crimp a new ferrule.',
+        tags: ['collar'], keys: [[.3, { ix: -14 }], [.6, { ix: -6 }], [1, { ix: -10 }]], flashes: [[.35, 'Pull'], [.7, 'Pull']] },
+    ],
+  };
+})();
+FERRULE.setHole(3);
+
+const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE];
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
 /* ---------- Equipment tab controller ---------- */
@@ -2405,7 +2930,7 @@ const wirePicker = (() => {
     if (!t?.holes || t === tool) return;
     tool = t;
     sel().innerHTML = t.holes.map((h, i) => `<option value="${i}">${esc(t.holeLabel(h))}</option>`).join('');
-    let i = Math.min(3, t.holes.length - 1);
+    let i = t.defaultHole ?? Math.min(3, t.holes.length - 1);
     try { const v = localStorage.getItem(`${t.id}-hole`); if (v !== null && t.holes[+v]) i = +v; } catch { /* storage unavailable */ }
     sel().value = i;
     apply(i);
