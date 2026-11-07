@@ -1421,7 +1421,7 @@ const PAD11 = (() => {
   let KT = 2.1;
   // In the front view the terminal points at you, so its length is foreshortened. Stretch it along its length:
   // a little for the contact, a lot from the barrels onwards, so the wings and what sits in them read clearly.
-  const AX_CONTACT = 1.6, AX_BARREL = 5;
+  const AX_CONTACT = 1.3, AX_BARREL = 3.2;
   const axialMap = (y, a1, a2) => { const b = GEO ? GEO.cb0 : 0; return y < b ? y * a1 : b * a1 + (y - b) * a2; };
   const axialInv = (v, a1, a2) => { const b = GEO ? GEO.cb0 : 0; return v < b * a1 ? v / a1 : b + (v - b * a1) / a2; };                                    // terminal drawn larger than life so it matches the drawn dies
 
@@ -1607,7 +1607,7 @@ const PAD11 = (() => {
       guide += [g.tip, wa.insU].map(u => `<line class="eq-guide" x1="${f(X(u))}" y1="${f(fy - g.hwC * S * .2)}" x2="${f(X(u))}" y2="${f(by + 4)}"/>`).join('');
       guide += `<path class="eq-bracket" d="M${f(X(g.tip))} ${f(by)} L${f(X(wa.insU))} ${f(by)} M${f(X(g.tip))} ${f(by - 4)} L${f(X(g.tip))} ${f(by + 4)} M${f(X(wa.insU))} ${f(by - 4)} L${f(X(wa.insU))} ${f(by + 4)}"/>`
         + `<text class="eq-inset-small" x="${f((X(g.tip) + X(wa.insU)) / 2)}" y="${f(by + 14)}" text-anchor="middle">strip length</text>`;
-    } else if (st.wireOn > .01) w += wireAt(st.wY, fy).s;      // steps 6 and 8: the wire in the terminal
+    } else if (st.wireOn > .01) w += wireAt(st.wY + st.wOff / (KT * AX_BARREL), fy).s;      // steps 6 and 8: the wire in the terminal
     // wings, drawn see-through over the wire so you can see what sits inside them
     const wing = (u0, u1, h, hot) => {
       const a = X(u0), b = X(u1), top = fy - h * S, ch = Math.min(1.2, (u1 - u0) * .25) * S;
@@ -1747,6 +1747,8 @@ const PAD11 = (() => {
     const O = [lerp(seatO[0], st.ix, st.insp), lerp(seatO[1], st.iy, st.insp), lerp(seatO[2], st.iz, st.insp)];
     const W = ([x, y, z]) => { const yy = A(y); return [O[0] + (Ax[0] * x + Ay[0] * yy) * k, O[1] + (Ax[1] * x + Ay[1] * yy) * k, O[2] + z * k]; };
     const frame = { o: O, U: Ax.map(v => v * k), V: Az.map(v => v * k), W: Ay.map(v => v * k) };
+    const wOff = st.wOff * (1 - st.insp);                    // the wire waits this far in front of the terminal (world units)
+    const WW = p => { const q = W(p); q[1] += wOff; return q; };
     function assembly(front) {
       // split at the die plates' front face: parts behind it are drawn before the (see-through) plates
       const g = GEO, ky = Ay[1] * k;
@@ -1766,7 +1768,9 @@ const PAD11 = (() => {
         const up = Math.abs(n[2]), fill = up > .7 ? m.l : up > .3 ? m.m : m.d;
         return `<polygon points="${EQ.pts(w3)}" fill="${fill}"/>`;
       };
-      const tb = (y0, y1, d, m, z) => { const [a, b] = clip(y0, y1); return b > a ? tube([W([0, a, z]), W([0, b, z])], d * k * K, m, 'butt') : ''; };
+      const cutW = Math.abs(ky) < 1e-3 ? (O[1] + wOff >= FRONT ? -1e9 : 1e9) : axialInv((FRONT - O[1] - wOff) / ky, a1, a2);
+      const clipW = (a0, b0) => front ? [Math.max(a0, cutW), b0] : [a0, Math.min(b0, cutW)];
+      const tb = (y0, y1, d, m, z) => { const [a, b] = clipW(y0, y1); return b > a ? tube([WW([0, a, z]), WW([0, b, z])], d * k * K, m, 'butt') : ''; };
       let s = '';
       // contact, transition and open barrels
       if (st.termOn > .01) {
@@ -1782,11 +1786,11 @@ const PAD11 = (() => {
         let w = tb(wy, wy + strip + .1, g.cond, M.copper, g.zc);
         if (st.slug < .99) { const off = -st.slug * strip * 2; const sl = tb(wy + off, wy + strip + off, g.od, RED, g.zi); if (sl) w += `<g opacity="${f(1 - st.slug)}">${sl}</g>`; }
         const ins0 = wy + strip, insEnd = ins0 + st.wireLen;
-        const [a, b] = clip(ins0, insEnd);
+        const [a, b] = clipW(ins0, insEnd);
         if (b > a) {
-          w += tube([W([0, a, g.zi]), W([0, b, g.zi])], g.od * k * K, RED, 'butt');
+          w += tube([WW([0, a, g.zi]), WW([0, b, g.zi])], g.od * k * K, RED, 'butt');
           if (b >= insEnd - .01 && st.wireLen < 60) {
-            const [ex, ey] = P(W([0, insEnd, g.zi])), r = g.od / 2 * k * K;
+            const [ex, ey] = P(WW([0, insEnd, g.zi])), r = g.od / 2 * k * K;
             w += `<ellipse class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" rx="${f(r)}" ry="${f(r * .9)}" fill="${RED.d}" stroke="#2a0d09" stroke-width=".8"/><circle class="eq-noink" cx="${f(ex)}" cy="${f(ey)}" r="${f(g.cond / 2 * k * K)}" fill="${M.copper.m}"/>`;
           }
         }
@@ -1937,12 +1941,12 @@ const PAD11 = (() => {
       cutter:  { at: at([25, -3], RB, 8.3), dx: 50, dy: -84, text: 'Wire cutter' },
       lock:    { at: at([LOCK_HUB[0] - 6, LOCK_HUB[1] - 6], RA, 8.4), dx: -60, dy: 56, text: 'Lock switch' },
       handles: { at: at(gripA([46, 4]), RA, 5.5), dx: 40, dy: 54, text: 'Handles' },
-      scale:   { at: at([-10.6, -12], RB, 8), dx: 60, dy: 66, text: 'Scale (mm)' },
+      scale:   { at: at([-10.6, -12], RB, 8), dx: 40, dy: -96, text: 'Scale (mm)' },
       die16:   { at: at([DIES[SEL.c].x, 4.5], RA, FRONT), dx: -60, dy: -62, text: `${dieName(SEL.c)} mm die` },
       die19:   { at: at([DIES[SEL.i].x, 4.5], RA, FRONT), dx: 10, dy: -78, text: `${dieName(SEL.i)} mm die` },
       terminal:{ at: tagAt(GEO.Lc * .5, GEO.H), dx: -86, dy: 22, text: SPEC.name || 'Terminal' },
-      wire:    { at: tagAt(st.wY + GEO.strip + 6, GEO.zi), dx: 78, dy: 26, text: 'Stripped wire' },
-      strip:   { at: tagAt(st.wY + 1), dx: 96, dy: -34, text: 'Strip length' },
+      wire:    { at: WW([0, st.wY + GEO.strip + 6, GEO.zi]), dx: 120, dy: 34, text: 'Stripped wire' },
+      strip:   { at: WW([0, st.wY + 1, 0]), dx: 120, dy: 14, text: 'Strip length' },
       bell:    { at: tagAt(GEO.cb1 - .1, GEO.zc + GEO.cond * .7), dx: -40, dy: -64, text: 'Bellmouth' },
       brush:   { at: tagAt(GEO.cb0 - .15, GEO.zc), dx: -24, dy: 58, text: 'Strand ends showing' },
       insul:   { at: tagAt((GEO.ib0 + GEO.ib1) / 2, GEO.od + GEO.t), dx: 60, dy: -60, text: 'Grips the insulation' },
@@ -1964,7 +1968,7 @@ const PAD11 = (() => {
     <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
   const MOVE_KEY = { die: 4, glowI: 1 };
-  const K_PLACE = { ty: -4.4 }, K_INSERT = { wY: 5.1 }, K_INS_TY = { ty: -8.4 }, K_INSPECT = { toolFade: .03, insp: 1, wireLen: 7 };
+  const K_PLACE = { ty: -4.4 }, K_INSERT = { wOff: 0 }, K_INS_TY = { ty: -8.4 }, K_INSPECT = { toolFade: .03, insp: 1, wireLen: 7 };
   // Set which terminal is shown (a key of TERM_SPECS, or null for a generic one) and its dies (indexes into DIES)
   function setTerminal(specKey, c, i) {
     SEL.c = c; SEL.i = i;
@@ -1977,7 +1981,7 @@ const PAD11 = (() => {
     b.die = c; MOVE_KEY.die = i;
     K_PLACE.ty = seatY - axialMap(GEO.cb0 + GEO.Lb / 2, AX_CONTACT, AX_BARREL) * KT;
     K_INS_TY.ty = seatY - axialMap(GEO.ib0 + GEO.Li / 2, AX_CONTACT, AX_BARREL) * KT;
-    b.wY = GEO.L + 14; K_INSERT.wY = GEO.tip;
+    b.wY = GEO.tip;
     b.as = 8; K_INSPECT.wireLen = Math.max(4, 10 - GEO.L * .4);       // true relative size between terminals
     b.ix = 50 - (GEO.L + K_INSPECT.wireLen) * b.as / 2;               // centre it in the view
   }
@@ -1991,7 +1995,7 @@ const PAD11 = (() => {
     id: 'pad11', fig: 2, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
     viewBox: [-215, -212, 600, 430],
     look: 'real', defs,
-    base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 48, wY: 26, slug: 0,
+    base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 24, wY: 26, wOff: 9, slug: 0,
             crimpC: 0, crimpI: 0, wireLen: 120, dieAlpha: 0, hotC: 0, hotI: 0, inset: 0, insetKind: 0, insetPress: 0, insetWire: 0, insetTerm: 0, insetSide: 0, measure: 0, sideHot: 0,
             insp: 0, ix: -21, iy: 40, iz: 6.5, as: 9, zoom: 0 },
     draw,
@@ -2009,7 +2013,7 @@ const PAD11 = (() => {
         body: 'Strip just enough for the bare strands to fill the first wing (the conductor barrel), with the insulation starting where the second wing begins. The magnifier shows the strip length against the terminal; the datasheet gives the exact figure, and you can check it against the scale on the head. Keep the strands straight and untwisted.',
         caution: 'Too short and the strands won\'t reach through the first wing; too long and bare wire ends up under the second wing. Nicked or missing strands make a weak crimp too: trim and strip again.',
         tags: ['wire', 'strip', 'scale'], hot: ['strip'],
-        keys: [[.2, { wireOn: 1 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
+        keys: [[.2, { wireOn: 1, zoom: .35 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
       { title: 'Pick the die', dur: 1100,
         body: 'Use the {C} mm die for the conductor barrel. For a terminal that isn\'t set up yet, measure the barrel width with its wings parallel and use the die that matches. If there\'s no exact match, round up: a 1.5 mm barrel goes in the 1.6 mm die.',
         tags: ['die16'], hot: ['die16'],
