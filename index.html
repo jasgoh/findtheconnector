@@ -518,6 +518,12 @@ label.btn { cursor: pointer; }
 .eq-empty { color: var(--muted); padding: 2rem 0; }
 .eq-size-label { margin-top: .8rem; }
 .sd-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+.mk-onmat { fill: var(--ink); }
+.mk-logo { font-family: 'Arial Black', var(--font-display); font-style: italic; font-weight: 900; font-size: 25px; fill: #fff; stroke: #0b3b44; stroke-width: 1.2; paint-order: stroke; letter-spacing: -.01em; }
+.mk-logo-s { font-family: 'Arial Black', var(--font-display); font-style: italic; font-weight: 900; font-size: 17px; fill: #fff; }
+.mk-cap { font-family: var(--font-display); font-weight: 700; font-size: 7px; fill: #111; }
+.mk-lxt { font-family: var(--font-display); font-weight: 700; font-style: italic; font-size: 7px; fill: #3FC3D2; }
+.mk-tq { font-family: var(--font-display); font-weight: 700; font-size: 6.4px; fill: #F2F4F6; }
 .mk-batt { font-family: var(--font-display); font-size: 11px; fill: #9fe7ee; font-weight: 700; }
 .mk-brand { font-family: var(--font-display); font-size: 12px; fill: #E8F7F9; font-weight: 700; letter-spacing: .04em; }
 .mk-num { font-family: var(--font-mono); font-size: 9px; fill: #E8EAED; font-weight: 600; }
@@ -1954,7 +1960,7 @@ const PAD11 = (() => {
     const mat = `<g class="eq-mat eq-noink"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}"/>${grid}</g>`;
 
     // overview: whole tool centred; close-up: the dies, leaving room for the magnifier
-    const s0 = 1.3, T0 = [85 - 97 * s0, 12 - 46 * s0];
+    const s0 = 1.14, T0 = [85 - 97 * s0, 10 - 46 * s0];
     const s1 = 2.3, F = P([-16, 2, 0]), T1 = [-28 - F[0] * s1, 50 - F[1] * s1];
     const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
@@ -3072,12 +3078,17 @@ const MK = (() => {
       + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
   }
   const defs = `
-    <linearGradient id="mk-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37C2CF"/><stop offset=".5" stop-color="#0E98A6"/><stop offset="1" stop-color="#086B76"/></linearGradient>
+    <linearGradient id="mk-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3FC3D2"/><stop offset=".5" stop-color="#0D9CB0"/><stop offset="1" stop-color="#077284"/></linearGradient>
     <linearGradient id="mk-black" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A4F56"/><stop offset=".5" stop-color="#26292E"/><stop offset="1" stop-color="#121417"/></linearGradient>
     <linearGradient id="mk-steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6F7"/><stop offset=".5" stop-color="#B9C0C6"/><stop offset="1" stop-color="#7E868D"/></linearGradient>
     <linearGradient id="mk-steelv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7E868D"/><stop offset=".45" stop-color="#F4F6F7"/><stop offset="1" stop-color="#8E979E"/></linearGradient>
     <linearGradient id="mk-plate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9CED3"/><stop offset="1" stop-color="#8E959B"/></linearGradient>
     <linearGradient id="mk-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C79A5B"/><stop offset="1" stop-color="#8E6634"/></linearGradient>
+ <linearGradient id="mk-rubber" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a3e44"/><stop offset=".45" stop-color="#26292e"/><stop offset="1" stop-color="#141618"/></linearGradient>
+    <linearGradient id="mk-chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".35" stop-color="#C9CED3"/><stop offset=".6" stop-color="#8E959B"/><stop offset="1" stop-color="#D9DDE1"/></linearGradient>
+    <linearGradient id="mk-button" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F3F4"/><stop offset="1" stop-color="#B9BEC3"/></linearGradient>
+    <linearGradient id="mk-ash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E3C3"/><stop offset=".5" stop-color="#E2C99B"/><stop offset="1" stop-color="#C9A979"/></linearGradient>
+    <linearGradient id="mk-rubberh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a3d42"/><stop offset=".35" stop-color="#1d1f22"/><stop offset="1" stop-color="#0b0c0e"/></linearGradient>
     <linearGradient id="mk-handle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7A4E26"/><stop offset=".5" stop-color="#B07A40"/><stop offset="1" stop-color="#6A421E"/></linearGradient>`;
   return { mat, scene, pt, inset, defs };
 })();
@@ -3085,53 +3096,72 @@ const MK = (() => {
 /* ---------- Mechanical Fig. 01: Power drill (Makita DHP482) ---------- */
 const DRILL = (() => {
   const { lerp, f } = EQ;
-  // the drill, side view: chuck to the left, handle down, battery at the bottom
+  // the drill, side view, drawn from Makita's DHP482 product photos: chuck to the left, handle down, battery at the bottom
   function drill(st) {
     let s = '';
-    const bx = -st.batt * 170, by = st.batt * 10;              // battery slides out to the front
-    // battery (18 V LXT): black and teal pack, release button at the front, red lock indicator on top
+    const AX = -41;                                                 // chuck axis (y)
+    const bx = -st.batt * 170, by = st.batt * 10;                  // battery slides out to the front
+    // ----- battery: black pack, teal band, big grey release button at the front, label on the side
     s += `<g transform="translate(${f(bx)} ${f(by)})">
-      <rect x="-48" y="112" width="150" height="40" rx="6" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>
-      <rect x="-44" y="114" width="142" height="12" rx="3" fill="url(#mk-teal)"/>
-      <rect x="-54" y="122" width="10" height="16" rx="2" fill="#1d1f22" stroke="rgba(0,0,0,.6)"/>
-      <text x="26" y="144" text-anchor="middle" class="mk-batt">18V Li-ion</text>
-      ${st.red > .02 ? `<rect x="80" y="108" width="12" height="5" rx="1" fill="#E0473A" opacity="${f(st.red)}"/>` : ''}</g>`;
-    // handle and base
-    s += `<path d="M18 -14 L58 -14 L70 108 L88 112 L88 116 L-40 116 L-40 108 L6 104 Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
-    s += `<path d="M24 -10 L52 -10 L60 96 L12 96 Z" fill="url(#mk-teal)" opacity=".85"/>`;
-    // trigger and reversing lever
-    const tr = st.trig * 6;
-    s += `<path d="M${f(4 - tr)} 6 Q ${f(-8 - tr)} 24 ${f(2 - tr)} 44 L${f(12 - tr)} 44 L${f(12 - tr)} 6Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
-    s += `<rect x="${f(10 + st.rev * 10)}" y="-8" width="18" height="10" rx="3" fill="#2a2d31" stroke="rgba(0,0,0,.6)"/>`;
-    // motor housing and gear case
-    s += `<path d="M-64 -76 L60 -76 Q 78 -76 78 -58 L78 -18 Q 78 -8 66 -8 L-64 -8 Z" fill="url(#mk-teal)" stroke="rgba(0,0,0,.6)"/>`;
-    s += `<rect x="-30" y="-70" width="96" height="16" rx="4" fill="url(#mk-black)" opacity=".9"/>`;
-    s += `<text x="20" y="-58" text-anchor="middle" class="mk-brand">makita</text>`;
-    // speed change lever on top: slides between 1 (back) and 2 (front)
+      <path d="M-52 118 L98 118 Q106 118 106 126 L106 154 Q106 162 98 162 L-48 162 Q-56 162 -56 154 L-56 124 Q-56 118 -52 118Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>
+      <path d="M-54 118 L104 118 L104 128 L-54 128Z" fill="url(#mk-teal)" opacity=".95"/>
+      <rect x="-60" y="128" width="26" height="24" rx="4" fill="url(#mk-button)" stroke="rgba(0,0,0,.55)"/>
+      <text x="40" y="146" text-anchor="middle" class="mk-logo-s">makita</text>
+      <rect x="6" y="149" width="68" height="9" rx="2" fill="#E8EAED"/><text x="40" y="156.5" text-anchor="middle" class="mk-cap">3.0Ah 18V Li-ion</text>
+      ${st.red > .02 ? `<rect x="88" y="113" width="12" height="5" rx="1" fill="#E0473A" opacity="${f(st.red)}"/>` : ''}</g>`;
+    // ----- foot (battery mount): teal, with the LXT badge
+    s += `<path d="M-44 104 L82 104 Q96 104 100 112 L104 120 L-50 120 L-48 110 Q-47 104 -44 104Z" fill="url(#mk-teal)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<path d="M-14 104 L72 104 L66 96 L0 96Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<rect x="58" y="108" width="20" height="8" rx="1.5" fill="#1d1f22"/><text x="68" y="114.6" text-anchor="middle" class="mk-lxt">LXT</text>`;
+    // ----- handle: black rubber grip, slanting back, teal strip down the back edge
+    // slimmer grip with a waist, angled back towards the bottom (as in the photos)
+    s += `<path d="M-16 -8 L50 -8 Q58 -6 58 6 Q56 26 54 40 Q52 56 58 74 Q62 88 62 98 L4 98 Q2 86 -2 72 Q-6 58 -8 46 Q-10 30 -16 18 Z" fill="url(#mk-rubber)" stroke="rgba(0,0,0,.7)"/>`;
+    s += `<path d="M48 -6 Q56 -4 56 8 Q54 28 52 42 Q50 58 56 76 Q60 88 60 96 L54 96 Q54 86 50 76 Q44 58 46 42 Q48 26 46 6 Q46 0 42 -4Z" fill="url(#mk-teal)"/>`;
+    for (let i = 0; i < 3; i++) s += `<path d="M${f(10 + i * 10)} 26 Q ${f(6 + i * 10)} 56 ${f(14 + i * 10)} 92" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/>`;
+    // ----- trigger and the reversing button just above it
+    const tr = st.trig * 7;
+    s += `<path d="M${f(-16 - tr)} 2 Q ${f(-30 - tr)} 18 ${f(-24 - tr)} 40 Q ${f(-22 - tr)} 46 ${f(-14 - tr)} 44 L${f(-6 - tr)} 44 L${f(-4 - tr)} 2Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>`;
+    s += `<rect x="${f(4 + (st.rev - .5) * 12)}" y="-15" width="20" height="9" rx="4.5" fill="#26292e" stroke="rgba(0,0,0,.7)"/>`;
+    // ----- motor housing and gear case: teal shell, black side panel, big makita logo, vents
+    s += `<path d="M-84 -78 Q-84 -86 -74 -86 L60 -88 Q86 -88 92 -70 L94 -30 Q94 -8 72 -8 L-20 -8 L-30 -14 L-84 -14Z" fill="url(#mk-teal)" stroke="rgba(0,0,0,.65)"/>`;
+    s += `<path d="M-62 -72 L58 -74 Q76 -74 80 -60 L82 -30 Q82 -20 70 -20 L-62 -20Z" fill="url(#mk-black)" opacity=".92"/>`;
+    s += `<path d="M-44 -66 L62 -68 Q72 -68 72 -58 L72 -40 Q72 -32 62 -32 L-44 -32 Q-50 -32 -50 -38 L-50 -60 Q-50 -66 -44 -66Z" fill="url(#mk-teal)" stroke="rgba(0,0,0,.4)"/>`;
+    s += `<text x="12" y="-41" text-anchor="middle" class="mk-logo">makita</text>`;
+    for (let i = 0; i < 5; i++) { s += `<rect x="${f(66 + i * 4.5)}" y="-82" width="2.4" height="8" rx="1" fill="#0b0c0e"/>`; s += `<rect x="${f(64 + i * 4.5)}" y="-18" width="2.4" height="7" rx="1" fill="#0b0c0e"/>`; }
+    s += `<path d="M86 -78 Q94 -66 94 -46 L94 -26 Q92 -14 84 -12 L86 -30 L86 -60Z" fill="url(#mk-black)" opacity=".9"/>`;
+    // ----- LED under the gear case
+    s += `<path d="M-30 -14 L-14 -14 L-16 -8 L-28 -8Z" fill="#1d1f22"/><ellipse cx="-22" cy="-11" rx="4" ry="2.4" fill="#F2F4F6"/>`;
+    // ----- speed change lever on top: black slider between 2 (front) and 1 (back)
     const sp = lerp(10, -14, st.speed);
-    s += `<rect x="-28" y="-84" width="44" height="10" rx="4" fill="#1d1f22"/><text x="-22" y="-87" class="mk-num">2</text><text x="10" y="-87" class="mk-num">1</text>`;
-    s += `<rect x="${f(sp - 6)}" y="-90" width="14" height="16" rx="3" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
-    // action mode ring and torque adjusting ring, then the chuck
-    s += `<rect x="-86" y="-70" width="22" height="58" rx="5" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
-    s += `<rect x="-108" y="-68" width="22" height="54" rx="5" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
-    for (let i = 0; i < 7; i++) { const yy = -64 + ((i * 8 + st.ringSpin * 40) % 48); s += `<line x1="-104" y1="${f(yy)}" x2="-90" y2="${f(yy)}" stroke="#5a5f66" stroke-width="2"/>`; }
-    s += `<text x="-97" y="-74" text-anchor="middle" class="mk-num">${st.modeIcon || ''}</text>`;
-    s += `<path d="M-64 -80 L-58 -86 L-70 -86Z" fill="#fff"/>`;                     // arrow mark on the body
-    // keyless chuck: ribbed sleeve, jaws at the front
-    const cs = st.chuckSpin * 40;
-    s += `<rect x="-166" y="-64" width="58" height="46" rx="8" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
-    for (let i = 0; i < 8; i++) { const yy = -60 + ((i * 6 + cs) % 40); s += `<line x1="-162" y1="${f(yy)}" x2="-114" y2="${f(yy)}" stroke="#4a4f56" stroke-width="2"/>`; }
-    const jo = lerp(1.5, 7, st.jaw);
-    s += `<path d="M-166 ${f(-41 - jo - 4)} L-180 ${f(-41 - jo)} L-180 ${f(-41 - jo + 2.5)} L-166 ${f(-41 - jo + 6)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
-    s += `<path d="M-166 ${f(-41 + jo + 4)} L-180 ${f(-41 + jo)} L-180 ${f(-41 + jo - 2.5)} L-166 ${f(-41 + jo - 6)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
-    // drill bit: smooth shank into the jaws, fluted body out front
+    s += `<path d="M-30 -86 L22 -87 L22 -84 L-30 -83Z" fill="#0b0c0e"/>`;
+    s += `<text x="-28" y="-90" class="mk-num mk-onmat">2</text><text x="16" y="-90" class="mk-num mk-onmat">1</text>`;
+    s += `<rect x="${f(sp - 7)}" y="-94" width="16" height="10" rx="3" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>`;
+    // ----- action mode ring (ridged) and torque ring (white numbers), arrow mark on the body
+    s += `<rect x="-94" y="-67" width="12" height="52" rx="3" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>`;
+    for (let i = 0; i < 9; i++) { const yy = -64 + ((i * 6 + st.ringSpin * 30) % 48); s += `<line x1="-92" y1="${f(yy)}" x2="-84" y2="${f(yy)}" stroke="#4a4f56" stroke-width="1.6"/>`; }
+    s += `<rect x="-118" y="-68" width="25" height="54" rx="5" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>`;
+    s += `<path d="M-93 -69 Q-89 -41 -93 -13" fill="none" stroke="#C9CED3" stroke-width="1.6"/>`;          // the silver rim between the rings
+    const nums = [5, 7, 9, 11, 13, 15, 17, 19, 21], off = (st.torqueVal || 0) * 7 % 7;
+    nums.forEach((n, i) => { const yy = -60 + i * 6.4 - (st.ringSpin || 0) * 12; if (yy > -66 && yy < -16) s += `<text x="-105.5" y="${f(yy + 2)}" text-anchor="middle" class="mk-tq">${n}</text>`; });
+    s += `<path d="M-80 -90 L-76 -96 L-84 -96Z" fill="var(--ink)"/>`;
+    // ----- keyless chuck: tapered black sleeve with ribs, silver nose with the jaws
+    const cs = (st.chuckSpin || 0) * 30;
+    s += `<path d="M-118 -63 L-160 -60 Q-166 -59 -166 -54 L-166 -28 Q-166 -23 -160 -22 L-118 -19Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>`;
+    for (let i = 0; i < 9; i++) { const yy = -58 + ((i * 4.8 + cs) % 36); s += `<line x1="-162" y1="${f(yy)}" x2="-122" y2="${f(yy - 1)}" stroke="#4a4f56" stroke-width="2"/>`; }
+    s += `<path d="M-166 -53 L-178 -48 Q-182 ${AX} -178 -34 L-166 -29Z" fill="url(#mk-chrome)" stroke="rgba(0,0,0,.6)"/>`;
+    const jo = lerp(1.2, 6, st.jaw);
+    s += `<path d="M-178 ${f(AX - jo - 3)} L-188 ${f(AX - jo)} L-188 ${f(AX - jo + 2)} L-178 ${f(AX - jo + 5)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<path d="M-178 ${f(AX + jo + 3)} L-188 ${f(AX + jo)} L-188 ${f(AX + jo - 2)} L-178 ${f(AX + jo - 5)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    // ----- drill bit: smooth shank into the jaws, fluted body out front
     if (st.bitOn > .02) {
-      const bxs = lerp(-300, -178, st.bitIn);                      // shank end position
-      s += `<g opacity="${f(st.bitOn)}"><rect x="${f(bxs - 70)}" y="-45" width="78" height="8" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
-      for (let i = 0; i < 6; i++) s += `<path d="M${f(bxs - 70 + i * 9)} -45 l 9 8" stroke="#6b737a" stroke-width="2"/>`;
-      s += `<path d="M${f(bxs - 70)} -45 L${f(bxs - 80)} -41 L${f(bxs - 70)} -37Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
-      s += `<rect x="${f(bxs + 8)}" y="-44.5" width="${f(Math.min(40, -178 + 52 - bxs))}" height="7" fill="url(#mk-steel)" stroke="rgba(0,0,0,.4)"/></g>`;
+      const bxs = lerp(-310, -186, st.bitIn);
+      s += `<g opacity="${f(st.bitOn)}"><rect x="${f(bxs - 70)}" y="${AX - 4}" width="78" height="8" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+      for (let i = 0; i < 6; i++) s += `<path d="M${f(bxs - 70 + i * 9)} ${AX - 4} l 9 8" stroke="#6b737a" stroke-width="2"/>`;
+      s += `<path d="M${f(bxs - 70)} ${AX - 4} L${f(bxs - 80)} ${AX} L${f(bxs - 70)} ${AX + 4}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+      s += `<rect x="${f(bxs + 8)}" y="${AX - 3.5}" width="${f(Math.max(0, Math.min(40, -186 + 52 - bxs)))}" height="7" fill="url(#mk-steel)" stroke="rgba(0,0,0,.4)"/></g>`;
     }
+    // ----- belt clip on the side of the foot, over the battery
+    s += `<path d="M74 100 L90 100 Q94 100 94 106 L92 150 Q91 156 85 156 L80 156 Q74 156 74 150 L76 110 L72 106Z" fill="url(#mk-chrome)" stroke="rgba(0,0,0,.55)"/><rect x="80" y="124" width="6" height="18" rx="3" fill="#2a2d31"/>`;
     return s;
   }
   // magnifier for the rings and lever
@@ -3164,22 +3194,22 @@ const DRILL = (() => {
     return '';
   }
   const tagsFor = st => ({
-    battery: { xy: MK.pt(st, 30 - st.batt * 170, 132), dx: 60, dy: 50, text: 'Battery' },
-    button:  { xy: MK.pt(st, -49 - st.batt * 170, 130), dx: -50, dy: 60, text: 'Release button' },
-    red:     { xy: MK.pt(st, 86, 110), dx: 70, dy: -40, text: 'Red indicator hidden = locked' },
-    rev:     { xy: MK.pt(st, 19 + st.rev * 10, -3), dx: 80, dy: 40, text: 'Reversing lever (centre = lock)' },
-    trigger: { xy: MK.pt(st, 0, 26), dx: -70, dy: 70, text: 'Trigger' },
-    chuck:   { xy: MK.pt(st, -137, -18), dx: -40, dy: 80, text: 'Keyless chuck' },
-    jaws:    { xy: MK.pt(st, -178, -41), dx: -40, dy: -80, text: 'Jaws' },
-    bit:     { xy: MK.pt(st, lerp(-300, -178, st.bitIn) - 40, -41), dx: -20, dy: 70, text: 'Drill bit' },
-    speed:   { xy: MK.pt(st, -2, -84), dx: 40, dy: -60, text: 'Speed lever: 1 low, 2 high' },
-    mode:    { xy: MK.pt(st, -75, -70), dx: 10, dy: -80, text: 'Action mode ring' },
-    torque:  { xy: MK.pt(st, -97, -68), dx: -50, dy: -70, text: 'Torque ring (1–21)' },
+    battery: { xy: MK.pt(st, 40 - st.batt * 170, 138), dx: 60, dy: 50, text: 'Battery' },
+    button:  { xy: MK.pt(st, -47 - st.batt * 170, 140), dx: -50, dy: 60, text: 'Release button' },
+    red:     { xy: MK.pt(st, 94, 116), dx: 70, dy: -40, text: 'Red indicator hidden = locked' },
+    rev:     { xy: MK.pt(st, 14 + (st.rev - .5) * 12, -11), dx: 80, dy: 40, text: 'Reversing lever (centre = lock)' },
+    trigger: { xy: MK.pt(st, -16, 24), dx: -70, dy: 70, text: 'Trigger' },
+    chuck:   { xy: MK.pt(st, -140, -20), dx: -40, dy: 80, text: 'Keyless chuck' },
+    jaws:    { xy: MK.pt(st, -186, -41), dx: -40, dy: -80, text: 'Jaws' },
+    bit:     { xy: MK.pt(st, lerp(-310, -186, st.bitIn) - 40, -41), dx: -20, dy: 70, text: 'Drill bit' },
+    speed:   { xy: MK.pt(st, 1, -94), dx: 40, dy: -60, text: 'Speed lever: 1 low, 2 high' },
+    mode:    { xy: MK.pt(st, -88, -67), dx: 10, dy: -80, text: 'Action mode ring' },
+    torque:  { xy: MK.pt(st, -105, -68), dx: -50, dy: -70, text: 'Torque ring (1–21)' },
   });
 
   const BATTERY = {
     label: 'Battery',
-    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 1, bitIn: 1, inset: 0, view: '', torqueVal: 5, modeVal: 1, zoom: 1, zs: 1.35, fx: -20, fy: 30 },
+    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 1, bitIn: 1, inset: 0, view: '', torqueVal: 5, modeVal: 1, zoom: 1, zs: 1.12, fx: -75, fy: 33 },
     steps: [
       { title: 'Lock the trigger', dur: 1300,
         body: 'Before you remove or fit the battery, set the reversing lever to the centre. In the centre position the trigger can\'t be pulled, so the drill can\'t start by accident.',
@@ -3201,7 +3231,7 @@ const DRILL = (() => {
   };
   const BIT = {
     label: 'Drill bit',
-    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 0, bitIn: 0, inset: 0, view: '', torqueVal: 5, modeVal: 1, zoom: 1, zs: 1.35, fx: -20, fy: 30 },
+    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 0, bitIn: 0, inset: 0, view: '', torqueVal: 5, modeVal: 1, zoom: 1, zs: 1.12, fx: -75, fy: 33 },
     steps: [
       { title: 'Make it safe', dur: 1200,
         body: 'Set the reversing lever to the centre (lock), or take the battery out, before touching the chuck.',
@@ -3218,12 +3248,12 @@ const DRILL = (() => {
       { title: 'Check it runs true', dur: 1500,
         body: 'Set the reversing lever back to forward and give a short squeeze of the trigger. The bit should spin without wobbling; if it wobbles, open the chuck and reseat it.',
         caution: 'To remove the bit, lock the trigger first, then turn the sleeve anticlockwise.',
-        tags: ['bit', 'rev'], keys: [[.3, { rev: 1, zs: 1.35, fx: -20, fy: 30 }], [.6, { trig: 1 }], [.9, { trig: 0 }]] },
+        tags: ['bit', 'rev'], keys: [[.3, { rev: 1, zs: 1.12, fx: -75, fy: 33 }], [.6, { trig: 1 }], [.9, { trig: 0 }]] },
     ],
   };
   const TORQUE = {
     label: 'Torque & speed',
-    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 1, bitIn: 1, inset: 0, view: '', torqueVal: 1, modeVal: 1, zoom: 1, zs: 1.35, fx: -20, fy: 30 },
+    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 1, bitIn: 1, inset: 0, view: '', torqueVal: 1, modeVal: 1, zoom: 1, zs: 1.12, fx: -75, fy: 33 },
     steps: [
       { title: 'Stop the drill first', dur: 1200,
         body: 'Only change the speed or mode with the drill stopped. Moving the speed lever while it\'s running can damage the gearbox.',
@@ -3234,14 +3264,14 @@ const DRILL = (() => {
         tags: ['speed'], hot: ['speed'], keys: [[.2, { zs: 1.9, fx: -40, fy: -40 }], [.8, { speed: 1 }]], flashes: [[.82, 'Speed 2']] },
       { title: 'Choose the mode', dur: 2000,
         body: 'Turn the action mode ring (the one nearest the body) to line the symbol up with the arrow: the screw for screwdriving, the drill bit for drilling, the hammer for drilling masonry.',
-        tags: ['mode'], hot: ['mode'], keys: [[0, { view: 'mode', modeVal: 1 }], [.2, { inset: 1 }], [.85, { modeVal: 0, ringSpin: .5 }]] },
+        tags: ['mode'], hot: ['mode'], keys: [[0, { view: 'mode', modeVal: 1 }], [.2, { inset: 1, zs: 1.2, fx: 40, fy: -30 }], [.85, { modeVal: 0, ringSpin: .5 }]] },
       { title: 'Set the torque', dur: 2200,
         body: 'In screwdriving mode, turn the adjusting ring to set the torque: 1 is lowest, 21 highest. Start low for small screws or soft material and go up until the screw seats flush. When the set torque is reached, the clutch slips with a ratcheting sound instead of stripping the screw.',
         caution: 'The torque ring only works in screwdriving mode; in drilling and hammer modes the clutch is off.',
         tags: ['torque'], hot: ['torque'], keys: [[0, { view: 'torque', torqueVal: 1 }], [.15, { inset: 1 }], [.85, { torqueVal: 5, ringSpin: 1 }]], flashes: [[.9, 'Torque 11']] },
       { title: 'Control speed with the trigger', dur: 1800,
         body: 'The further you squeeze the trigger, the faster it turns. Start slowly so the bit or screw doesn\'t slip, then speed up. Use the reversing lever to change direction, only when the drill has stopped.',
-        tags: ['trigger', 'rev'], hot: ['trigger'], keys: [[0, { inset: 0 }], [.3, { zs: 1.35, fx: -20, fy: 30 }], [.5, { trig: 1 }], [.9, { trig: 0 }]] },
+        tags: ['trigger', 'rev'], hot: ['trigger'], keys: [[0, { inset: 0 }], [.3, { zs: 1.12, fx: -75, fy: 33 }], [.5, { trig: 1 }], [.9, { trig: 0 }]] },
     ],
   };
   const MODES = [BATTERY, BIT, TORQUE];
@@ -3282,18 +3312,24 @@ const PUNCH = (() => {
       <rect x="-6" y="-110" width="12" height="88" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/>
       ${Array.from({ length: 10 }, (_, i) => `<line x1="-6" y1="${-100 + i * 6}" x2="6" y2="${-96 + i * 6}" stroke="#6b737a" stroke-width="1"/>`).join('')}
       <rect x="-7" y="-118" width="14" height="8" rx="2" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/></g>`;
-    // the hammer: swings down onto the punch head
+    // rubber mallet: black rubber head (face down onto the punch), pale ash handle; it swings down to tap
     if (st.hammerOn > .02) {
-      const hy = py - 118 - lerp(70, 0, st.strike) - st.lift * 30;
-      b += `<g opacity="${f(st.hammerOn)}"><rect x="${px - 28}" y="${f(hy - 22)}" width="56" height="22" rx="3" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>
-        <rect x="${px + 24}" y="${f(hy - 15)}" width="150" height="9" rx="4" fill="url(#mk-handle)" stroke="rgba(0,0,0,.5)"/></g>`;
+      const hy = py - 118 - lerp(70, 0, st.strike) - st.lift * 30;     // bottom face of the head
+      const hw = 40, hh = 50;
+      let grain = '';
+      for (let i = 0; i < 5; i++) grain += `<path d="M${px - hw / 2 - 4} ${f(hy - hh / 2 - 5 + i * 2.6)} Q ${px - 90} ${f(hy - hh / 2 - 6 + i * 2.6 + (i % 2 ? 1.5 : -1.5))} ${px - 172} ${f(hy - hh / 2 - 5 + i * 2.6)}" fill="none" stroke="#B89462" stroke-width=".8" opacity=".7"/>`;
+      b += `<g opacity="${f(st.hammerOn)}">
+        <path d="M${px - hw / 2 + 2} ${f(hy - hh / 2 - 7)} L${px - 172} ${f(hy - hh / 2 - 8)} Q ${px - 182} ${f(hy - hh / 2)} ${px - 172} ${f(hy - hh / 2 + 8)} L${px - hw / 2 + 2} ${f(hy - hh / 2 + 7)}Z" fill="url(#mk-ash)" stroke="rgba(0,0,0,.45)"/>${grain}
+        <rect x="${px - hw / 2}" y="${f(hy - hh)}" width="${hw}" height="${hh}" rx="9" fill="url(#mk-rubberh)" stroke="rgba(0,0,0,.7)"/>
+        <rect x="${px - hw / 2}" y="${f(hy - hh * .56)}" width="${hw}" height="${f(hh * .12)}" fill="#0b0c0e" opacity=".85"/>
+        <rect x="${px - hw / 2 + 5}" y="${f(hy - hh + 4)}" width="6" height="${hh - 8}" rx="3" fill="#fff" opacity=".12"/></g>`;
     }
     const tags = {
       rule:   { xy: MK.pt(st, -100, PLATE_Y - 9), dx: -40, dy: -80, text: 'Steel rule' },
       scribe: { xy: MK.pt(st, lerp(-60, 20, st.scribeX) + 30, PLATE_Y - 90), dx: 60, dy: -50, text: 'Scriber' },
       punch:  { xy: MK.pt(st, px, PLATE_Y - 60), dx: -90, dy: -40, text: 'Centre punch' },
       tip:    { xy: MK.pt(st, px, PLATE_Y - 2), dx: -100, dy: 50, text: 'Tip on the crossing' },
-      hammer: { xy: MK.pt(st, px + 90, py - 118 - lerp(70, 0, st.strike) - st.lift * 30 - 10), dx: 70, dy: 30, text: 'Light hammer' },
+      hammer: { xy: MK.pt(st, px - 110, py - 118 - lerp(70, 0, st.strike) - st.lift * 30 - 25), dx: -40, dy: 50, text: 'Rubber mallet' },
       dimple: { xy: MK.pt(st, px, PLATE_Y), dx: -70, dy: 70, text: 'Dimple' },
     };
     // magnifier: top view of the layout lines and the punch mark
@@ -3309,7 +3345,7 @@ const PUNCH = (() => {
   return {
     id: 'punch', fig: 2, name: 'Centre punch', sub: 'Marking hole centres', cat: 'mechanical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
-    base: { blue: 0, rule: 0, scribe: 0, scribeX: 0, lines: 0, punchOn: 0, tilt: 30, lift: 1, hammerOn: 0, strike: 0, depth: 0, off: 0, inset: 0, zoom: 1, zs: 1.45, fx: 0, fy: 30 },
+    base: { blue: 0, rule: 0, scribe: 0, scribeX: 0, lines: 0, punchOn: 0, tilt: 30, lift: 1, hammerOn: 0, strike: 0, depth: 0, off: 0, inset: 0, zoom: 1, zs: 1.4, fx: 30, fy: -6 },
     steps: [
       { title: 'Measure and mark the lines', dur: 2200,
         body: 'Measure the hole position from a finished edge with a steel rule (or a vernier caliper for accuracy) and scribe a fine line. Do the same in the other direction, so two lines cross exactly at the hole centre. Layout fluid or a marker on the metal makes the lines easier to see.',
@@ -3321,14 +3357,14 @@ const PUNCH = (() => {
         body: 'Keeping the point where it is, bring the punch upright so it\'s square to the surface.',
         tags: ['punch'], hot: ['punch'], keys: [[.9, { tilt: 0 }]] },
       { title: 'Give it a light tap', dur: 1700,
-        body: 'Tap the top of the punch lightly with a small hammer to make a shallow dimple. Then check it: it should sit right on the crossing.',
+        body: 'Tap the top of the punch lightly with a rubber mallet to make a shallow dimple. Hold the punch firmly so it doesn\'t bounce. Then check the dimple: it should sit right on the crossing.',
         tags: ['hammer', 'dimple'], hot: ['hammer'], keys: [[.2, { hammerOn: 1 }], [.55, { strike: 1, depth: .35 }], [.85, { strike: 0 }]], flashes: [[.56, 'Tap']] },
       { title: 'Correct it if needed', dur: 1600,
         body: 'If the dimple is off, put the punch back in it, angle it slightly towards the crossing, and tap again to draw it over. Fix it now: a drill follows the dimple exactly.',
         tags: ['dimple'], keys: [] },
       { title: 'Deepen the mark', dur: 1700,
-        body: 'With the punch upright in the dimple, give one firmer blow so the mark is deep enough to start a drill without the bit wandering. For an automatic punch, just press down until it snaps.',
-        caution: 'Wear safety glasses and keep your fingers clear of the hammer. Don\'t punch thin sheet without support underneath or it will dent.',
+        body: 'With the punch upright in the dimple, give it one firmer tap with the mallet so the mark is deep enough to start a drill without the bit wandering. For an automatic punch, just press down until it snaps.',
+        caution: 'Wear safety glasses and keep your fingers clear of the mallet. Don\'t punch thin sheet without support underneath or it will dent.',
         tags: ['dimple'], hot: ['dimple'], keys: [[.5, { strike: 1, depth: 1 }], [.8, { strike: 0 }], [1, { hammerOn: 0, punchOn: 0 }]], flashes: [[.5, 'Tap']] },
     ],
   };
@@ -3388,7 +3424,7 @@ const CALIPER = (() => {
     }
     return '';
   }
-  const common = (piece, val) => ({ reading: 0, piece, pieceOn: 0, inset: 0, hiLine: 0, hiZero: 0, zoom: 1, zs: 1.25, fx: 40, fy: -38, val });
+  const common = (piece, val) => ({ reading: 0, piece, pieceOn: 0, inset: 0, hiLine: 0, hiZero: 0, zoom: 1, zs: .86, fx: 78, fy: -60, val });   // whole caliper in view
   const readSteps = val => [
     { title: 'Lock and read it', dur: 1900,
       body: 'Tighten the lock screw so the jaw can\'t move, then read it. First the main scale: the whole millimetres to the left of the vernier\'s 0 line. Then find the one vernier line that lines up exactly with a main-scale line and add that many × 0.05 mm.',
@@ -3417,7 +3453,7 @@ const CALIPER = (() => {
         { title: 'Open them to the walls', dur: 1900, body: 'Open the jaws until they just touch both walls. For a round hole, rock the caliper slightly and take the largest reading, which is across the true diameter.', tags: ['injaws'], keys: [[.85, { reading: 24.6 }]] },
         ...readSteps(24.6),
       ] },
-    { label: 'Depth', base: { ...common('depth', 12.85), fx: 190 }, steps: [
+    { label: 'Depth', base: common('depth', 12.85), steps: [
         ZERO,
         { title: 'Rest the end on the top face', dur: 1500, body: 'Stand the end of the beam squarely on the top face of the part, over the hole or slot you\'re measuring.', tags: ['end'], hot: ['end'], keys: [[.4, { pieceOn: 1 }]] },
         { title: 'Push the depth rod down', dur: 1900, body: 'Slide the jaw so the thin depth rod comes out of the end and goes down until it just touches the bottom. Keep the beam square and pressed on the top face.', tags: ['rod'], hot: ['rod'], keys: [[.85, { reading: 12.85 }]] },
