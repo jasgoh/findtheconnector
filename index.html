@@ -518,6 +518,13 @@ label.btn { cursor: pointer; }
 .eq-empty { color: var(--muted); padding: 2rem 0; }
 .eq-size-label { margin-top: .8rem; }
 .sd-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+.mk-batt { font-family: var(--font-display); font-size: 11px; fill: #9fe7ee; font-weight: 700; }
+.mk-brand { font-family: var(--font-display); font-size: 12px; fill: #E8F7F9; font-weight: 700; letter-spacing: .04em; }
+.mk-num { font-family: var(--font-mono); font-size: 9px; fill: #E8EAED; font-weight: 600; }
+.mk-ring { font-family: var(--font-display); font-size: 15px; fill: #8a9097; font-weight: 700; }
+.mk-ring.on { fill: #fff; font-size: 19px; }
+.mk-scale { font-family: var(--font-mono); font-size: 8px; fill: #222; }
+.mk-vern { font-family: var(--font-mono); font-size: 7px; fill: #222; }
 .sd-pen { font-family: var(--font-display); font-weight: 700; font-size: 9px; fill: #fff; letter-spacing: .08em; }
 .sd-mark { font-family: var(--font-display); font-weight: 700; font-size: 16px; fill: #5a4708; }
 .eq-moulded { font-family: var(--font-display); font-weight: 700; letter-spacing: .12em; fill: #B5560E; }
@@ -828,7 +835,7 @@ label.btn { cursor: pointer; }
       <button type="button" class="eq-cat" role="radio" data-cat="electrical" aria-checked="true">Electrical</button>
       <button type="button" class="eq-cat" role="radio" data-cat="mechanical" aria-checked="false">Mechanical</button>
     </div>
-    <p class="eq-empty" id="eqEmpty" hidden>No mechanical equipment guides yet. They'll appear here as they're added.</p>
+    <p class="eq-empty" id="eqEmpty" hidden>No equipment guides here yet. They'll appear as they're added.</p>
     <div class="eq" id="eqBody">
       <nav class="eq-tools" id="eqTools" aria-label="Equipment"></nav>
       <div class="eq-main">
@@ -2856,7 +2863,7 @@ const SOLDER = (() => {
   const XT_SEL = { i: 1 };
   const XT = {
     key: 'xt', label: 'XT30 / XT60 / XT90',
-    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 140, sx: -150, sy: -140, mated: 0, tinW: 0, cupFlux: 0, penOn: 0, px: 260, py: -120, fill: 0, wireIn: 0, smoke: 0,
+    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 140, sx: -150, sy: -140, mated: 0, tinW: 0, cupFlux: 0, wireFlux: 0, penOn: 0, px: 260, py: -120, fill: 0, wireIn: 0, smoke: 0,
             tubeOn: 1, tube: 0, shrink: 0, gun: 0, zoom: 0, zs: 1.8, fx: 80, fy: 10 },
     draw(st) {
       const s = XT_SIZES[XT_SEL.i], y = 10, cupX0 = 50, cupX1 = cupX0 + s.depth, r = s.cup / 2;
@@ -2876,6 +2883,7 @@ const SOLDER = (() => {
       if (st.cupFlux > .02) b += `<rect class="eq-noink" x="${f(cupX0 + wallT)}" y="${f(y + inner * .1)}" width="${f(s.depth - wallT)}" height="${f(inner * .9)}" rx="2" fill="#F0B44A" opacity="${f(st.cupFlux * .8 * (1 - st.fill * .9))}"/>`;
       if (fillLen > .5) b += `<rect x="${f(cupX0 + wallT)}" y="${f(y - inner)}" width="${f(fillLen)}" height="${f(2 * inner)}" fill="url(#sd-tin)" stroke="rgba(0,0,0,.3)"/>`;
       b += (st.tinW > .5 ? tinned(wTip, wIns, y, s.wire * .78) : strands(wTip, wIns, y, s.wire * .78, 0)) + insulation(wIns, 460, y, s.wire, 'url(#sd-red)');
+      b += fluxCoat(wTip, wIns, y, s.wire * .78, st.wireFlux * (1 - st.wireIn));
       if (st.wireIn > .5 && st.fill > .02) b += `<rect x="${f(cupX0 + wallT)}" y="${f(y - inner)}" width="${f(fillLen)}" height="${f(2 * inner)}" fill="url(#sd-tin)" opacity=".55"/>`;
       // heat shrink parked on the wire, later slid over the cup
       const tc = lerp(wIns + 120, cupX0 + s.depth * .55, st.tube), tw = s.depth * 1.5;
@@ -2894,6 +2902,7 @@ const SOLDER = (() => {
         plug:   { xy: zoomPt(st, cupX0 - 173, y - s.hw / 2), dx: -10, dy: -60, text: 'Spare plug mated' },
         fill:   { xy: zoomPt(st, cupX0 + wallT + fillLen * .6, y), dx: -40, dy: -90, text: 'Cup at least 75% full' },
         wire:   { xy: zoomPt(st, wIns + 30, y), dx: 60, dy: 60, text: 'Tinned wire' },
+        wflux:  { xy: zoomPt(st, (wTip + wIns) / 2, y - s.wire * .4), dx: 40, dy: -80, text: 'Flux on the wire end' },
         depth:  { xy: zoomPt(st, cupX0 + wallT + 3, y + inner), dx: -50, dy: 80, text: 'Wire to the bottom of the cup' },
         gap:    { xy: zoomPt(st, cupX1 + 4, y + s.wire / 2), dx: 80, dy: 70, text: 'Small gap to insulation' },
         polar:  { xy: zoomPt(st, cupX0 - 60, y - s.hw / 2), dx: 20, dy: -70, text: 'Red to +, black to −' },
@@ -2914,9 +2923,9 @@ const SOLDER = (() => {
       { title: 'Fill the cup', dur: 2200,
         body: 'Hold the iron against the back of the cup and feed solder into it until it\'s about three-quarters full.',
         tags: ['cup'], hot: ['cup'], keys: [[.3, { ix: 72, iy: 24, sx: 84, sy: -22 }], [.45, { smoke: 1 }], [.95, { fill: .8 }], [1, { solderOn: 0 }]] },
-      { title: 'Push the wire in', dur: 1800,
-        body: 'Keep the iron on the cup so the solder stays molten and push the tinned wire straight in, right to the bottom of the cup.',
-        tags: ['depth'], hot: ['depth'], keys: [[.85, { wireIn: 1, fill: .92 }]] },
+      { title: 'Flux the wire and push it in', dur: 2600,
+        body: 'Dab a little flux on the tinned wire end first. Then, keeping the iron on the cup so the solder stays molten, push the wire straight in, right to the bottom of the cup.',
+        tags: ['wflux', 'depth'], hot: ['depth'], keys: [[.1, { penOn: 1, px: 175, py: -4 }], [.38, { wireFlux: 1, px: 205 }], [.48, { penOn: 0, px: 260, py: -120 }], [.9, { wireIn: 1, fill: .92 }]] },
       { title: 'Hold still while it sets', dur: 1500,
         body: 'Take the iron away and hold the wire completely still for a few seconds until the solder goes solid. Moving it now leaves a dull, cracked joint.',
         tags: ['wire'], keys: [[.3, { ironOn: 0, smoke: 0 }]], flashes: [[.5, 'Hold still']] },
@@ -3039,7 +3048,417 @@ const SOLDER = (() => {
   return tool;
 })();
 
-const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER];
+/* ===================== MECHANICAL TOOLS ===================== */
+// Shared 2D helpers for the side-view mechanical figures
+const MK = (() => {
+  const { lerp, f } = EQ;
+  function mat(vb) {
+    const b = [vb[0] - 400, vb[1] - 400, vb[2] + 800, vb[3] + 800];
+    let g = '';
+    for (let x = Math.ceil(b[0] / 23) * 23; x < b[0] + b[2]; x += 23) g += `<line x1="${x}" y1="${b[1]}" x2="${x}" y2="${b[1] + b[3]}"${x % 115 === 0 ? ' class="major"' : ''}/>`;
+    for (let y = Math.ceil(b[1] / 23) * 23; y < b[1] + b[3]; y += 23) g += `<line x1="${b[0]}" y1="${y}" x2="${b[0] + b[2]}" y2="${y}"${y % 115 === 0 ? ' class="major"' : ''}/>`;
+    return `<g class="eq-mat eq-noink"><rect x="${b[0]}" y="${b[1]}" width="${b[2]}" height="${b[3]}"/>${g}</g>`;
+  }
+  // camera: zoom about a focus point (fx, fy) onto the middle of the view
+  const camT = st => { const z = st.zoom || 0, s = lerp(1, st.zs || 2, z); return { s, tx: lerp(0, 85 - (st.fx || 0) * s, z), ty: lerp(0, 3 - (st.fy || 0) * s, z) }; };
+  const scene = (st, body) => { const c = camT(st); return `<g transform="translate(${f(c.tx)} ${f(c.ty)}) scale(${f(c.s)})">${body}</g>`; };
+  const pt = (st, x, y) => { const c = camT(st); return [x * c.s + c.tx, y * c.s + c.ty]; };
+  function inset(cx, cy, R, inner, label, id, op) {
+    if (op < .02) return '';
+    return `<g class="eq-inset" opacity="${f(op)}"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
+      + `<clipPath id="${id}"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
+      + `<g clip-path="url(#${id})"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${inner}</g>`
+      + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
+      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
+  }
+  const defs = `
+    <linearGradient id="mk-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37C2CF"/><stop offset=".5" stop-color="#0E98A6"/><stop offset="1" stop-color="#086B76"/></linearGradient>
+    <linearGradient id="mk-black" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A4F56"/><stop offset=".5" stop-color="#26292E"/><stop offset="1" stop-color="#121417"/></linearGradient>
+    <linearGradient id="mk-steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6F7"/><stop offset=".5" stop-color="#B9C0C6"/><stop offset="1" stop-color="#7E868D"/></linearGradient>
+    <linearGradient id="mk-steelv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7E868D"/><stop offset=".45" stop-color="#F4F6F7"/><stop offset="1" stop-color="#8E979E"/></linearGradient>
+    <linearGradient id="mk-plate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9CED3"/><stop offset="1" stop-color="#8E959B"/></linearGradient>
+    <linearGradient id="mk-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C79A5B"/><stop offset="1" stop-color="#8E6634"/></linearGradient>
+    <linearGradient id="mk-handle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7A4E26"/><stop offset=".5" stop-color="#B07A40"/><stop offset="1" stop-color="#6A421E"/></linearGradient>`;
+  return { mat, scene, pt, inset, defs };
+})();
+
+/* ---------- Mechanical Fig. 01: Power drill (Makita DHP482) ---------- */
+const DRILL = (() => {
+  const { lerp, f } = EQ;
+  // the drill, side view: chuck to the left, handle down, battery at the bottom
+  function drill(st) {
+    let s = '';
+    const bx = -st.batt * 170, by = st.batt * 10;              // battery slides out to the front
+    // battery (18 V LXT): black and teal pack, release button at the front, red lock indicator on top
+    s += `<g transform="translate(${f(bx)} ${f(by)})">
+      <rect x="-48" y="112" width="150" height="40" rx="6" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>
+      <rect x="-44" y="114" width="142" height="12" rx="3" fill="url(#mk-teal)"/>
+      <rect x="-54" y="122" width="10" height="16" rx="2" fill="#1d1f22" stroke="rgba(0,0,0,.6)"/>
+      <text x="26" y="144" text-anchor="middle" class="mk-batt">18V Li-ion</text>
+      ${st.red > .02 ? `<rect x="80" y="108" width="12" height="5" rx="1" fill="#E0473A" opacity="${f(st.red)}"/>` : ''}</g>`;
+    // handle and base
+    s += `<path d="M18 -14 L58 -14 L70 108 L88 112 L88 116 L-40 116 L-40 108 L6 104 Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<path d="M24 -10 L52 -10 L60 96 L12 96 Z" fill="url(#mk-teal)" opacity=".85"/>`;
+    // trigger and reversing lever
+    const tr = st.trig * 6;
+    s += `<path d="M${f(4 - tr)} 6 Q ${f(-8 - tr)} 24 ${f(2 - tr)} 44 L${f(12 - tr)} 44 L${f(12 - tr)} 6Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<rect x="${f(10 + st.rev * 10)}" y="-8" width="18" height="10" rx="3" fill="#2a2d31" stroke="rgba(0,0,0,.6)"/>`;
+    // motor housing and gear case
+    s += `<path d="M-64 -76 L60 -76 Q 78 -76 78 -58 L78 -18 Q 78 -8 66 -8 L-64 -8 Z" fill="url(#mk-teal)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<rect x="-30" y="-70" width="96" height="16" rx="4" fill="url(#mk-black)" opacity=".9"/>`;
+    s += `<text x="20" y="-58" text-anchor="middle" class="mk-brand">makita</text>`;
+    // speed change lever on top: slides between 1 (back) and 2 (front)
+    const sp = lerp(10, -14, st.speed);
+    s += `<rect x="-28" y="-84" width="44" height="10" rx="4" fill="#1d1f22"/><text x="-22" y="-87" class="mk-num">2</text><text x="10" y="-87" class="mk-num">1</text>`;
+    s += `<rect x="${f(sp - 6)}" y="-90" width="14" height="16" rx="3" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    // action mode ring and torque adjusting ring, then the chuck
+    s += `<rect x="-86" y="-70" width="22" height="58" rx="5" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<rect x="-108" y="-68" width="22" height="54" rx="5" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    for (let i = 0; i < 7; i++) { const yy = -64 + ((i * 8 + st.ringSpin * 40) % 48); s += `<line x1="-104" y1="${f(yy)}" x2="-90" y2="${f(yy)}" stroke="#5a5f66" stroke-width="2"/>`; }
+    s += `<text x="-97" y="-74" text-anchor="middle" class="mk-num">${st.modeIcon || ''}</text>`;
+    s += `<path d="M-64 -80 L-58 -86 L-70 -86Z" fill="#fff"/>`;                     // arrow mark on the body
+    // keyless chuck: ribbed sleeve, jaws at the front
+    const cs = st.chuckSpin * 40;
+    s += `<rect x="-166" y="-64" width="58" height="46" rx="8" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+    for (let i = 0; i < 8; i++) { const yy = -60 + ((i * 6 + cs) % 40); s += `<line x1="-162" y1="${f(yy)}" x2="-114" y2="${f(yy)}" stroke="#4a4f56" stroke-width="2"/>`; }
+    const jo = lerp(1.5, 7, st.jaw);
+    s += `<path d="M-166 ${f(-41 - jo - 4)} L-180 ${f(-41 - jo)} L-180 ${f(-41 - jo + 2.5)} L-166 ${f(-41 - jo + 6)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<path d="M-166 ${f(-41 + jo + 4)} L-180 ${f(-41 + jo)} L-180 ${f(-41 + jo - 2.5)} L-166 ${f(-41 + jo - 6)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    // drill bit: smooth shank into the jaws, fluted body out front
+    if (st.bitOn > .02) {
+      const bxs = lerp(-300, -178, st.bitIn);                      // shank end position
+      s += `<g opacity="${f(st.bitOn)}"><rect x="${f(bxs - 70)}" y="-45" width="78" height="8" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+      for (let i = 0; i < 6; i++) s += `<path d="M${f(bxs - 70 + i * 9)} -45 l 9 8" stroke="#6b737a" stroke-width="2"/>`;
+      s += `<path d="M${f(bxs - 70)} -45 L${f(bxs - 80)} -41 L${f(bxs - 70)} -37Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+      s += `<rect x="${f(bxs + 8)}" y="-44.5" width="${f(Math.min(40, -178 + 52 - bxs))}" height="7" fill="url(#mk-steel)" stroke="rgba(0,0,0,.4)"/></g>`;
+    }
+    return s;
+  }
+  // magnifier for the rings and lever
+  function ringInset(st, cx, cy, R) {
+    if (st.view === 'torque') {
+      let w = '';
+      const vals = ['1', '3', '5', '7', '9', '11', '13', '15', '17', '19', '21'];
+      const idx = st.torqueVal;                                      // 0..10 index into vals
+      for (let i = 0; i < vals.length; i++) {
+        const a = (i - idx) * 30 - 90, r = R * .58, x = cx + r * Math.cos(a * Math.PI / 180), y = cy + 18 + r * Math.sin(a * Math.PI / 180);
+        if (Math.abs(i - idx) < 2.6) w += `<text x="${f(x)}" y="${f(y + 5)}" text-anchor="middle" class="mk-ring${Math.abs(i - idx) < .5 ? ' on' : ''}">${vals[i]}</text>`;
+      }
+      w += `<path d="M${f(cx)} ${f(cy - R * .72)} l -7 -10 h 14Z" fill="var(--mat)"/>`;
+      return MK.inset(cx, cy, R, `<circle cx="${f(cx)}" cy="${f(cy + 18)}" r="${f(R * .78)}" fill="#1d1f22"/>${w}`, 'Torque ring: 1 (low) to 21 (high)', 'drTorque', st.inset);
+    }
+    if (st.view === 'mode') {
+      const icons = ['screw', 'drill', 'hammer'], lab = { screw: 'Screwdriving', drill: 'Drilling', hammer: 'Hammer drilling' };
+      let w = '';
+      icons.forEach((ic, i) => {
+        const x = cx + (i - st.modeVal) * 46, on = Math.abs(i - st.modeVal) < .5;
+        const g = ic === 'screw' ? `<path d="M${f(x - 9)} ${f(cy - 4)} h18 M${f(x)} ${f(cy - 14)} v20" stroke="${on ? '#fff' : '#8a9097'}" stroke-width="3"/>`
+          : ic === 'drill' ? `<path d="M${f(x - 12)} ${f(cy - 4)} h18 l6 4 l-6 4 h-18z" fill="${on ? '#fff' : '#8a9097'}"/>`
+          : `<path d="M${f(x - 12)} ${f(cy - 8)} h14 v14 h-14z M${f(x + 4)} ${f(cy - 2)} l8 -6 v14z" fill="${on ? '#fff' : '#8a9097'}"/>`;
+        w += g;
+      });
+      w += `<path d="M${f(cx)} ${f(cy - R * .55)} l -7 -10 h 14Z" fill="var(--mat)"/>`;
+      const cur = icons[Math.round(st.modeVal)];
+      return MK.inset(cx, cy, R, `<rect x="${f(cx - R)}" y="${f(cy - 26)}" width="${f(2 * R)}" height="48" fill="#1d1f22"/>${w}`, `Mode ring: ${lab[cur]}`, 'drMode', st.inset);
+    }
+    return '';
+  }
+  const tagsFor = st => ({
+    battery: { xy: MK.pt(st, 30 - st.batt * 170, 132), dx: 60, dy: 50, text: 'Battery' },
+    button:  { xy: MK.pt(st, -49 - st.batt * 170, 130), dx: -50, dy: 60, text: 'Release button' },
+    red:     { xy: MK.pt(st, 86, 110), dx: 70, dy: -40, text: 'Red indicator hidden = locked' },
+    rev:     { xy: MK.pt(st, 19 + st.rev * 10, -3), dx: 80, dy: 40, text: 'Reversing lever (centre = lock)' },
+    trigger: { xy: MK.pt(st, 0, 26), dx: -70, dy: 70, text: 'Trigger' },
+    chuck:   { xy: MK.pt(st, -137, -18), dx: -40, dy: 80, text: 'Keyless chuck' },
+    jaws:    { xy: MK.pt(st, -178, -41), dx: -40, dy: -80, text: 'Jaws' },
+    bit:     { xy: MK.pt(st, lerp(-300, -178, st.bitIn) - 40, -41), dx: -20, dy: 70, text: 'Drill bit' },
+    speed:   { xy: MK.pt(st, -2, -84), dx: 40, dy: -60, text: 'Speed lever: 1 low, 2 high' },
+    mode:    { xy: MK.pt(st, -75, -70), dx: 10, dy: -80, text: 'Action mode ring' },
+    torque:  { xy: MK.pt(st, -97, -68), dx: -50, dy: -70, text: 'Torque ring (1–21)' },
+  });
+
+  const BATTERY = {
+    label: 'Battery',
+    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 1, bitIn: 1, inset: 0, view: '', torqueVal: 5, modeVal: 1, zoom: 1, zs: 1.35, fx: -20, fy: 30 },
+    steps: [
+      { title: 'Lock the trigger', dur: 1300,
+        body: 'Before you remove or fit the battery, set the reversing lever to the centre. In the centre position the trigger can\'t be pulled, so the drill can\'t start by accident.',
+        tags: ['rev'], hot: ['rev'], keys: [[.8, { rev: .5 }]] },
+      { title: 'Remove the battery', dur: 1900,
+        body: 'Hold the drill by the handle, press the release button on the front of the battery and slide the battery out towards the front.',
+        tags: ['button', 'battery'], hot: ['button'], keys: [[.3, { zs: 1.6, fx: -60, fy: 110 }], [.9, { batt: 1 }]] },
+      { title: 'Check the charge', dur: 1300,
+        body: 'If your battery has a charge gauge, press its check button: the lamps show how much charge is left. Charge it if only one lamp lights.',
+        tags: ['battery'], keys: [] },
+      { title: 'Fit the battery', dur: 1900,
+        body: 'Line the tongue on the battery up with the groove in the base of the drill and slide it in until it clicks into place.',
+        tags: ['battery'], hot: ['battery'], keys: [[.85, { batt: 0, red: 1 }], [1, { red: 0 }]], flashes: [[.88, 'Click']] },
+      { title: 'Make sure it\'s locked', dur: 1300,
+        body: 'Look at the top of the battery: if you can see the red indicator, it isn\'t fully in. Push it until the red disappears, or the battery could fall out.',
+        caution: 'Never force the battery in. If it doesn\'t slide in easily, it\'s probably the wrong way round.',
+        tags: ['red'], hot: ['red'], keys: [] },
+    ],
+  };
+  const BIT = {
+    label: 'Drill bit',
+    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 0, bitIn: 0, inset: 0, view: '', torqueVal: 5, modeVal: 1, zoom: 1, zs: 1.35, fx: -20, fy: 30 },
+    steps: [
+      { title: 'Make it safe', dur: 1200,
+        body: 'Set the reversing lever to the centre (lock), or take the battery out, before touching the chuck.',
+        tags: ['rev'], hot: ['rev'], keys: [[.8, { rev: .5 }]] },
+      { title: 'Open the chuck', dur: 1900,
+        body: 'Hold the drill and turn the chuck sleeve anticlockwise (looking from the front) until the jaws open a little wider than the bit.',
+        tags: ['chuck', 'jaws'], hot: ['chuck'], keys: [[.2, { zs: 2.2, fx: -170, fy: -40 }], [1, { chuckSpin: 1, jaw: 1 }]] },
+      { title: 'Insert the bit', dur: 1600,
+        body: 'Push the bit\'s smooth shank into the jaws as far as it will go. The jaws should grip the shank, not the fluted cutting part.',
+        tags: ['bit'], hot: ['bit'], keys: [[.2, { bitOn: 1 }], [.9, { bitIn: 1 }]] },
+      { title: 'Tighten the chuck', dur: 1900,
+        body: 'Turn the sleeve clockwise until the jaws close on the shank, then give it a firm final turn by hand.',
+        tags: ['chuck'], hot: ['chuck'], keys: [[1, { chuckSpin: 0, jaw: 0 }]] },
+      { title: 'Check it runs true', dur: 1500,
+        body: 'Set the reversing lever back to forward and give a short squeeze of the trigger. The bit should spin without wobbling; if it wobbles, open the chuck and reseat it.',
+        caution: 'To remove the bit, lock the trigger first, then turn the sleeve anticlockwise.',
+        tags: ['bit', 'rev'], keys: [[.3, { rev: 1, zs: 1.35, fx: -20, fy: 30 }], [.6, { trig: 1 }], [.9, { trig: 0 }]] },
+    ],
+  };
+  const TORQUE = {
+    label: 'Torque & speed',
+    base: { batt: 0, red: 0, rev: 1, trig: 0, speed: 0, ringSpin: 0, chuckSpin: 0, jaw: 0, bitOn: 1, bitIn: 1, inset: 0, view: '', torqueVal: 1, modeVal: 1, zoom: 1, zs: 1.35, fx: -20, fy: 30 },
+    steps: [
+      { title: 'Stop the drill first', dur: 1200,
+        body: 'Only change the speed or mode with the drill stopped. Moving the speed lever while it\'s running can damage the gearbox.',
+        tags: ['speed'], keys: [] },
+      { title: 'Choose the speed', dur: 1800,
+        body: 'Slide the speed lever on top all the way to one side. 1 is low speed with high torque, for big holes and large screws; 2 is high speed with less torque, for small holes and light work.',
+        caution: 'Never leave the lever halfway between 1 and 2. If the drill slows right down in 2, stop and switch to 1.',
+        tags: ['speed'], hot: ['speed'], keys: [[.2, { zs: 1.9, fx: -40, fy: -40 }], [.8, { speed: 1 }]], flashes: [[.82, 'Speed 2']] },
+      { title: 'Choose the mode', dur: 2000,
+        body: 'Turn the action mode ring (the one nearest the body) to line the symbol up with the arrow: the screw for screwdriving, the drill bit for drilling, the hammer for drilling masonry.',
+        tags: ['mode'], hot: ['mode'], keys: [[0, { view: 'mode', modeVal: 1 }], [.2, { inset: 1 }], [.85, { modeVal: 0, ringSpin: .5 }]] },
+      { title: 'Set the torque', dur: 2200,
+        body: 'In screwdriving mode, turn the adjusting ring to set the torque: 1 is lowest, 21 highest. Start low for small screws or soft material and go up until the screw seats flush. When the set torque is reached, the clutch slips with a ratcheting sound instead of stripping the screw.',
+        caution: 'The torque ring only works in screwdriving mode; in drilling and hammer modes the clutch is off.',
+        tags: ['torque'], hot: ['torque'], keys: [[0, { view: 'torque', torqueVal: 1 }], [.15, { inset: 1 }], [.85, { torqueVal: 5, ringSpin: 1 }]], flashes: [[.9, 'Torque 11']] },
+      { title: 'Control speed with the trigger', dur: 1800,
+        body: 'The further you squeeze the trigger, the faster it turns. Start slowly so the bit or screw doesn\'t slip, then speed up. Use the reversing lever to change direction, only when the drill has stopped.',
+        tags: ['trigger', 'rev'], hot: ['trigger'], keys: [[0, { inset: 0 }], [.3, { zs: 1.35, fx: -20, fy: 30 }], [.5, { trig: 1 }], [.9, { trig: 0 }]] },
+    ],
+  };
+  const MODES = [BATTERY, BIT, TORQUE];
+  let mode = 0;
+  return {
+    id: 'drill', fig: 1, name: 'Power drill', sub: 'Makita DHP482: battery, bits, torque', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) {
+      const body = MK.mat(this.viewBox) + drill(st);
+      let svg = MK.scene(st, body) + ringInset(st, 278, -122, 76);
+      return { svg, tags: tagsFor(st), anchors: { flash: MK.pt(st, -40, -110) } };
+    },
+  };
+})();
+
+/* ---------- Mechanical Fig. 02: Centre punch ---------- */
+const PUNCH = (() => {
+  const { lerp, f } = EQ;
+  const PLATE_Y = 80;
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    // the plate (side view) with layout fluid on top
+    b += `<rect x="-180" y="${PLATE_Y}" width="380" height="34" rx="2" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/>`;
+    if (st.blue > .02) b += `<rect x="-180" y="${PLATE_Y - 2}" width="380" height="4" fill="#2F5FA8" opacity="${f(st.blue * .8)}"/>`;
+    // steel rule and scriber for marking out
+    if (st.rule > .02) b += `<g opacity="${f(st.rule)}"><rect x="-170" y="${PLATE_Y - 9}" width="300" height="7" fill="url(#mk-steel)" stroke="rgba(0,0,0,.4)"/>${Array.from({ length: 31 }, (_, i) => `<line x1="${-170 + i * 10}" y1="${PLATE_Y - 9}" x2="${-170 + i * 10}" y2="${PLATE_Y - (i % 5 ? 6 : 4)}" stroke="#333" stroke-width=".8"/>`).join('')}</g>`;
+    if (st.scribe > .02) {
+      const sx = lerp(-60, 20, st.scribeX);
+      b += `<g opacity="${f(st.scribe)}"><path d="M${f(sx)} ${PLATE_Y - 2} L${f(sx + 30)} ${PLATE_Y - 90}" stroke="#8a9097" stroke-width="5" stroke-linecap="round"/><path d="M${f(sx + 18)} ${PLATE_Y - 55} L${f(sx + 40)} ${PLATE_Y - 120}" stroke="#2a2d31" stroke-width="9" stroke-linecap="round"/></g>`;
+    }
+    // the punch: point at (px, PLATE_Y - dent), tilted by st.tilt degrees
+    const dent = st.depth * 3;
+    const px = 20, py = PLATE_Y - 1 + dent * .6;
+    if (st.punchOn > .02) b += `<g transform="translate(${px} ${f(py - st.lift * 30)}) rotate(${f(st.tilt)})" opacity="${f(st.punchOn)}">
+      <path d="M0 0 L-6 -22 L6 -22Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/>
+      <rect x="-6" y="-110" width="12" height="88" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/>
+      ${Array.from({ length: 10 }, (_, i) => `<line x1="-6" y1="${-100 + i * 6}" x2="6" y2="${-96 + i * 6}" stroke="#6b737a" stroke-width="1"/>`).join('')}
+      <rect x="-7" y="-118" width="14" height="8" rx="2" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/></g>`;
+    // the hammer: swings down onto the punch head
+    if (st.hammerOn > .02) {
+      const hy = py - 118 - lerp(70, 0, st.strike) - st.lift * 30;
+      b += `<g opacity="${f(st.hammerOn)}"><rect x="${px - 28}" y="${f(hy - 22)}" width="56" height="22" rx="3" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>
+        <rect x="${px + 24}" y="${f(hy - 15)}" width="150" height="9" rx="4" fill="url(#mk-handle)" stroke="rgba(0,0,0,.5)"/></g>`;
+    }
+    const tags = {
+      rule:   { xy: MK.pt(st, -100, PLATE_Y - 9), dx: -40, dy: -80, text: 'Steel rule' },
+      scribe: { xy: MK.pt(st, lerp(-60, 20, st.scribeX) + 30, PLATE_Y - 90), dx: 60, dy: -50, text: 'Scriber' },
+      punch:  { xy: MK.pt(st, px, PLATE_Y - 60), dx: -90, dy: -40, text: 'Centre punch' },
+      tip:    { xy: MK.pt(st, px, PLATE_Y - 2), dx: -100, dy: 50, text: 'Tip on the crossing' },
+      hammer: { xy: MK.pt(st, px + 90, py - 118 - lerp(70, 0, st.strike) - st.lift * 30 - 10), dx: 70, dy: 30, text: 'Light hammer' },
+      dimple: { xy: MK.pt(st, px, PLATE_Y), dx: -70, dy: 70, text: 'Dimple' },
+    };
+    // magnifier: top view of the layout lines and the punch mark
+    let w = `<rect x="198" y="-202" width="160" height="160" fill="#C9CED3"/>`;
+    if (st.blue > .02) w += `<rect x="198" y="-202" width="160" height="160" fill="#2F5FA8" opacity="${f(st.blue * .55)}"/>`;
+    const lx = 278 + (st.off || 0), ly = -122;
+    if (st.lines > .02) w += `<g opacity="${f(st.lines)}"><line x1="198" y1="${ly}" x2="358" y2="${ly}" stroke="#F4F6F7" stroke-width="1.6"/><line x1="${278}" y1="-202" x2="${278}" y2="-42" stroke="#F4F6F7" stroke-width="1.6"/></g>`;
+    if (st.depth > .02) w += `<circle cx="${f(lx)}" cy="${ly}" r="${f(4 + st.depth * 5)}" fill="#5a6068" stroke="#2a2d31"/><circle cx="${f(lx - 1.5)}" cy="${ly - 1.5}" r="${f(1.5 + st.depth * 1.6)}" fill="#3a3e45"/>`;
+    const lab = st.depth > .02 ? (st.off ? 'Off the crossing: angle it back and tap again' : 'Dimple right on the crossing') : 'Lines cross at the hole centre';
+    const svg = MK.scene(st, b) + MK.inset(278, -122, 76, w, lab, 'puTop', st.inset);
+    return { svg, tags, anchors: { flash: MK.pt(st, px + 40, PLATE_Y - 140) } };
+  }
+  return {
+    id: 'punch', fig: 2, name: 'Centre punch', sub: 'Marking hole centres', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { blue: 0, rule: 0, scribe: 0, scribeX: 0, lines: 0, punchOn: 0, tilt: 30, lift: 1, hammerOn: 0, strike: 0, depth: 0, off: 0, inset: 0, zoom: 1, zs: 1.45, fx: 0, fy: 30 },
+    steps: [
+      { title: 'Measure and mark the lines', dur: 2200,
+        body: 'Measure the hole position from a finished edge with a steel rule (or a vernier caliper for accuracy) and scribe a fine line. Do the same in the other direction, so two lines cross exactly at the hole centre. Layout fluid or a marker on the metal makes the lines easier to see.',
+        tags: ['rule', 'scribe'], hot: ['scribe'], keys: [[.15, { blue: 1, rule: 1, scribe: 1, inset: 1 }], [.85, { scribeX: 1, lines: 1 }], [1, { scribe: 0, rule: 0 }]] },
+      { title: 'Find the crossing with the tip', dur: 1800,
+        body: 'Hold the punch tilted towards you so you can see its point, and put the point exactly on the crossing of the two lines. You\'ll feel it settle into the scribed lines.',
+        tags: ['tip', 'punch'], hot: ['tip'], keys: [[.2, { punchOn: 1 }], [.8, { lift: 0 }]] },
+      { title: 'Stand it upright', dur: 1400,
+        body: 'Keeping the point where it is, bring the punch upright so it\'s square to the surface.',
+        tags: ['punch'], hot: ['punch'], keys: [[.9, { tilt: 0 }]] },
+      { title: 'Give it a light tap', dur: 1700,
+        body: 'Tap the top of the punch lightly with a small hammer to make a shallow dimple. Then check it: it should sit right on the crossing.',
+        tags: ['hammer', 'dimple'], hot: ['hammer'], keys: [[.2, { hammerOn: 1 }], [.55, { strike: 1, depth: .35 }], [.85, { strike: 0 }]], flashes: [[.56, 'Tap']] },
+      { title: 'Correct it if needed', dur: 1600,
+        body: 'If the dimple is off, put the punch back in it, angle it slightly towards the crossing, and tap again to draw it over. Fix it now: a drill follows the dimple exactly.',
+        tags: ['dimple'], keys: [] },
+      { title: 'Deepen the mark', dur: 1700,
+        body: 'With the punch upright in the dimple, give one firmer blow so the mark is deep enough to start a drill without the bit wandering. For an automatic punch, just press down until it snaps.',
+        caution: 'Wear safety glasses and keep your fingers clear of the hammer. Don\'t punch thin sheet without support underneath or it will dent.',
+        tags: ['dimple'], hot: ['dimple'], keys: [[.5, { strike: 1, depth: 1 }], [.8, { strike: 0 }], [1, { hammerOn: 0, punchOn: 0 }]], flashes: [[.5, 'Tap']] },
+    ],
+  };
+})();
+
+/* ---------- Mechanical Fig. 03: Vernier caliper ---------- */
+// 0.05 mm vernier: 20 divisions spanning 39 mm. Readings: main scale mm before the vernier zero, plus
+// 0.05 × the vernier line that lines up exactly with a main-scale line.
+const CALIPER = (() => {
+  const { lerp, f } = EQ;
+  const S = 2.6;                                                  // px per mm on the drawing
+  const X0 = -150, BEAM_Y = 0;                                    // zero of the main scale
+  function caliper(st) {
+    const R = st.reading, jx = X0 + R * S;                        // sliding jaw position
+    let s = '';
+    // beam with main scale
+    s += `<rect x="${X0 - 24}" y="${BEAM_Y - 14}" width="${f(160 * S + 40)}" height="28" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    for (let i = 0; i <= 150; i++) { const x = X0 + i * S, l = i % 10 === 0 ? 11 : i % 5 === 0 ? 8 : 5; s += `<line x1="${f(x)}" y1="${BEAM_Y - 14}" x2="${f(x)}" y2="${BEAM_Y - 14 + l}" stroke="#222" stroke-width=".7"/>`; if (i % 10 === 0) s += `<text x="${f(x)}" y="${BEAM_Y + 6}" text-anchor="middle" class="mk-scale">${i / 10}</text>`; }
+    // fixed jaws (outside down, inside up)
+    s += `<path d="M${X0 - 24} ${BEAM_Y + 14} L${X0} ${BEAM_Y + 14} L${X0} ${BEAM_Y + 96} L${X0 - 8} ${BEAM_Y + 104} L${X0 - 24} ${BEAM_Y + 60}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<path d="M${X0 - 6} ${BEAM_Y - 14} L${X0} ${BEAM_Y - 14} L${X0} ${BEAM_Y - 52} L${X0 - 10} ${BEAM_Y - 40}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    // sliding jaw with the vernier window, lock screw and thumb roller
+    s += `<path d="M${f(jx)} ${BEAM_Y + 14} L${f(jx + 24)} ${BEAM_Y + 14} L${f(jx + 24)} ${BEAM_Y + 60} L${f(jx + 8)} ${BEAM_Y + 104} L${f(jx)} ${BEAM_Y + 96}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<path d="M${f(jx + 6)} ${BEAM_Y - 14} L${f(jx)} ${BEAM_Y - 14} L${f(jx)} ${BEAM_Y - 52} L${f(jx + 10)} ${BEAM_Y - 40}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<rect x="${f(jx - 2)}" y="${BEAM_Y - 20}" width="${f(39 * S + 22)}" height="44" rx="4" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)" opacity=".96"/>`;
+    for (let k = 0; k <= 20; k++) { const x = jx + k * 1.95 * S, l = k % 2 === 0 ? 9 : 6; s += `<line x1="${f(x)}" y1="${BEAM_Y + 4}" x2="${f(x)}" y2="${BEAM_Y + 4 - l}" stroke="#222" stroke-width=".7"/>`; }
+    s += `<rect x="${f(jx + 40)}" y="${BEAM_Y - 32}" width="16" height="12" rx="2" fill="#5a6068" stroke="rgba(0,0,0,.5)"/>`;              // lock screw
+    s += `<circle cx="${f(jx + 30)}" cy="${BEAM_Y + 30}" r="8" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;                            // thumb roller
+    // depth rod out of the end of the beam
+    const endX = X0 + 160 * S + 16;
+    s += `<rect x="${f(endX)}" y="${BEAM_Y - 2}" width="${f(R * S)}" height="4" fill="url(#mk-steel)" stroke="rgba(0,0,0,.4)"/>`;
+    return { s, jx, endX };
+  }
+  // magnifier: the scales, enlarged, with the line that matches highlighted
+  function scaleInset(st, cx, cy, R) {
+    const r = st.reading, M = 9, zeroX = cx - 50 + (r - Math.floor(r)) * M * 0, base = Math.floor(r);
+    let w = `<rect x="${f(cx - R)}" y="${f(cy - 30)}" width="${f(2 * R)}" height="60" fill="#DCE1E6"/>`;
+    const kk = Math.round((r - Math.floor(r)) / .05);
+    const shift = -((r - base) + kk * 1.95) * M + 10;               // centre the view on the line that matches
+    const at = mm => cx + shift + (mm - base) * M;                  // main-scale mm → x
+    for (let mm = base - 4; mm <= base + 40; mm++) { const x = at(mm), l = mm % 10 === 0 ? 16 : mm % 5 === 0 ? 12 : 8; w += `<line x1="${f(x)}" y1="${f(cy - 30)}" x2="${f(x)}" y2="${f(cy - 30 + l)}" stroke="#222" stroke-width="1.2"/>`; if (mm % 10 === 0) w += `<text x="${f(x)}" y="${f(cy - 4)}" text-anchor="middle" class="mk-scale">${mm / 10}</text>`; }
+    const vz = at(r), k = kk;
+    w += `<rect x="${f(vz - 4)}" y="${f(cy)}" width="${f(20 * 1.95 * M + 8)}" height="30" fill="#EEF1F3" stroke="#999"/>`;
+    for (let i = 0; i <= 20; i++) { const x = vz + i * 1.95 * M; w += `<line x1="${f(x)}" y1="${f(cy)}" x2="${f(x)}" y2="${f(cy + (i % 2 ? 9 : 14))}" stroke="${i === k && st.hiLine ? 'var(--mat)' : '#222'}" stroke-width="${i === k && st.hiLine ? 2.6 : 1.2}"/>`; if (i % 2 === 0) w += `<text x="${f(x)}" y="${f(cy + 25)}" text-anchor="middle" class="mk-vern">${i * 5 === 100 ? '' : i * 5}</text>`; }
+    w += `<line x1="${f(vz)}" y1="${f(cy - 30)}" x2="${f(vz)}" y2="${f(cy + 30)}" stroke="var(--mat)" stroke-width="1" stroke-dasharray="3 2" opacity="${f(st.hiZero)}"/>`;
+    const label = `${base} + ${(k * .05).toFixed(2)} = ${r.toFixed(2)} mm`;
+    return MK.inset(cx, cy, R, w, st.hiLine ? label : 'Main scale above, vernier below', 'caScale', st.inset);
+  }
+  // workpieces for each measurement
+  function work(st, c) {
+    const R = st.reading;
+    switch (st.piece) {
+      case 'outside': return `<g opacity="${f(st.pieceOn)}"><rect x="${X0}" y="${BEAM_Y + 50}" width="${f(R * S)}" height="44" rx="3" fill="url(#mk-wood)" stroke="rgba(0,0,0,.5)" transform="translate(0 ${f((1 - st.pieceOn) * 60)})"/></g>`;
+      case 'inside': { const w = R * S; return `<g opacity="${f(st.pieceOn)}"><rect x="${X0 - 30}" y="${BEAM_Y - 70}" width="${f(w + 60)}" height="56" rx="4" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/><rect x="${X0}" y="${BEAM_Y - 70}" width="${f(w)}" height="40" fill="var(--eq-plate-m)" stroke="rgba(0,0,0,.4)"/></g>`; }
+      case 'depth': { const ex = c.endX; return `<g opacity="${f(st.pieceOn)}"><rect x="${f(ex - 10)}" y="${BEAM_Y - 60}" width="${f(R * S + 50)}" height="120" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)" transform="rotate(0)"/><rect x="${f(ex)}" y="${BEAM_Y - 10}" width="${f(R * S)}" height="20" fill="var(--eq-plate-m)" stroke="rgba(0,0,0,.4)"/></g>`; }
+      case 'step': return `<g opacity="${f(st.pieceOn)}"><path d="M${X0 - 24} ${BEAM_Y - 14} L${X0 - 24} ${BEAM_Y - 80} L${f(X0 + R * S)} ${BEAM_Y - 80} L${f(X0 + R * S)} ${BEAM_Y - 40} L${f(X0 + R * S + 120)} ${BEAM_Y - 40} L${f(X0 + R * S + 120)} ${BEAM_Y - 14}Z" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/></g>`;
+    }
+    return '';
+  }
+  const common = (piece, val) => ({ reading: 0, piece, pieceOn: 0, inset: 0, hiLine: 0, hiZero: 0, zoom: 1, zs: 1.25, fx: 40, fy: -38, val });
+  const readSteps = val => [
+    { title: 'Lock and read it', dur: 1900,
+      body: 'Tighten the lock screw so the jaw can\'t move, then read it. First the main scale: the whole millimetres to the left of the vernier\'s 0 line. Then find the one vernier line that lines up exactly with a main-scale line and add that many × 0.05 mm.',
+      tags: ['lock'], hot: ['lock'], keys: [[.2, { inset: 1, hiZero: 1 }], [.8, { hiLine: 1 }]], flashes: [[.85, `${val.toFixed(2)} mm`]] },
+  ];
+  const ZERO = { title: 'Check the zero', dur: 1600,
+    body: 'Wipe the jaws clean and close them gently. Both 0 lines should line up exactly. If they don\'t, note the error and allow for it in every reading.',
+    tags: ['zero'], hot: ['zero'], keys: [[.3, { inset: 1, hiZero: 1 }], [1, { inset: 0 }]] };
+  const MODES = [
+    { label: 'Reading the scale', base: { ...common('', 23.45), reading: 23.45 },
+      steps: [
+        { title: 'The two scales', dur: 1600, body: 'The main scale on the beam is in millimetres. The short vernier scale on the sliding jaw splits each millimetre into 0.05 mm steps.', tags: ['main', 'vernier'], keys: [[.3, { inset: 1 }]] },
+        { title: 'Read the whole millimetres', dur: 1600, body: 'Look where the vernier\'s 0 line falls on the main scale. Read the last whole millimetre to its left: here 23 mm.', tags: ['vernier'], keys: [[.5, { hiZero: 1 }]] },
+        { title: 'Find the matching line', dur: 1800, body: 'Run your eye along the vernier and find the one line that lines up exactly with a main-scale line. Here it\'s the 45 line, so add 0.45 mm. Total: 23 + 0.45 = 23.45 mm.', tags: ['vernier'], keys: [[.6, { hiLine: 1 }]], flashes: [[.7, '23.45 mm']] },
+        { title: 'Read square on', dur: 1200, body: 'Look straight down on the scales, not from an angle, or the lines appear shifted (parallax). If two lines look equally close, take the reading halfway between.', tags: [], keys: [] },
+      ] },
+    { label: 'Outside', base: common('outside', 18.35), steps: [
+        ZERO,
+        { title: 'Open the jaws', dur: 1300, body: 'Open the jaws a little wider than the part using the thumb roller.', tags: ['roller'], keys: [[1, { reading: 26 }]] },
+        { title: 'Close on the part', dur: 1900, body: 'Put the part as deep into the outside jaws as it will go, square to the jaws, and close them with light, even thumb pressure. Don\'t squeeze: too much force bends the jaws and gives a small reading.', tags: ['jaws'], hot: ['jaws'], keys: [[.2, { pieceOn: 1 }], [.85, { reading: 18.35 }]] },
+        ...readSteps(18.35),
+      ] },
+    { label: 'Inside', base: common('inside', 24.6), steps: [
+        ZERO,
+        { title: 'Put the inside jaws in', dur: 1500, body: 'Close the jaws, then put the small upper (inside) jaws into the hole or slot.', tags: ['injaws'], hot: ['injaws'], keys: [[.4, { pieceOn: 1 }]] },
+        { title: 'Open them to the walls', dur: 1900, body: 'Open the jaws until they just touch both walls. For a round hole, rock the caliper slightly and take the largest reading, which is across the true diameter.', tags: ['injaws'], keys: [[.85, { reading: 24.6 }]] },
+        ...readSteps(24.6),
+      ] },
+    { label: 'Depth', base: { ...common('depth', 12.85), fx: 190 }, steps: [
+        ZERO,
+        { title: 'Rest the end on the top face', dur: 1500, body: 'Stand the end of the beam squarely on the top face of the part, over the hole or slot you\'re measuring.', tags: ['end'], hot: ['end'], keys: [[.4, { pieceOn: 1 }]] },
+        { title: 'Push the depth rod down', dur: 1900, body: 'Slide the jaw so the thin depth rod comes out of the end and goes down until it just touches the bottom. Keep the beam square and pressed on the top face.', tags: ['rod'], hot: ['rod'], keys: [[.85, { reading: 12.85 }]] },
+        ...readSteps(12.85),
+      ] },
+    { label: 'Step', base: common('step', 7.4), steps: [
+        ZERO,
+        { title: 'Use the step faces', dur: 1500, body: 'For the height of a step, use the faces at the back of the jaws: put the end face of the fixed jaw on the higher face.', tags: ['step'], hot: ['step'], keys: [[.4, { pieceOn: 1 }]] },
+        { title: 'Open to the lower face', dur: 1800, body: 'Open the caliper until the sliding jaw\'s step face touches the lower face, keeping the beam square to both.', tags: ['step'], keys: [[.85, { reading: 7.4 }]] },
+        ...readSteps(7.4),
+      ] },
+  ];
+  let mode = 0;
+  return {
+    id: 'caliper', fig: 3, name: 'Vernier caliper', sub: 'Outside, inside, depth and step', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) {
+      const c = caliper(st);
+      const body = MK.mat(this.viewBox) + work(st, c) + c.s;
+      const svg = MK.scene(st, body) + scaleInset(st, 278, -122, 76);
+      const jx = c.jx;
+      const tags = {
+        main:    { xy: MK.pt(st, X0 + 60 * S, BEAM_Y - 10), dx: -30, dy: -80, text: 'Main scale (mm)' },
+        vernier: { xy: MK.pt(st, jx + 20, BEAM_Y + 2), dx: 30, dy: 80, text: 'Vernier scale (0.05 mm)' },
+        zero:    { xy: MK.pt(st, X0, BEAM_Y), dx: -40, dy: -90, text: 'Both 0 lines line up' },
+        roller:  { xy: MK.pt(st, jx + 30, BEAM_Y + 30), dx: 40, dy: 70, text: 'Thumb roller' },
+        lock:    { xy: MK.pt(st, jx + 48, BEAM_Y - 32), dx: 50, dy: -60, text: 'Lock screw' },
+        jaws:    { xy: MK.pt(st, X0, BEAM_Y + 80), dx: -60, dy: 50, text: 'Outside jaws' },
+        injaws:  { xy: MK.pt(st, X0 - 4, BEAM_Y - 44), dx: -60, dy: -50, text: 'Inside jaws' },
+        end:     { xy: MK.pt(st, c.endX, BEAM_Y - 14), dx: -20, dy: -80, text: 'End of the beam' },
+        rod:     { xy: MK.pt(st, c.endX + st.reading * S * .6, BEAM_Y), dx: 30, dy: 80, text: 'Depth rod' },
+        step:    { xy: MK.pt(st, X0 + st.reading * S, BEAM_Y - 30), dx: 50, dy: -80, text: 'Step faces' },
+      };
+      return { svg, tags, anchors: { flash: MK.pt(st, jx + 40, BEAM_Y - 60) } };
+    },
+  };
+})();
+
+const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER, DRILL, PUNCH, CALIPER];
 EQ_TOOLS.forEach(t => { if (!t.cat) t.cat = 'electrical'; });
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
