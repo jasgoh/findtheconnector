@@ -141,5 +141,8 @@ cdnjs only when the topic opens). Drag to rotate, scroll or pinch to zoom; butto
 views, a Wire overlay, and Actual size (1:1 on screen after a one-time bank-card calibration, saved in
 localStorage as `cn-pxmm`). Families: Micro-Fit 3.0, Nano-Fit, Dupont 2.54 mm, JST GH, JST PH (the linked C111515
 is SPH-002T-P0.5S, a PH terminal), JST RCY/SM and Mega-Fit, male and female where both were linked.
-Series, wire range, insulation OD and plating come from the LCSC listings; body dimensions are approximate and
-the manufacturer's sales drawing is the reference. Part data is in `CONN_PARTS`.
+Series, wire range, insulation OD and plating come from the LCSC listings. The Micro-Fit male (43031) and female
+(43030-0007) are the real Molex STEP models, triangulated and embedded (`MF_MESH`, quantised). Every other
+terminal is that real mesh reshaped section by section (insulation wings, conductor wings, transition/barrel,
+contact) to its family's size (`sec` in `CONN_PARTS`); those sizes are approximate and the manufacturer's sales
+drawing is the reference. The RCY/SM female keeps the real rear half with a modelled slit tube socket.
