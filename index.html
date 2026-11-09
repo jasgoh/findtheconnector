@@ -3173,6 +3173,9 @@ const MK = (() => {
     <linearGradient id="mk-button" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F3F4"/><stop offset="1" stop-color="#B9BEC3"/></linearGradient>
     <linearGradient id="mk-ash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E3C3"/><stop offset=".5" stop-color="#E2C99B"/><stop offset="1" stop-color="#C9A979"/></linearGradient>
     <linearGradient id="mk-rubberh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a3d42"/><stop offset=".35" stop-color="#1d1f22"/><stop offset="1" stop-color="#0b0c0e"/></linearGradient>
+    <linearGradient id="bx-oxide" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b2e33"/><stop offset=".28" stop-color="#6c727a"/><stop offset=".42" stop-color="#8f959d"/><stop offset=".7" stop-color="#4a4f56"/><stop offset="1" stop-color="#202327"/></linearGradient>
+    <radialGradient id="bx-oxtop" cx=".42" cy=".38" r=".75"><stop offset="0" stop-color="#7d838b"/><stop offset="1" stop-color="#3c4046"/></radialGradient>
+    <linearGradient id="mk-chrome2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".4" stop-color="#C9CED3"/><stop offset=".7" stop-color="#8E959B"/><stop offset="1" stop-color="#D9DDE1"/></linearGradient>
     <linearGradient id="mk-handle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7A4E26"/><stop offset=".5" stop-color="#B07A40"/><stop offset="1" stop-color="#6A421E"/></linearGradient>`;
   return { mat, scene, pt, inset, defs };
 })();
@@ -3745,7 +3748,7 @@ const TAPDIE = (() => {
     { name: 'M3', d: 3, p: .5, drill: 2.5 }, { name: 'M4', d: 4, p: .7, drill: 3.3 }, { name: 'M5', d: 5, p: .8, drill: 4.2 },
     { name: 'M6', d: 6, p: 1, drill: 5 }, { name: 'M8', d: 8, p: 1.25, drill: 6.8 },
   ];
-  const SEL = { i: 3 };
+  const SEL = { i: 0 };                                             // opens on M3
   const PX = 8;                                                    // px per mm for the part being threaded
   const TOP = 40, BOT = 170;                                       // block top / bottom (tap mode)
 
@@ -3757,20 +3760,43 @@ const TAPDIE = (() => {
     return d;
   }
   // T-handle wrench (or die stock): bar seen side-on, shortened as it turns
+  // adjustable tap wrench, side view (black cast body, chrome bars, knurled handle on the right); shortens as it turns
   function wrench(cx, cy, rot, long, op = 1) {
     if (op < .02) return '';
-    const half = long * Math.abs(Math.cos((rot + .25) * Math.PI)) + 18;   // shortens as it turns, never edge-on at rest
-    return `<g opacity="${f(op)}"><rect x="${f(cx - half)}" y="${f(cy - 6)}" width="${f(half * 2)}" height="12" rx="6" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>
-      ${[-1, 1].map(sg => `<rect x="${f(cx + sg * half - (sg > 0 ? 34 : 0))}" y="${f(cy - 8)}" width="34" height="16" rx="7" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`).join('')}
-      <rect x="${f(cx - 18)}" y="${f(cy - 16)}" width="36" height="32" rx="6" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/></g>`;
+    const k = Math.abs(Math.cos((rot + .25) * Math.PI)), half = long * k + 24, bw = 34 * Math.max(.45, k) + 8;
+    let knurl = '';
+    for (const sg of [-1, 1]) for (let i = 0; i < 9; i++) { const x = cx + sg * (half - 6 - i * 5 * Math.max(.35, k)); knurl += `<line x1="${f(x)}" y1="${f(cy - 5)}" x2="${f(x + 3)}" y2="${f(cy + 5)}" stroke="rgba(0,0,0,.4)"/><line x1="${f(x + 3)}" y1="${f(cy - 5)}" x2="${f(x)}" y2="${f(cy + 5)}" stroke="rgba(0,0,0,.25)"/>`; }
+    return `<g opacity="${f(op)}">
+      <rect x="${f(cx - half)}" y="${f(cy - 5)}" width="${f(half * 2)}" height="10" rx="5" fill="url(#mk-chrome2)" stroke="rgba(0,0,0,.5)"/>${knurl}
+      <rect x="${f(cx - bw / 2 - 12)}" y="${f(cy - 8)}" width="12" height="16" rx="3" fill="#15171a"/><rect x="${f(cx + bw / 2)}" y="${f(cy - 8)}" width="12" height="16" rx="3" fill="#15171a"/>
+      <path d="M${f(cx - bw / 2)} ${f(cy - 11)} L${f(cx + bw / 2)} ${f(cy - 11)} L${f(cx + bw / 2 + 4)} ${f(cy)} L${f(cx + bw / 2)} ${f(cy + 11)} L${f(cx - bw / 2)} ${f(cy + 11)} L${f(cx - bw / 2 - 4)} ${f(cy)}Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/></g>`;
   }
-
+  // top view of the wrench for the magnifier: window with two V-jaws, adjuster screw, chrome bars, optional hands
+  function wrenchTop(cx, cy, ang, jaw, sqOn, twist, hands) {
+    let s = `<g transform="rotate(${f(ang)} ${f(cx)} ${f(cy)})">`;
+    const L = 84;
+    s += `<rect x="${f(cx - L)}" y="${f(cy - 5)}" width="${f(2 * L)}" height="10" rx="5" fill="url(#mk-chrome2)" stroke="rgba(0,0,0,.5)"/>`;
+    for (const sg of [-1, 1]) for (let i = 0; i < 9; i++) { const x = cx + sg * (L - 4 - i * 3.2) + (sg > 0 ? (twist * 6) % 3.2 : 0); s += `<line x1="${f(x)}" y1="${f(cy - 5)}" x2="${f(x + 2)}" y2="${f(cy + 5)}" stroke="rgba(0,0,0,.45)"/><line x1="${f(x + 2)}" y1="${f(cy - 5)}" x2="${f(x)}" y2="${f(cy + 5)}" stroke="rgba(0,0,0,.25)"/>`; }
+    s += `<path d="M${f(cx - 38)} ${f(cy - 15)} L${f(cx + 38)} ${f(cy - 15)} L${f(cx + 46)} ${f(cy)} L${f(cx + 38)} ${f(cy + 15)} L${f(cx - 38)} ${f(cy + 15)} L${f(cx - 46)} ${f(cy)}Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.8)"/>`;
+    s += `<rect x="${f(cx - 26)}" y="${f(cy - 8)}" width="52" height="16" fill="#3a3e45"/>`;
+    const g = lerp(1, 9, jaw);                                     // half-gap between the jaw tips
+    s += `<path d="M${f(cx - 26)} ${f(cy - 7)} L${f(cx - g - 6)} ${f(cy - 7)} L${f(cx - g)} ${f(cy)} L${f(cx - g - 6)} ${f(cy + 7)} L${f(cx - 26)} ${f(cy + 7)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<path d="M${f(cx + 20)} ${f(cy - 7)} L${f(cx + g + 6)} ${f(cy - 7)} L${f(cx + g)} ${f(cy)} L${f(cx + g + 6)} ${f(cy + 7)} L${f(cx + 20)} ${f(cy + 7)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    s += `<rect x="${f(cx + 20)}" y="${f(cy - 3)}" width="7" height="6" fill="#8a9097"/>`;          // adjuster screw
+    if (sqOn > .02) s += `<rect x="-4.5" y="-4.5" width="9" height="9" transform="translate(${f(cx)} ${f(cy)}) rotate(45)" fill="#C9CED3" stroke="#555" opacity="${f(sqOn)}"/>`;
+    if (hands) {
+      const hand = x => `<g transform="translate(${f(x)} ${f(cy)})"><ellipse cx="0" cy="0" rx="15" ry="19" fill="#D9A27C" stroke="rgba(0,0,0,.45)"/>${[-9, -3, 3, 9].map(y => `<path d="M-13 ${y} Q 0 ${y + 2} 13 ${y}" fill="none" stroke="rgba(0,0,0,.25)"/>`).join('')}<ellipse cx="-11" cy="-15" rx="6" ry="4" fill="#C98F68"/></g>`;
+      s += hand(cx - L + 18) + hand(cx + L - 18);
+    }
+    return s + '</g>';
+  }
   const TAP = {
     label: 'Tapping a hole',
-    base: { drillOn: 0, drill: 0, chamfer: 0, tapOn: 0, tapY: -80, rot: 0, thread: 0, fluid: 0, chips: 0, square: 0, screw: 0, zoom: 1, zs: 1.15, fx: 20, fy: 40 },
+    base: { drillOn: 0, drill: 0, chamfer: 0, tapOn: 0, tapY: -80, rot: 0, thread: 0, fluid: 0, bottle: 0, paste: 0, chips: 0, square: 0, screw: 0,
+            inset: 0, view: '', jaw: 1, sqIn: 0, twist: 0, ang: 0, zoom: 1, zs: .9, fx: 30, fy: 22 },
     draw(st) {
       const sz = SIZES[SEL.i], hw = sz.drill * PX / 2, tw = sz.d * PX / 2, pp = Math.max(4, sz.p * PX);
-      let b = MK.mat(this.viewBox);
+      let b = MK.mat(this.viewBox), svgExtra = '';
       // block, cut away through the hole
       const holeDepth = (BOT - TOP) * st.drill;
       b += `<rect x="-170" y="${TOP}" width="340" height="${BOT - TOP}" rx="3" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/>`;
@@ -3791,16 +3817,41 @@ const TAPDIE = (() => {
       }
       // the tap: threaded, fluted, tapered lead, square drive in the wrench
       if (st.tapOn > .02) {
-        const ty = TOP + st.tapY, L = 150;                         // ty = tap tip
-        let tooth = '';
-        tooth += `<path d="${teeth(-tw + 3, ty - L + 30, ty - 10, -3, pp, 1)}" fill="none" stroke="#5a6068" stroke-width="1.2"/>`;
-        b += `<g opacity="${f(st.tapOn)}"><path d="M${f(-tw)} ${f(ty - L + 30)} L${f(tw)} ${f(ty - L + 30)} L${f(tw)} ${f(ty - 22)} L${f(hw * .7)} ${f(ty)} L${f(-hw * .7)} ${f(ty)} L${f(-tw)} ${f(ty - 22)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>
-          ${Array.from({ length: 3 }, (_, i) => `<line x1="${f(-tw * .5 + i * tw * .5)}" y1="${f(ty - L + 34)}" x2="${f(-tw * .5 + i * tw * .5)}" y2="${f(ty - 6)}" stroke="#4a4f56" stroke-width="2.4" opacity=".55"/>`).join('')}
-          ${tooth}<path d="${teeth(tw - 3, ty - L + 30, ty - 10, 3, pp, -1)}" fill="none" stroke="#5a6068" stroke-width="1.2"/>
-          <rect x="${f(-tw * .8)}" y="${f(ty - L - 6)}" width="${f(tw * 1.6)}" height="40" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/></g>`;
-        b += wrench(0, ty - L + 4, st.rot, 120, st.tapOn);
+        // hand tap (after the M3 photo): pointed tip, threaded section, reduced neck, plain round shank,
+        // square drive with flats and a chamfered end. ty = the tip.
+        const ty = TOP + st.tapY, sw = tw * 1.12, nw = tw * .72, qw = tw * .95;
+        const tipL = tw * 1.3, thrTop = ty - 64, neckTop = ty - 78, shankTop = ty - 150, sqTop = ty - 176;
+        let t = '';
+        // threaded section with a pointed lead, threads drawn as fine sloping ridges
+        t += `<path d="M${f(-tw * .55)} ${f(ty - tipL * .55)} L0 ${f(ty)} L${f(tw * .55)} ${f(ty - tipL * .55)} L${f(tw)} ${f(ty - tipL)} L${f(tw)} ${f(thrTop)} L${f(-tw)} ${f(thrTop)} L${f(-tw)} ${f(ty - tipL)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>`;
+        for (let yy = ty - tipL * .6; yy > thrTop + 2; yy -= pp) {
+          const w = yy > ty - tipL ? tw * (.55 + .45 * (ty - tipL * .55 - yy) / (tipL * .45)) : tw;
+          t += `<path d="M${f(-w + 1)} ${f(yy)} Q 0 ${f(yy + pp * .45)} ${f(w - 1)} ${f(yy - pp * .3)}" fill="none" stroke="#5a6068" stroke-width="${f(Math.max(.8, pp * .22))}" opacity=".8"/>`;
+          t += `<path d="M${f(-w + 1)} ${f(yy - pp * .35)} Q 0 ${f(yy + pp * .1)} ${f(w - 1)} ${f(yy - pp * .65)}" fill="none" stroke="#fff" stroke-width=".7" opacity=".45"/>`;
+        }
+        t += `<line x1="${f(tw * .25)}" y1="${f(ty - tipL * .5)}" x2="${f(tw * .25)}" y2="${f(thrTop + 4)}" stroke="#4a4f56" stroke-width="2.2" opacity=".55"/>`;      // a flute
+        // neck, shank with its size stamp, square drive
+        t += `<path d="M${f(-tw)} ${f(thrTop)} L${f(-nw)} ${f(thrTop - 5)} L${f(-nw)} ${f(neckTop + 3)} L${f(-sw)} ${f(neckTop)} L${f(sw)} ${f(neckTop)} L${f(nw)} ${f(neckTop + 3)} L${f(nw)} ${f(thrTop - 5)} L${f(tw)} ${f(thrTop)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>`;
+        t += `<rect x="${f(-sw)}" y="${f(shankTop)}" width="${f(sw * 2)}" height="${f(neckTop - shankTop)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>`;
+        t += `<text x="0" y="${f((shankTop + neckTop) / 2)}" text-anchor="middle" class="bx-etch" transform="rotate(-90 0 ${f((shankTop + neckTop) / 2)})">${sz.name}</text>`;
+        t += `<path d="M${f(-qw)} ${f(shankTop)} L${f(-qw)} ${f(sqTop + 6)} L0 ${f(sqTop - 4)} L${f(qw)} ${f(sqTop + 6)} L${f(qw)} ${f(shankTop)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>`;
+        t += `<rect x="${f(-qw * .55)}" y="${f(sqTop + 6)}" width="${f(qw * 1.1)}" height="${f(shankTop - sqTop - 8)}" fill="#E8EBEE" stroke="rgba(0,0,0,.25)"/>`;   // the flat
+        b += `<g opacity="${f(st.tapOn)}">${t}</g>`;
+        b += wrench(0, sqTop + 12, st.rot, 120, st.tapOn);
       }
-      if (st.fluid > .02) b += `<path d="M14 ${TOP - 40} q -7 10 0 16 q 7 -6 0 -16z" fill="#8FB8D9" opacity="${f(st.fluid)}"/>`;
+      // cutting fluid: a squeeze bottle with a nozzle puts a bead of fluid along the tap's threads
+      if (st.paste > .02 && st.tapOn > .02) { const ty = TOP + st.tapY; for (let i = 0; i < 5; i++) b += `<ellipse cx="${f(-tw + 2 + (i % 2) * 4)}" cy="${f(ty - 14 - i * 16)}" rx="${f(5 + (i % 3))}" ry="4" fill="#E4EED8" stroke="rgba(0,0,0,.25)" opacity="${f(st.paste * (i < 5 * st.paste + .5 ? 1 : 0))}"/>`; }
+      if (st.bottle > .02) {
+        const ty = TOP + st.tapY, nx = -tw - 6, ny = ty - 30 + (1 - st.bottle) * 40;
+        b += `<g opacity="${f(Math.min(1, st.bottle * 1.5))}" transform="translate(${f(nx)} ${f(ny)}) rotate(-28)">
+          <path d="M0 0 L-16 -5 L-16 5Z" fill="#2a2d31"/><rect x="-40" y="-8" width="24" height="16" rx="3" fill="#1d1f22"/>${Array.from({ length: 6 }, (_, i) => `<line x1="${-38 + i * 4}" y1="-8" x2="${-38 + i * 4}" y2="8" stroke="#3a3e45"/>`).join('')}
+          <rect x="-150" y="-30" width="112" height="60" rx="22" fill="#DCE6D6" stroke="rgba(0,0,0,.45)"/><rect x="-140" y="-22" width="70" height="8" rx="4" fill="#fff" opacity=".5"/></g>`;
+      }
+      if (st.inset > .02) {
+        const inner = wrenchTop(278, -122, st.ang, st.jaw, st.sqIn, st.twist, st.view === 'turn');
+        const label = st.view === 'turn' ? (st.ang > 300 ? 'Full turn forward, then half back' : 'Both hands, even pressure') : (st.jaw < .5 ? 'Twist the handle to close the jaws' : 'Square end of the tap into the jaws');
+        svgExtra = MK.inset(278, -122, 80, `<rect x="198" y="-202" width="160" height="160" fill="#8a8f96"/>${inner}`, label, 'tapTop', st.inset);
+      }
       if (st.chips > .02) for (let i = 0; i < 4; i++) b += `<path d="M${f(-tw - 6 - i * 7)} ${TOP - 2} q -6 -8 0 -12 q 6 4 0 12" fill="none" stroke="#C9CED3" stroke-width="2" opacity="${f(st.chips)}"/>`;
       if (st.square > .02) b += `<g opacity="${f(st.square)}"><rect x="${f(tw + 30)}" y="${TOP - 130}" width="12" height="130" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/><rect x="${f(tw + 30)}" y="${TOP - 14}" width="90" height="14" fill="url(#mk-wood)" stroke="rgba(0,0,0,.5)"/></g>`;
       if (st.screw > .02) b += `<g opacity="${f(st.screw)}"><rect x="${f(-tw)}" y="${f(TOP - 60 + st.screw * 70)}" width="${f(tw * 2)}" height="80" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/><rect x="${f(-tw * 1.7)}" y="${f(TOP - 84 + st.screw * 70)}" width="${f(tw * 3.4)}" height="24" rx="4" fill="#2a2d31"/></g>`;
@@ -3808,38 +3859,37 @@ const TAPDIE = (() => {
         drill:  { xy: MK.pt(st, hw, TOP - 60), dx: 90, dy: -40, text: `${sz.drill} mm tap drill` },
         hole:   { xy: MK.pt(st, hw, TOP + 60), dx: 100, dy: 30, text: 'Drilled hole' },
         chamf:  { xy: MK.pt(st, hw + 4, TOP + 2), dx: 100, dy: -30, text: 'Chamfered edge' },
-        tap:    { xy: MK.pt(st, tw, TOP + st.tapY - 60), dx: 100, dy: -20, text: `${sz.name} tap` },
-        wrench: { xy: MK.pt(st, 100, TOP + st.tapY - 146), dx: 60, dy: -40, text: 'Tap wrench' },
+        tap:    { xy: MK.pt(st, tw * 1.12, TOP + st.tapY - 110), dx: 100, dy: -20, text: `${sz.name} tap` },
+        wrench: { xy: MK.pt(st, 100, TOP + st.tapY - 164), dx: 60, dy: -40, text: 'Tap wrench' },
         square: { xy: MK.pt(st, tw + 36, TOP - 80), dx: 90, dy: 0, text: 'Square: keep it upright' },
         thread: { xy: MK.pt(st, hw, TOP + Math.max(10, st.thread * .5)), dx: 110, dy: 50, text: 'Threads cut in the wall' },
         chips:  { xy: MK.pt(st, -tw - 14, TOP - 8), dx: -90, dy: -40, text: 'Chips' },
+        fluid:  { xy: MK.pt(st, -tw, TOP + st.tapY - 40), dx: -80, dy: 60, text: 'Cutting fluid on the threads' },
       };
-      return { svg: MK.scene(st, b), tags, anchors: { flash: MK.pt(st, -tw - 60, TOP - 120) } };
+      return { svg: MK.scene(st, b) + svgExtra, tags, anchors: { flash: MK.pt(st, -tw - 60, TOP - 120) } };
     },
     steps: [
-      { title: 'Pick the tap and drill', dur: 1400,
-        body: 'Every tap needs a pilot hole of the right size, the tap drill: roughly the thread diameter minus the pitch. For {S} ({P} mm pitch) that\'s a {D} mm drill. Check the tap drill chart for other sizes.',
-        tags: [], keys: [] },
-      { title: 'Drill the hole', dur: 2000,
-        body: 'Mark the centre with a centre punch and drill the tap drill straight and square, ideally on a drill press. Drill a little deeper than the thread you need for a blind hole.',
-        tags: ['drill'], hot: ['drill'], keys: [[.15, { drillOn: 1 }], [.85, { drill: 1 }]] },
-      { title: 'Chamfer the edge', dur: 1300,
-        body: 'Run a countersink or a bigger drill lightly over the hole to put a small chamfer on the edge. It helps the tap start and stops the first thread being raised.',
-        tags: ['chamf'], hot: ['chamf'], keys: [[0, { drillOn: 0 }], [.8, { chamfer: 1 }]] },
-      { title: 'Fit the tap and add cutting fluid', dur: 1500,
-        body: 'Clamp the square end of the first (taper) tap in the tap wrench. Put a drop of cutting fluid on the tap and in the hole; it cuts cleaner and the tap is less likely to snap.',
-        tags: ['tap', 'wrench'], hot: ['wrench'], keys: [[.3, { tapOn: 1, tapY: -30 }], [.8, { fluid: 1 }], [1, { fluid: 0 }]] },
-      { title: 'Start it square', dur: 1700,
+      { title: 'Fit the tap in the wrench', dur: 2600,
+        body: 'Open the tap wrench\'s jaws by turning its handle, slide the square end of the {S} tap between the two V-jaws, then twist the handle to close the jaws tight on the square. Use the first (taper) tap to start.',
+        tags: ['tap', 'wrench'], hot: ['wrench'], keys: [[0, { view: 'fit', inset: 1, jaw: 1, sqIn: 0 }], [.3, { sqIn: 1 }], [.85, { jaw: 0, twist: 3 }], [1, { tapOn: 1, tapY: -14 }]] },
+      { title: 'Drill the tap drill hole', dur: 2200,
+        body: 'Every tap needs a pilot hole of the right size, the tap drill: roughly the thread diameter minus the pitch. For {S} ({P} mm pitch) that\'s a {D} mm drill. Centre punch the position and drill it straight and square, ideally on a drill press; a little deeper than the thread for a blind hole.',
+        tags: ['drill'], hot: ['drill'], keys: [[0, { inset: 0, tapOn: 0 }], [.15, { drillOn: 1 }], [.85, { drill: 1 }]] },
+      { title: 'Add cutting fluid', dur: 1900,
+        body: 'Put a bead of cutting fluid along the tap\'s threads. It cuts cleaner, the chips clear more easily, and the tap is far less likely to snap. Add a drop more as you go.',
+        tags: ['fluid'], hot: ['fluid'], keys: [[0, { drillOn: 0 }], [.1, { tapOn: 1, tapY: -40 }], [.3, { bottle: 1 }], [.85, { paste: 1 }], [1, { bottle: 0 }]] },
+      { title: 'Start it square', dur: 1800,
         body: 'Put the tapered end into the hole and turn gently clockwise with even pressure on both handles until it bites. Check it\'s upright from two directions with a square before going on.',
         caution: 'A tap started at an angle cuts crooked threads and is likely to break.',
         tags: ['square'], hot: ['square'], keys: [[.5, { tapY: 20, rot: .5, thread: 10 }], [.7, { square: 1 }], [1, { square: 0 }]] },
-      { title: 'Half a turn in, a quarter back', dur: 3000,
-        body: 'Turn the tap half a turn clockwise, then a quarter turn back to break the chip off. Repeat, with steady, even pressure on both handles and a drop more fluid now and then. If it gets stiff, back it out and clear the chips; never force it.',
-        tags: ['thread', 'chips'], hot: ['thread'], keys: [[.25, { rot: 1, tapY: 45, thread: 36 }], [.35, { rot: .75, chips: 1 }], [.6, { rot: 1.75, tapY: 75, thread: 66 }], [.7, { rot: 1.5 }], [.95, { rot: 2.5, tapY: 105, thread: 96 }]],
-        flashes: [[.22, '½ turn'], [.34, '¼ back'], [.57, '½ turn'], [.68, '¼ back']] },
+      { title: 'Full turn in, half turn back', dur: 4200,
+        body: 'Hold the wrench by both handles and turn it one full turn clockwise, then half a turn back to snap off the chip and clear it. Repeat with steady, even pressure from both hands. If it gets stiff, back it out and clear the chips; never force it.',
+        tags: ['thread', 'chips'], hot: ['thread'],
+        keys: [[0, { view: 'turn', inset: 1, ang: 0 }], [.3, { ang: 360, rot: 1.5, tapY: 45, thread: 36 }], [.45, { ang: 180, rot: 1, chips: 1 }], [.75, { ang: 540, rot: 2.5, tapY: 75, thread: 66 }], [.9, { ang: 360, rot: 2 }]],
+        flashes: [[.28, 'Full turn'], [.43, '½ back'], [.73, 'Full turn'], [.88, '½ back']] },
       { title: 'Finish and clear the chips', dur: 2000,
         body: 'Carry on until the threads go right through, or for a blind hole until the tap touches bottom, then follow with the plug and bottoming taps to thread to the bottom. Turn the tap back out and blow or brush out the chips.',
-        tags: ['thread'], keys: [[.5, { tapY: 150, thread: 130, rot: 4 }], [.85, { tapY: -100, rot: 1 }], [1, { tapOn: 0, chips: 0 }]] },
+        tags: ['thread'], keys: [[0, { inset: 0 }], [.5, { tapY: 150, thread: 130, rot: 4 }], [.85, { tapY: -100, rot: 1 }], [1, { tapOn: 0, chips: 0, paste: 0 }]] },
       { title: 'Check with a screw', dur: 1600,
         body: 'Clean out the cutting fluid and run in a screw of the right size. It should turn in smoothly by hand all the way.',
         tags: [], keys: [[.8, { screw: 1 }]] },
@@ -3936,38 +3986,50 @@ const BX = (() => {
   const glow = (d, on) => on ? `<path d="${d}" fill="none" stroke="var(--mat)" stroke-width="3.5" opacity=".9"/>` : '';
   const txt = (x, y, s, cls = 'bx-cap', anchor = 'middle') => `<text x="${f(x)}" y="${f(y)}" text-anchor="${anchor}" class="${cls}">${s}</text>`;
   // a vertical screw: head on top at y, thread down to y + L; d = diameter (px), p = pitch (px)
+  // a vertical screw in black-oxide steel: head on top at y, thread down to y + L; d = diameter (px), p = pitch (px)
   function screw(cx, y, d, L, p, type, opt = {}) {
     let s = '', h = 0, top = '';
-    const r = d / 2, hd = opt.hd || d * 1.65, hh = opt.hh || d;
+    const r = d / 2, hd = opt.hd || d * 1.65, hh = opt.hh || d, OX = 'url(#bx-oxide)', EDGE = 'rgba(0,0,0,.7)';
+    const hexPts = (x, yy, R, sy) => Array.from({ length: 6 }, (_, i) => `${f(x + R * Math.cos(i * Math.PI / 3 + Math.PI / 6))},${f(yy + R * Math.sin(i * Math.PI / 3 + Math.PI / 6) * sy)}`).join(' ');
     switch (type) {
-      case 'socket': h = hh; top = `<rect x="${f(cx - hd / 2)}" y="${f(y - h)}" width="${f(hd)}" height="${f(h)}" rx="3" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>
-        ${[.2, .4, .6, .8].map(t => `<line x1="${f(cx - hd / 2 + hd * t)}" y1="${f(y - h + 2)}" x2="${f(cx - hd / 2 + hd * t)}" y2="${f(y - 2)}" stroke="rgba(0,0,0,.15)"/>`).join('')}
-        <rect x="${f(cx - d * .43)}" y="${f(y - h)}" width="${f(d * .86)}" height="${f(h * .55)}" fill="none" stroke="#2a2d31" stroke-dasharray="3 2"/>`; break;
-      case 'csk': h = d * .62; top = `<path d="M${f(cx - d)} ${f(y - h)} L${f(cx + d)} ${f(y - h)} L${f(cx + r)} ${f(y)} L${f(cx - r)} ${f(y)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`; break;
-      case 'button': h = d * .55; top = `<path d="M${f(cx - d * .95)} ${f(y)} Q ${f(cx - d * .95)} ${f(y - h * 1.6)} ${f(cx)} ${f(y - h * 1.6)} Q ${f(cx + d * .95)} ${f(y - h * 1.6)} ${f(cx + d * .95)} ${f(y)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`; break;
-      case 'pan': h = d * .7; top = `<path d="M${f(cx - d)} ${f(y)} L${f(cx - d)} ${f(y - h * .6)} Q ${f(cx - d)} ${f(y - h)} ${f(cx - d * .6)} ${f(y - h)} L${f(cx + d * .6)} ${f(y - h)} Q ${f(cx + d)} ${f(y - h)} ${f(cx + d)} ${f(y - h * .6)} L${f(cx + d)} ${f(y)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`; break;
-      case 'hex': h = d * .7; top = `<rect x="${f(cx - d * .95)}" y="${f(y - h)}" width="${f(d * 1.9)}" height="${f(h)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/><line x1="${f(cx - d * .32)}" y1="${f(y - h)}" x2="${f(cx - d * .32)}" y2="${f(y)}" stroke="rgba(0,0,0,.3)"/><line x1="${f(cx + d * .32)}" y1="${f(y - h)}" x2="${f(cx + d * .32)}" y2="${f(y)}" stroke="rgba(0,0,0,.3)"/>`; break;
+      case 'socket': {
+        h = hh; const ry = hd * .17;
+        // cylinder side, then the top face seen slightly from above with its chamfered rim and hex socket
+        top = `<path d="M${f(cx - hd / 2)} ${f(y - h)} L${f(cx - hd / 2)} ${f(y - 3)} Q ${f(cx - hd / 2)} ${f(y)} ${f(cx - hd / 2 + 3)} ${f(y)} L${f(cx + hd / 2 - 3)} ${f(y)} Q ${f(cx + hd / 2)} ${f(y)} ${f(cx + hd / 2)} ${f(y - 3)} L${f(cx + hd / 2)} ${f(y - h)}Z" fill="${OX}" stroke="${EDGE}"/>
+          <ellipse cx="${f(cx)}" cy="${f(y - h)}" rx="${f(hd / 2)}" ry="${f(ry)}" fill="url(#bx-oxtop)" stroke="${EDGE}"/>
+          <ellipse cx="${f(cx)}" cy="${f(y - h)}" rx="${f(hd / 2 - hd * .07)}" ry="${f(ry * .82)}" fill="none" stroke="rgba(255,255,255,.18)"/>
+          <polygon points="${hexPts(cx, y - h, d * .42, ry / (hd / 2))}" fill="#141619" stroke="rgba(255,255,255,.12)"/>
+          <path d="M${f(cx - hd / 2 + 2)} ${f(y - h + 3)} Q ${f(cx)} ${f(y - h + ry + 4)} ${f(cx + hd / 2 - 2)} ${f(y - h + 3)}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.4"/>`;
+        break;
+      }
+      case 'csk': h = d * .62; top = `<path d="M${f(cx - d)} ${f(y - h)} L${f(cx + d)} ${f(y - h)} L${f(cx + r)} ${f(y)} L${f(cx - r)} ${f(y)}Z" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - d + 2)}" y1="${f(y - h + 2)}" x2="${f(cx + d - 2)}" y2="${f(y - h + 2)}" stroke="rgba(255,255,255,.25)"/>`; break;
+      case 'button': h = d * .55; top = `<path d="M${f(cx - d * .95)} ${f(y)} Q ${f(cx - d * .95)} ${f(y - h * 1.6)} ${f(cx)} ${f(y - h * 1.6)} Q ${f(cx + d * .95)} ${f(y - h * 1.6)} ${f(cx + d * .95)} ${f(y)}Z" fill="${OX}" stroke="${EDGE}"/><path d="M${f(cx - d * .7)} ${f(y - h * .7)} Q ${f(cx)} ${f(y - h * 1.5)} ${f(cx + d * .5)} ${f(y - h * 1.1)}" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1.4"/>`; break;
+      case 'pan': h = d * .7; top = `<path d="M${f(cx - d)} ${f(y)} L${f(cx - d)} ${f(y - h * .6)} Q ${f(cx - d)} ${f(y - h)} ${f(cx - d * .6)} ${f(y - h)} L${f(cx + d * .6)} ${f(y - h)} Q ${f(cx + d)} ${f(y - h)} ${f(cx + d)} ${f(y - h * .6)} L${f(cx + d)} ${f(y)}Z" fill="${OX}" stroke="${EDGE}"/>`; break;
+      case 'hex': h = d * .7; top = `<rect x="${f(cx - d * .95)}" y="${f(y - h)}" width="${f(d * 1.9)}" height="${f(h)}" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - d * .32)}" y1="${f(y - h)}" x2="${f(cx - d * .32)}" y2="${f(y)}" stroke="rgba(0,0,0,.45)"/><line x1="${f(cx + d * .32)}" y1="${f(y - h)}" x2="${f(cx + d * .32)}" y2="${f(y)}" stroke="rgba(0,0,0,.45)"/>`; break;
     }
     s += top;
-    const thrStart = type === 'shoulder' ? y : y + (opt.unthreaded || 0);
     if (type === 'shoulder') {
       const sd = opt.sd, sl = opt.sl;                          // shoulder diameter and length (px)
-      h = d * .9;
-      s += `<rect x="${f(cx - sd * .8)}" y="${f(y - h)}" width="${f(sd * 1.6)}" height="${f(h)}" rx="3" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`;
-      s += `<rect x="${f(cx - sd / 2)}" y="${f(y)}" width="${f(sd)}" height="${f(sl)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`;
+      h = d * .9; const ry = sd * .8 * .17;
+      s += `<rect x="${f(cx - sd * .8)}" y="${f(y - h)}" width="${f(sd * 1.6)}" height="${f(h)}" rx="2" fill="${OX}" stroke="${EDGE}"/>
+        <ellipse cx="${f(cx)}" cy="${f(y - h)}" rx="${f(sd * .8)}" ry="${f(ry)}" fill="url(#bx-oxtop)" stroke="${EDGE}"/><polygon points="${hexPts(cx, y - h, sd * .36, .17 / .8 * 1.25)}" fill="#141619"/>`;
+      s += `<rect x="${f(cx - sd / 2)}" y="${f(y)}" width="${f(sd)}" height="${f(sl)}" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - sd * .18)}" y1="${f(y + 2)}" x2="${f(cx - sd * .18)}" y2="${f(y + sl - 2)}" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>`;
       y += sl;
     }
-    // shank (unthreaded) and threads
-    if (opt.unthreaded) s += `<rect x="${f(cx - r)}" y="${f(y)}" width="${f(d)}" height="${f(opt.unthreaded)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`;
-    const t0 = y + (opt.unthreaded || 0), t1 = y + L - (type === 'shoulder' ? 0 : 0);
-    const minor = r * .78;
-    let edge = `M${f(cx - r)} ${f(t0)}`;
-    for (let yy = t0; yy < t1 - p * .5; yy += p) edge += ` L${f(cx - minor)} ${f(yy + p / 2)} L${f(cx - r)} ${f(yy + p)}`;
-    let edgeR = `M${f(cx + r)} ${f(t0)}`;
-    for (let yy = t0 + p / 2; yy < t1 - p * .5; yy += p) edgeR += ` L${f(cx + minor)} ${f(yy)} L${f(cx + r)} ${f(yy + p / 2)}`;
-    s += `<rect x="${f(cx - minor)}" y="${f(t0)}" width="${f(minor * 2)}" height="${f(t1 - t0)}" fill="url(#mk-steelv)"/>`;
-    s += `<path d="${edge} L${f(cx - minor)} ${f(t1)} L${f(cx + minor)} ${f(t1)} ${edgeR.replace('M', 'L')}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)" stroke-width=".9"/>`;
-    for (let yy = t0 + p * .2; yy < t1 - p; yy += p) s += `<line x1="${f(cx - r + 1)}" y1="${f(yy + p * .5)}" x2="${f(cx + r - 1)}" y2="${f(yy)}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>`;
+    // plain shank, if any
+    if (opt.unthreaded) s += `<rect x="${f(cx - r)}" y="${f(y)}" width="${f(d)}" height="${f(opt.unthreaded)}" fill="${OX}" stroke="${EDGE}"/>`;
+    // the thread: a core, then each turn as a rounded ridge that slopes with the helix (lit crest, shadowed root)
+    const t0 = y + (opt.unthreaded || 0), t1 = y + L, minor = r * .8;
+    s += `<rect x="${f(cx - minor)}" y="${f(t0)}" width="${f(minor * 2)}" height="${f(t1 - t0)}" fill="${OX}"/>`;
+    const turn = (yl, dy = 0) => `M${f(cx - r + p * .32)} ${f(yl + dy)} Q ${f(cx)} ${f(yl + p * .25 + p * .3 + dy)} ${f(cx + r - p * .32)} ${f(yl + p * .5 + dy)}`;
+    let roots = '', crests = '', lights = '';
+    for (let yl = t0 + p * .3; yl + p * .5 < t1 - p * .2; yl += p) {
+      roots += `<path d="${turn(yl, p * .5)}" fill="none" stroke="#141619" stroke-width="${f(Math.max(.8, p * .2))}" opacity=".85"/>`;
+      crests += `<path d="${turn(yl)}" fill="none" stroke="${OX}" stroke-width="${f(p * .68)}" stroke-linecap="round"/>`;
+      lights += `<path d="${turn(yl, -p * .17)}" fill="none" stroke="#C3C9CF" stroke-width="${f(Math.max(.6, p * .1))}" stroke-linecap="round" opacity=".55"/>`;
+    }
+    s += roots + crests + lights;
+    s += `<ellipse cx="${f(cx)}" cy="${f(t1)}" rx="${f(minor)}" ry="${f(minor * .22)}" fill="#2a2d31" stroke="${EDGE}"/>`;   // the end
     return { s, headTop: y - (type === 'shoulder' ? (opt.sl || 0) : 0) - h, headH: h, tEnd: t1 };
   }
   function topView(cx, cy, R, kind) {
@@ -4046,8 +4108,10 @@ const B_SCREWS = (() => {
       });
       if (st.hl === 5) {                                       // shoulder bolt dimensions
         const cx = -175 + 5 * 68;
-        s += BX.dim(cx + 30, -40, cx + 30, 30, 'shoulder length', true, 1) + BX.dim(cx - 13, 44, cx + 13, 44, '', true);
-        s += BX.txt(cx + 22, 64, 'shoulder ⌀', 'bx-dim hot', 'start');
+        s += BX.ext(cx + 14, -40, cx + 46, -40) + BX.ext(cx + 14, 30, cx + 46, 30);
+        s += BX.dim(cx + 44, -40, cx + 44, 30, 'shoulder length', true, 1);
+        s += BX.dim(cx - 13, 12, cx + 13, 12, '', true) + `<path d="M${cx + 13} 12 L${cx + 46} 54" stroke="var(--mat)" stroke-width="1.2" fill="none"/>`;
+        s += BX.txt(cx + 48, 60, 'shoulder ⌀', 'bx-dim hot', 'start');
       }
       return { svg: MK.scene(st, s), tags: {}, anchors: { flash: [85, -160] } };
     },
@@ -4079,7 +4143,6 @@ const B_SCREWS = (() => {
     },
     steps: [
       { title: 'Measure the thread diameter', dur: 1500, body: 'Close a caliper over the threads (the major diameter). It reads a little under the nominal size: 2.9–3.0 mm means M3, 3.8–4.0 M4, 4.8–5.0 M5, 5.8–6.0 M6.', tags: [], keys: [[0, { hl: 'dia', jaw: 0 }], [.8, { jaw: 1 }]] },
-      { title: 'Check the pitch', dur: 1400, body: 'Hold thread gauge leaves against the threads until one fits with no light showing: here 0.5 mm, the standard coarse pitch for M3. No gauge? Measure across 10 threads and divide by 10.', tags: [], keys: [[0, { hl: 'pitch', gauge: 0 }], [.7, { gauge: 1 }]] },
       { title: 'Measure the length', dur: 1200, body: 'Measure from under the head to the tip: 10 mm. That\'s how cap, button, pan and hex head screws are sized.', tags: [], keys: [[0, { hl: 'length' }]] },
       { title: 'Countersunk is different', dur: 1200, body: 'A countersunk head sits flush with the surface, so it\'s measured overall, from the top of the head to the tip.', tags: [], keys: [[0, { hl: 'csk' }]] },
       { title: 'Name it', dur: 1200, body: 'Put it together: thread diameter × length, so M3 × 10. If the pitch isn\'t the standard coarse one, add it: M8 × 1 × 20. Shoulder bolts are named by shoulder diameter × shoulder length (for example 6 × 20, with an M5 thread).', tags: [], keys: [[0, { hl: 'name' }]] },
