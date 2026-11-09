@@ -1115,6 +1115,17 @@ const EQ = (() => {
 /* ---------- Fig. 01: Wire stripper (Engineer PA-06) ---------- */
 // Same front view as the PAD-11. The wire passes through a stripping hole; its free end points at the viewer,
 // so the insulation slug stays visible in the jaws when the wire is pulled back.
+// caption under a magnifier: one line, or two when it's long, split at the space nearest the middle
+function insetCaption(x, y, label) {
+  let lines = [label];
+  if (label.length > 26 && label.includes(' ')) {
+    const mid = label.length / 2; let cut = -1;
+    for (let i = 0; i < label.length; i++) if (label[i] === ' ' && (cut < 0 || Math.abs(i - mid) < Math.abs(cut - mid))) cut = i;
+    lines = [label.slice(0, cut), label.slice(cut + 1)];
+  }
+  return lines.map((l, i) => `<text x="${EQ.f(x)}" y="${EQ.f(y + i * 14)}" text-anchor="middle" class="eq-inset-label">${l}</text>`).join('');
+}
+
 const PA14 = (() => {
   const { prism, tube, M, lerp, f, pts, P } = EQ;
   // Side-on camera, like the how-to photos: the tool stands with its jaw tip up, the jaw face turned partly
@@ -1210,7 +1221,7 @@ const PA14 = (() => {
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
       + `<g clip-path="url(#paInsetClip)"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${w}</g>`
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
-      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
+      + insetCaption(cx, cy + R + 18, label) + `</g>`;
   }
 
   function draw(st) {
@@ -1697,7 +1708,7 @@ const PAD11 = (() => {
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
       + `<g clip-path="url(#padSideClip)"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${w}</g>`
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
-      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
+      + insetCaption(cx, cy + R + 18, label) + `</g>`;
   }
 
   function inset(st, cx, cy, R) {
@@ -1795,7 +1806,7 @@ const PAD11 = (() => {
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R + 4)}" class="eq-inset-ring"/>`
       + `<g clip-path="url(#padInsetClip)"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${anvil}${punch}${wire}${term}</g>`
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
-      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
+      + insetCaption(cx, cy + R + 18, label) + `</g>`;
   }
 
   function draw(st) {
@@ -2181,7 +2192,7 @@ const FRONT_KIT = (() => {
       + `<clipPath id="${id}"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
       + `<g clip-path="url(#${id})"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${inner}</g>`
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
-      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text>`;
+      + insetCaption(cx, cy + R + 18, label);
   }
   const defs = `
     <linearGradient id="vk-black" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#4A4F56"/><stop offset=".45" stop-color="#2A2D32"/><stop offset="1" stop-color="#17191C"/></linearGradient>
@@ -2897,7 +2908,7 @@ const SOLDER = (() => {
       // housing (yellow nylon) and a mated spare plug that keeps the pins aligned and soaks up heat
       b += `<rect x="${f(cupX0 - 120)}" y="${f(y - s.hw / 2)}" width="120" height="${f(s.hw)}" rx="6" fill="url(#sd-xt)" stroke="rgba(0,0,0,.5)"/>`;
       b += `<text class="sd-mark" x="${f(cupX0 - 60)}" y="${f(y + 5)}" text-anchor="middle">${s.name}</text>`;
-      if (st.mated > .02) b += `<g opacity="${f(st.mated)}"><rect x="${f(cupX0 - 230)}" y="${f(y - s.hw / 2 - 4)}" width="114" height="${f(s.hw + 8)}" rx="6" fill="url(#sd-xt)" stroke="rgba(0,0,0,.5)" opacity=".85"/>${label(cupX0 - 173, y + s.hw / 2 + 22, 'spare plug')}</g>`;
+      if (st.mated > .02) b += `<g opacity="${f(st.mated)}"><rect x="${f(cupX0 - 230)}" y="${f(y - s.hw / 2 - 4)}" width="114" height="${f(s.hw + 8)}" rx="6" fill="url(#sd-xt)" stroke="rgba(0,0,0,.5)" opacity=".85"/>${(st.zoom || 0) < .4 ? label(cupX0 - 173, y + s.hw / 2 + 22, 'spare plug') : ''}</g>`;
       // the cup, cut away so you can see inside: brass wall, solder fill level, then the wire
       const inner = r * .72, wallT = r - inner;
       b += `<rect x="${f(cupX0)}" y="${f(y - r)}" width="${f(s.depth)}" height="${f(2 * r)}" rx="${f(r * .3)}" fill="url(#sd-brass)" stroke="rgba(0,0,0,.5)"/>`;
@@ -3159,7 +3170,7 @@ const MK = (() => {
       + `<clipPath id="${id}"><circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}"/></clipPath>`
       + `<g clip-path="url(#${id})"><rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" class="eq-inset-bg"/>${inner}</g>`
       + `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="none" class="eq-inset-edge"/>`
-      + `<text x="${f(cx)}" y="${f(cy + R + 18)}" text-anchor="middle" class="eq-inset-label">${label}</text></g>`;
+      + insetCaption(cx, cy + R + 18, label) + `</g>`;
   }
   const defs = `
     <linearGradient id="mk-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3FC3D2"/><stop offset=".5" stop-color="#0D9CB0"/><stop offset="1" stop-color="#077284"/></linearGradient>
@@ -3173,9 +3184,11 @@ const MK = (() => {
     <linearGradient id="mk-button" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F3F4"/><stop offset="1" stop-color="#B9BEC3"/></linearGradient>
     <linearGradient id="mk-ash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E3C3"/><stop offset=".5" stop-color="#E2C99B"/><stop offset="1" stop-color="#C9A979"/></linearGradient>
     <linearGradient id="mk-rubberh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a3d42"/><stop offset=".35" stop-color="#1d1f22"/><stop offset="1" stop-color="#0b0c0e"/></linearGradient>
-    <linearGradient id="bx-oxide" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b2e33"/><stop offset=".28" stop-color="#6c727a"/><stop offset=".42" stop-color="#8f959d"/><stop offset=".7" stop-color="#4a4f56"/><stop offset="1" stop-color="#202327"/></linearGradient>
+    <linearGradient id="bx-oxide" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7E868D"/><stop offset=".28" stop-color="#D9DEE2"/><stop offset=".42" stop-color="#F4F6F7"/><stop offset=".7" stop-color="#AEB5BB"/><stop offset="1" stop-color="#6E767D"/></linearGradient>
     <radialGradient id="bx-oxtop" cx=".42" cy=".38" r=".75"><stop offset="0" stop-color="#7d838b"/><stop offset="1" stop-color="#3c4046"/></radialGradient>
     <linearGradient id="mk-chrome2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".4" stop-color="#C9CED3"/><stop offset=".7" stop-color="#8E959B"/><stop offset="1" stop-color="#D9DDE1"/></linearGradient>
+    <linearGradient id="bx-land" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9AA2A9"/><stop offset=".3" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#E3E7EA"/><stop offset="1" stop-color="#7E868D"/></linearGradient>
+    <linearGradient id="bx-flute" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3E454C"/><stop offset=".3" stop-color="#7E868D"/><stop offset=".5" stop-color="#D9DEE2"/><stop offset=".7" stop-color="#6E767D"/><stop offset="1" stop-color="#AEB5BB"/></linearGradient>
     <linearGradient id="mk-handle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7A4E26"/><stop offset=".5" stop-color="#B07A40"/><stop offset="1" stop-color="#6A421E"/></linearGradient>`;
   return { mat, scene, pt, inset, defs };
 })();
@@ -3303,7 +3316,7 @@ const DRILL = (() => {
         tags: ['rev'], hot: ['rev'], keys: [[.8, { rev: .5 }]] },
       { title: 'Remove the battery', dur: 1900,
         body: 'Hold the drill by the handle, press the release button on the front of the battery and slide the battery out towards the front.',
-        tags: ['button', 'battery'], hot: ['button'], keys: [[.3, { zs: 1.6, fx: -60, fy: 110 }], [.9, { batt: 1 }]] },
+        tags: ['button', 'battery'], hot: ['button'], keys: [[.9, { batt: 1 }]] },
       { title: 'Check the charge', dur: 1300,
         body: 'If your battery has a charge gauge, press its check button: the lamps show how much charge is left. Charge it if only one lamp lights.',
         tags: ['battery'], keys: [] },
@@ -3351,7 +3364,7 @@ const DRILL = (() => {
         tags: ['speed'], hot: ['speed'], keys: [[.2, { zs: 1.9, fx: -40, fy: -40 }], [.8, { speed: 1 }]], flashes: [[.82, 'Speed 2']] },
       { title: 'Choose the mode', dur: 2000,
         body: 'Turn the action mode ring (the one nearest the body) to line the symbol up with the arrow: the screw for screwdriving, the drill bit for drilling, the hammer for drilling masonry.',
-        tags: ['mode'], hot: ['mode'], keys: [[0, { view: 'mode', modeVal: 1 }], [.2, { inset: 1, zs: 1.2, fx: 40, fy: -30 }], [.85, { modeVal: 0, ringSpin: .5 }]] },
+        tags: ['mode'], hot: ['mode'], keys: [[0, { view: 'mode', modeVal: 1 }], [.2, { inset: 1, zs: 1.08, fx: 40, fy: -12 }], [.85, { modeVal: 0, ringSpin: .5 }]] },
       { title: 'Set the torque', dur: 2200,
         body: 'In screwdriving mode, turn the adjusting ring to set the torque: 1 is lowest, 21 highest. Start low for small screws or soft material and go up until the screw seats flush. When the set torque is reached, the clutch slips with a ratcheting sound instead of stripping the screw.',
         caution: 'The torque ring only works in screwdriving mode; in drilling and hammer modes the clutch is off.',
@@ -3623,17 +3636,25 @@ const MULTI = (() => {
     }
     return s;
   }
-  // shrouded banana plug in a jack: body points down-and-out along angle a (deg); out = how far it's pulled out (0 = in)
+  // right-angle (90°) shrouded banana plug, front view: the nose goes into the jack (towards you) and the ribbed
+  // body runs down the meter face, cable out of the bottom. out = how far it's pulled out (0 = fully in)
   function plug(jack, a, out, color) {
-    const [jx, jy] = JACK[jack], r = a * Math.PI / 180, ux = Math.cos(r), uy = Math.sin(r);
-    const ox = jx + ux * out * 70, oy = jy + uy * out * 70;
-    let ribs = '';
-    for (let i = 0; i < 5; i++) ribs += `<line x1="${14 + i * 5}" y1="-8" x2="${14 + i * 5}" y2="8" stroke="rgba(0,0,0,.35)"/>`;
-    const pin = out > .05 ? `<rect x="-16" y="-3.5" width="18" height="7" rx="2" fill="${color === 'red' ? '#C9362A' : '#1d1f22'}" stroke="rgba(0,0,0,.5)"/><rect x="-24" y="-1.6" width="10" height="3.2" fill="#D4A73C"/>` : '';
-    const body = color === 'red' ? '#C9362A' : '#26292e';
-    return { end: [ox + ux * 64, oy + uy * 64], svg: `<g transform="translate(${f(ox)} ${f(oy)}) rotate(${f(a)})">${pin}
-      <path d="M0 -10 L44 -9 L58 -5 L64 -4 L64 4 L58 5 L44 9 L0 10Z" fill="${body}" stroke="rgba(0,0,0,.6)"/>${ribs}
-      <rect x="2" y="-7" width="40" height="3" rx="1.5" fill="#fff" opacity=".18"/></g>` };
+    const [jx, jy] = JACK[jack], dx = out * 30, dy = out * 46;      // pulled out: away and down
+    const bx = jx + dx, by = jy + dy, body = color === 'red' ? '#C9362A' : '#26292e', dark = color === 'red' ? '#8A1F17' : '#0b0c0e';
+    let s = '';
+    // nose: when out, a short barrel back towards the jack with the gold pin inside the shroud
+    if (out > .05) {
+      const nx = bx - 14 * out, ny = by - 20 * out;
+      s += `<path d="M${f(bx - 8)} ${f(by)} L${f(nx - 8)} ${f(ny)} L${f(nx + 8)} ${f(ny)} L${f(bx + 8)} ${f(by)}Z" fill="${body}" stroke="rgba(0,0,0,.6)"/>`;
+      s += `<ellipse cx="${f(nx)}" cy="${f(ny)}" rx="8" ry="5" fill="${dark}" stroke="rgba(0,0,0,.6)"/><ellipse cx="${f(nx)}" cy="${f(ny)}" rx="2.6" ry="1.8" fill="#D4A73C"/>`;
+    }
+    // the head over the jack, then the body running down with grip ribs
+    s += `<path d="M${f(bx - 11)} ${f(by - 8)} Q ${f(bx - 11)} ${f(by - 13)} ${f(bx - 6)} ${f(by - 13)} L${f(bx + 6)} ${f(by - 13)} Q ${f(bx + 11)} ${f(by - 13)} ${f(bx + 11)} ${f(by - 8)}
+      L${f(bx + 10)} ${f(by + 40)} L${f(bx + 6)} ${f(by + 52)} L${f(bx - 6)} ${f(by + 52)} L${f(bx - 10)} ${f(by + 40)}Z" fill="${body}" stroke="rgba(0,0,0,.65)"/>`;
+    for (let i = 0; i < 6; i++) s += `<line x1="${f(bx - 8)}" y1="${f(by + 4 + i * 5)}" x2="${f(bx + 8)}" y2="${f(by + 4 + i * 5)}" stroke="rgba(0,0,0,.35)"/>`;
+    s += `<rect x="${f(bx - 7)}" y="${f(by - 10)}" width="4" height="40" rx="2" fill="#fff" opacity=".18"/>`;
+    for (let i = 0; i < 3; i++) s += `<rect x="${f(bx - 5 + i * .5)}" y="${f(by + 53 + i * 5)}" width="${f(10 - i)}" height="3.5" rx="1.5" fill="${body}" stroke="rgba(0,0,0,.5)"/>`;   // strain relief
+    return { end: [bx, by + 68], svg: s };
   }
   // test probe: tip at (tx, ty), handle running back along angle a (deg); returns where the cable leaves it
   function probe(tx, ty, a, color) {
@@ -4018,7 +4039,7 @@ const BX = (() => {
   // a vertical screw in black-oxide steel: head on top at y, thread down to y + L; d = diameter (px), p = pitch (px)
   function screw(cx, y, d, L, p, type, opt = {}) {
     let s = '', h = 0, top = '';
-    const r = d / 2, hd = opt.hd || d * 1.65, hh = opt.hh || d, OX = 'url(#bx-oxide)', EDGE = 'rgba(0,0,0,.7)';
+    const r = d / 2, hd = opt.hd || d * 1.65, hh = opt.hh || d, OX = 'url(#bx-oxide)', EDGE = 'rgba(0,0,0,.55)';
     const hexPts = (x, yy, R, sy) => Array.from({ length: 6 }, (_, i) => `${f(x + R * Math.cos(i * Math.PI / 3 + Math.PI / 6))},${f(yy + R * Math.sin(i * Math.PI / 3 + Math.PI / 6) * sy)}`).join(' ');
     switch (type) {
       case 'socket': {
@@ -4026,7 +4047,7 @@ const BX = (() => {
         h = hh; const ch = Math.min(4, h * .12);
         top = `<path d="M${f(cx - hd / 2 + ch)} ${f(y - h)} L${f(cx + hd / 2 - ch)} ${f(y - h)} L${f(cx + hd / 2)} ${f(y - h + ch)} L${f(cx + hd / 2)} ${f(y - 2)} Q ${f(cx + hd / 2)} ${f(y)} ${f(cx + hd / 2 - 2)} ${f(y)} L${f(cx - hd / 2 + 2)} ${f(y)} Q ${f(cx - hd / 2)} ${f(y)} ${f(cx - hd / 2)} ${f(y - 2)} L${f(cx - hd / 2)} ${f(y - h + ch)}Z" fill="${OX}" stroke="${EDGE}"/>
           <line x1="${f(cx - hd / 2 + 1)}" y1="${f(y - h + ch)}" x2="${f(cx + hd / 2 - 1)}" y2="${f(y - h + ch)}" stroke="rgba(255,255,255,.22)"/>
-          <rect x="${f(cx - d * .43)}" y="${f(y - h)}" width="${f(d * .86)}" height="${f(h * .58)}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".9" stroke-dasharray="3 2"/>`;
+          <rect x="${f(cx - d * .43)}" y="${f(y - h)}" width="${f(d * .86)}" height="${f(h * .58)}" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".9" stroke-dasharray="3 2"/>`;
         break;
       }
       case 'csk': h = d * .62; top = `<path d="M${f(cx - d)} ${f(y - h)} L${f(cx + d)} ${f(y - h)} L${f(cx + r)} ${f(y)} L${f(cx - r)} ${f(y)}Z" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - d + 2)}" y1="${f(y - h + 2)}" x2="${f(cx + d - 2)}" y2="${f(y - h + 2)}" stroke="rgba(255,255,255,.25)"/>`; break;
@@ -4040,7 +4061,7 @@ const BX = (() => {
       h = d * .9; const ry = sd * .8 * .17;
       s += `<rect x="${f(cx - sd * .8)}" y="${f(y - h)}" width="${f(sd * 1.6)}" height="${f(h)}" rx="2" fill="${OX}" stroke="${EDGE}"/>
         <line x1="${f(cx - sd * .8 + 1)}" y1="${f(y - h + 2.5)}" x2="${f(cx + sd * .8 - 1)}" y2="${f(y - h + 2.5)}" stroke="rgba(255,255,255,.22)"/>
-        <rect x="${f(cx - sd * .34)}" y="${f(y - h)}" width="${f(sd * .68)}" height="${f(h * .55)}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".9" stroke-dasharray="3 2"/>`;
+        <rect x="${f(cx - sd * .34)}" y="${f(y - h)}" width="${f(sd * .68)}" height="${f(h * .55)}" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".9" stroke-dasharray="3 2"/>`;
       s += `<rect x="${f(cx - sd / 2)}" y="${f(y)}" width="${f(sd)}" height="${f(sl)}" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - sd * .18)}" y1="${f(y + 2)}" x2="${f(cx - sd * .18)}" y2="${f(y + sl - 2)}" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>`;
       y += sl;
     }
@@ -4052,12 +4073,12 @@ const BX = (() => {
     const turn = (yl, dy = 0) => `M${f(cx - r + p * .32)} ${f(yl + dy)} Q ${f(cx)} ${f(yl + p * .25 + p * .3 + dy)} ${f(cx + r - p * .32)} ${f(yl + p * .5 + dy)}`;
     let roots = '', crests = '', lights = '';
     for (let yl = t0 + p * .3; yl + p * .5 < t1 - p * .2; yl += p) {
-      roots += `<path d="${turn(yl, p * .5)}" fill="none" stroke="#141619" stroke-width="${f(Math.max(.8, p * .2))}" opacity=".85"/>`;
+      roots += `<path d="${turn(yl, p * .5)}" fill="none" stroke="#5E666D" stroke-width="${f(Math.max(.8, p * .2))}" opacity=".85"/>`;
       crests += `<path d="${turn(yl)}" fill="none" stroke="${OX}" stroke-width="${f(p * .68)}" stroke-linecap="round"/>`;
-      lights += `<path d="${turn(yl, -p * .17)}" fill="none" stroke="#C3C9CF" stroke-width="${f(Math.max(.6, p * .1))}" stroke-linecap="round" opacity=".55"/>`;
+      lights += `<path d="${turn(yl, -p * .17)}" fill="none" stroke="#FFFFFF" stroke-width="${f(Math.max(.6, p * .1))}" stroke-linecap="round" opacity=".7"/>`;
     }
     s += roots + crests + lights;
-    s += `<ellipse cx="${f(cx)}" cy="${f(t1)}" rx="${f(minor)}" ry="${f(minor * .22)}" fill="#2a2d31" stroke="${EDGE}"/>`;   // the end
+    s += `<ellipse cx="${f(cx)}" cy="${f(t1)}" rx="${f(minor)}" ry="${f(minor * .22)}" fill="#9AA2A9" stroke="${EDGE}"/>`;   // the end
     return { s, headTop: y - (type === 'shoulder' ? (opt.sl || 0) : 0) - h, headH: h, tEnd: t1 };
   }
   function topView(cx, cy, R, kind) {
@@ -4212,24 +4233,40 @@ const B_SCREWS = (() => {
 /* ---------- Mechanical basics 02: Drill bits ---------- */
 const B_DRILLS = (() => {
   const { lerp, f } = EQ;
+  // twist drill, side view, after a product photo: bright lands, deep helical flutes, flute run-out into the shank
   function bit(st) {
-    const y = -20, x0 = -190, shankEnd = -40, x1 = 200, R = 22;
-    let s = `<rect x="${x0}" y="${y - R}" width="${shankEnd - x0}" height="${R * 2}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
-    // fluted body: helical bands
-    s += `<rect x="${shankEnd}" y="${y - R}" width="${x1 - shankEnd}" height="${R * 2}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
-    for (let x = shankEnd + 4; x < x1 - 10; x += 30) s += `<path d="M${x} ${y - R} L${x + 26} ${y + R} L${x + 14} ${y + R} L${x - 12} ${y - R}Z" fill="#3a3e45" opacity=".85"/>`;
-    // point (118°)
-    const tip = x1 + R / Math.tan(59 * Math.PI / 180);
-    s += `<path d="M${x1} ${y - R} L${f(tip)} ${y} L${x1} ${y + R}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/><line x1="${x1}" y1="${y - R}" x2="${f(tip)}" y2="${y}" stroke="#e8eaed" stroke-width="1.4"/>`;
+    const y = -20, x0 = -190, shankEnd = -40, x1 = 200, R = 22, P = 150, half = P / 2, skew = 62, wf = 54;
+    const top = y - R, bot = y + R, tip = x1 + R / Math.tan(59 * Math.PI / 180);
+    let s = `<rect x="${x0}" y="${top}" width="${shankEnd - x0 + 4}" height="${R * 2}" rx="3" fill="url(#bx-land)" stroke="rgba(0,0,0,.55)"/>`;
+    s += `<ellipse cx="${x0}" cy="${y}" rx="4" ry="${R}" fill="#8E959B" stroke="rgba(0,0,0,.55)"/>`;
+    // body (lands) and point
+    s += `<rect x="${shankEnd}" y="${top}" width="${x1 - shankEnd}" height="${R * 2}" fill="url(#bx-land)" stroke="rgba(0,0,0,.55)"/>`;
+    s += `<path d="M${x1} ${top} L${f(tip)} ${y} L${x1} ${bot}Z" fill="url(#bx-land)" stroke="rgba(0,0,0,.55)"/>`;
+    // flutes: S-shaped helical grooves every half pitch, clipped to the body
+    let fl = '', flutePath = '';
+    for (let k = -1; k < 5; k++) {
+      const xt = shankEnd + 6 + k * half, xb = xt + skew;
+      const d = `M${f(xt)} ${top} C ${f(xt + skew * .15)} ${f(y - R * .35)}, ${f(xb - skew * .15)} ${f(y + R * .35)}, ${f(xb)} ${bot}
+        L${f(xb + wf)} ${bot} C ${f(xb + wf - skew * .1)} ${f(y + R * .3)}, ${f(xt + wf + skew * .2)} ${f(y - R * .4)}, ${f(xt + wf)} ${top}Z`;
+      if (k === 1) flutePath = d;
+      fl += `<path d="${d}" fill="url(#bx-flute)"/>`;
+      // reflective streak down the middle of the flute, and the shadowed trailing edge
+      fl += `<path d="M${f(xt + wf * .5)} ${top + 3} C ${f(xt + wf * .5 + skew * .2)} ${f(y - R * .3)}, ${f(xb + wf * .45 - skew * .15)} ${f(y + R * .3)}, ${f(xb + wf * .5)} ${bot - 3}" fill="none" stroke="#fff" stroke-width="4" opacity=".7"/>`;
+      fl += `<path d="M${f(xt + 3)} ${top} C ${f(xt + 3 + skew * .15)} ${f(y - R * .35)}, ${f(xb + 3 - skew * .15)} ${f(y + R * .35)}, ${f(xb + 3)} ${bot}" fill="none" stroke="#2a2e33" stroke-width="6" opacity=".55"/>`;
+      fl += `<path d="M${f(xt)} ${top} C ${f(xt + skew * .15)} ${f(y - R * .35)}, ${f(xb - skew * .15)} ${f(y + R * .35)}, ${f(xb)} ${bot}" fill="none" stroke="#1d2024" stroke-width="1.6"/>`;
+    }
+    // run-out: the first flute fades into the shank
+    s += `<clipPath id="bxBody"><path d="M${shankEnd - 6} ${top} L${x1} ${top} L${f(tip)} ${y} L${x1} ${bot} L${shankEnd + 8} ${bot} Q ${shankEnd - 4} ${y} ${shankEnd - 6} ${top}Z"/></clipPath><g clip-path="url(#bxBody)">${fl}</g>`;
+    s += `<line x1="${x1}" y1="${top}" x2="${f(tip)}" y2="${y}" stroke="#fff" stroke-width="1.6"/>`;
     s += `<text x="-115" y="${y + 5}" text-anchor="middle" class="bx-etch">HSS 6.0</text>`;
-    return { s, y, x0, shankEnd, x1, R, tip };
+    return { s, y, x0, shankEnd, x1, R, tip, flutePath };
   }
   const ANAT = { label: 'Anatomy', base: { hl: 'all' },
     draw(st) {
       const b = bit(st), H = k => st.hl === k || st.hl === 'all';
       let s = MK.mat(this.viewBox) + b.s;
       if (H('shank')) s += `<rect x="${b.x0 - 4}" y="${b.y - b.R - 4}" width="${b.shankEnd - b.x0 + 8}" height="${b.R * 2 + 8}" rx="6" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
-      if (H('flute')) s += `<path d="M${b.shankEnd + 64} ${b.y - b.R} L${b.shankEnd + 90} ${b.y + b.R}" stroke="var(--mat)" stroke-width="3"/>`;
+      if (H('flute')) s += `<path d="${b.flutePath}" fill="none" stroke="var(--mat)" stroke-width="2.6"/>`;
       if (H('margin')) s += `<line x1="${b.shankEnd}" y1="${b.y - b.R}" x2="${b.x1}" y2="${b.y - b.R}" stroke="var(--mat)" stroke-width="3"/>`;
       if (H('point')) {
         s += `<path d="M${b.x1 - 40} ${b.y - b.R - 20} L${f(b.tip)} ${b.y} L${b.x1 - 40} ${b.y + b.R + 20}" fill="none" stroke="var(--mat)" stroke-width="1.6" stroke-dasharray="4 3"/>`;
@@ -4244,7 +4281,7 @@ const B_DRILLS = (() => {
       s += BX.txt(ex, ey + er + 22, 'end view', 'bx-small');
       const tags = {
         shank:  { xy: [-115, b.y + b.R], dx: -20, dy: 70, text: 'Shank (smooth, gripped by the chuck)' },
-        flute:  { xy: [b.shankEnd + 77, b.y], dx: -10, dy: -90, text: 'Flutes (carry chips out)' },
+        flute:  { xy: [b.shankEnd + 6 + 75 + 52, b.y], dx: -10, dy: -90, text: 'Flutes (carry chips out)' },
         margin: { xy: [b.x1 - 50, b.y - b.R], dx: 60, dy: -80, text: 'Margin / land' },
         point:  { xy: [b.tip - 4, b.y], dx: 30, dy: 80, text: 'Point angle' },
         lips:   { xy: [ex + er * .7, ey - 6], dx: -150, dy: 40, text: 'Cutting lips' },
