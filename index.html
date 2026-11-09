@@ -518,6 +518,28 @@ label.btn { cursor: pointer; }
 .eq-empty { color: var(--muted); padding: 2rem 0; }
 .eq-size-label { margin-top: .8rem; }
 .sd-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+.bx-dim { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+.bx-dim.hot, .bx-cap.hot, .bx-small.hot { fill: var(--mat); font-weight: 700; }
+.bx-cap { font-family: var(--font); font-size: 13px; fill: var(--ink); }
+.bx-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+.bx-small { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+.bx-tiny { font-family: var(--font-mono); font-size: 9px; fill: var(--muted); }
+.bx-big { font-family: var(--font-display); font-size: 40px; font-weight: 800; fill: var(--ink); }
+.bx-lcd { font-family: var(--font-mono); font-size: 30px; font-weight: 700; fill: #9fe8b0; }
+.bx-etch { font-family: var(--font-mono); font-size: 11px; font-weight: 700; fill: #4a4f56; }
+.bx-print { font-family: var(--font-mono); font-size: 12px; font-weight: 700; fill: #fff; letter-spacing: .06em; }
+.mm-digits { font-family: 'DSEG7 Classic', var(--font-mono); font-size: 30px; font-weight: 700; fill: #1d2318; letter-spacing: .04em; }
+.mm-unit { font-family: var(--font-mono); font-size: 11px; font-weight: 700; fill: #1d2318; }
+.mm-small { font-family: var(--font-mono); font-size: 8px; font-weight: 700; fill: #1d2318; }
+.mm-btn { font-family: var(--font-mono); font-size: 5.6px; fill: #E8EAED; font-weight: 600; }
+.mm-dial { font-family: var(--font-mono); font-size: 11px; fill: #C9CED3; font-weight: 700; }
+.mm-dial.on { fill: #F2C21B; }
+.mm-logo { font-family: var(--font-display); font-size: 18px; font-weight: 800; fill: #F2C21B; letter-spacing: .08em; }
+.mm-model { font-family: var(--font-mono); font-size: 6.5px; fill: #C9CED3; }
+.mm-jack { font-family: var(--font-mono); font-size: 7px; fill: #E8EAED; font-weight: 600; }
+.mm-batt { font-family: var(--font-display); font-size: 22px; font-weight: 800; fill: #1d1f22; }
+.mm-pol { font-family: var(--font-display); font-size: 14px; font-weight: 800; fill: var(--ink); }
+.mm-cap { font-family: var(--font-mono); font-size: 10px; fill: var(--ink); }
 .mk-onmat { fill: var(--ink); }
 .mk-logo { font-family: 'Arial Black', var(--font-display); font-style: italic; font-weight: 900; font-size: 25px; fill: #fff; stroke: #0b3b44; stroke-width: 1.2; paint-order: stroke; letter-spacing: -.01em; }
 .mk-logo-s { font-family: 'Arial Black', var(--font-display); font-style: italic; font-weight: 900; font-size: 17px; fill: #fff; }
@@ -620,8 +642,8 @@ label.btn { cursor: pointer; }
     </div>
     <div class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-equip" aria-controls="panel-equip" aria-selected="true" data-hash="equipment">Equipment</button>
+      <button class="tab" role="tab" id="tab-basics" aria-controls="panel-basics" aria-selected="false" tabindex="-1" data-hash="basics">Basics</button>
       <button class="tab" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="false" tabindex="-1" data-hash="scan">Scan me</button>
-      <button class="tab" role="tab" id="tab-guide" aria-controls="panel-guide" aria-selected="false" tabindex="-1" data-hash="guide">How to use</button>
       <button class="tab" role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" tabindex="-1" data-hash="train">Train the model</button>
     </div>
   </div>
@@ -663,56 +685,7 @@ label.btn { cursor: pointer; }
   </section>
 
   <!-- ============ TAB 1: INSTRUCTIONS ============ -->
-  <section role="tabpanel" id="panel-guide" aria-labelledby="tab-guide" hidden>
-    <h2>Scanning a connector</h2>
-    <p class="lead">Open <strong>Scan me</strong>, place the connector on the plate and take a photo. A crop box appears around the connector; drag it or its corners if it isn't framed well, then tap <strong>Use photo</strong>. You'll see the closest matches with their part numbers. If the top answer is right, tap <strong>This is it</strong> and your photo is added to the training set, so the next scan gets a little better.</p>
-    <p class="muted" style="max-width:70ch;margin-bottom:2.5rem">If the result says it isn't sure, retake the photo closer, with the pins facing the camera and no glare. If it still can't tell, the connector may not have been trained yet.</p>
 
-    <h2>Crimped, uncrimped and housings</h2>
-    <p class="lead">The <strong>Training set</strong> switch at the top of Scan me and Train the model chooses between three completely separate sets: <strong>Crimped</strong> terminals with wire attached, <strong>Uncrimped</strong> terminals, and connector <strong>Housings</strong>. Each has its own connectors, photos and classifier, and a scan only compares against the set that's selected, so pick the right one before scanning.</p>
-    <ul style="max-width:70ch;margin:0 0 2.5rem;padding-left:1.2rem">
-      <li><strong>Crimped:</strong> trim the wire to a short stub of the same length every time and keep it on the jig.</li>
-      <li><strong>Housings:</strong> photograph them on the same face each time (for example, mating face up). A housing must fit inside the jig's grey area for its size to be measured.</li>
-    </ul>
-
-    <h2>Teaching the site a new connector</h2>
-    <p class="lead">The model learns from example photos. Each photo you add becomes a reference it compares against, so better photos mean better recognition. No coding or retraining needed.</p>
-
-    <ol class="steps">
-      <li>
-        <h3>Set up the scanning spot</h3>
-        <p>Place the connector on the lab's 3D-printed plate, roughly in the middle, with nothing else on it. The whole plate should be in the photo; the site crops away the bench around it automatically. If size measurement is switched on, line the crop box up with the jig's inner edges: the site uses the jig's known size to measure the part, which helps tell apart parts that look alike but differ in size.</p>
-      </li>
-      <li>
-        <h3>Create the connector type</h3>
-        <p>Open <strong>Train the model</strong> and add the connector with a clear name, such as "SMA female, panel mount". Add the part number if you have it.</p>
-      </li>
-      <li>
-        <h3>Take varied photos</h3>
-        <p>Variety matters more than quantity. Ten different shots teach more than fifty near-identical ones.</p>
-        <ul>
-          <li>Rotate the connector and photograph it from the front, side, top and at an angle.</li>
-          <li>Shoot some with the cable attached and some without.</li>
-          <li>Vary the distance a little, but keep the connector filling most of the frame.</li>
-          <li>For look-alikes (male vs female, 4-pin vs 5-pin), add close-ups of the pin face or threads.</li>
-          <li>Take photos on the phones people will actually use for scanning.</li>
-        </ul>
-      </li>
-      <li>
-        <h3>Save and check the count</h3>
-        <p>Each connector shows a row of pins that fill up as you add photos. Aim to fill the row before relying on the results.</p>
-      </li>
-    </ol>
-
-    <div class="targets">
-      <div class="target"><strong>20–50</strong>photos for connectors that look clearly different from everything else</div>
-      <div class="target"><strong>100+</strong>photos for look-alikes that differ by gender, pin count or thread</div>
-    </div>
-
-    <div class="note" style="margin-top:1.5rem">
-      <p><strong>On the phone:</strong> "Take photo" opens the rear camera. Hold the phone steady, tap to focus on the connector, and avoid harsh reflections on shiny metal.</p>
-    </div>
-  </section>
 
   <!-- ============ TAB 2: TRAIN ============ -->
   <section role="tabpanel" id="panel-train" aria-labelledby="tab-train" hidden>
@@ -890,6 +863,53 @@ label.btn { cursor: pointer; }
       </div>
     </div>
   </section>
+
+  <!-- ============ BASICS ============ -->
+  <section role="tabpanel" id="panel-basics" aria-labelledby="tab-basics" hidden>
+    <div class="eq-intro">
+      <h2>Basics</h2>
+      <p class="lead">Short illustrated guides to the parts and materials you use every day in the lab. Pick a topic and step through it.</p>
+    </div>
+    <div class="eq-cats" role="radiogroup" aria-label="Basics category">
+      <button type="button" class="eq-cat" role="radio" data-cat="mechanical" aria-checked="true">Mechanical</button>
+      <button type="button" class="eq-cat" role="radio" data-cat="electrical" aria-checked="false">Electrical</button>
+    </div>
+    <p class="eq-empty" id="bsEmpty" hidden>No guides here yet. They'll appear as they're added.</p>
+    <div class="eq" id="bsBody">
+      <nav class="eq-tools" id="bsTools" aria-label="Basics topics"></nav>
+      <div class="eq-main">
+       <div class="eq-left">
+        <div class="eq-stage" id="bsStage" tabindex="0" aria-label="Illustration. Use the left and right arrow keys to move between steps.">
+          <svg id="bsFigure" role="img" aria-labelledby="bsStepTitle" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="eq-controls">
+          <button class="btn" id="bsBack" type="button">Back</button>
+          <button class="btn" id="bsReplay" type="button">Replay</button>
+          <button class="btn" id="bsPlay" type="button" aria-pressed="false">Play all</button>
+          <button class="btn btn-primary" id="bsNext" type="button">Next step</button>
+        </div>
+       </div>
+       <div class="eq-right">
+        <div class="eq-term" id="bsTask" hidden>
+          <span class="eq-term-label" id="bsTaskLabel">Section</span>
+          <div class="eq-chips" id="bsTaskChips" role="radiogroup" aria-labelledby="bsTaskLabel"></div>
+          <div id="bsSizeWrap" hidden>
+            <span class="eq-term-label eq-size-label" id="bsSizeLabel">Size</span>
+            <div class="eq-chips" id="bsSizeChips" role="radiogroup" aria-labelledby="bsSizeLabel"></div>
+          </div>
+        </div>
+        <div class="eq-step" aria-live="polite">
+          <div class="eq-step-top"><span class="eq-step-num" id="bsStepNum"></span><div class="pins" id="bsPins" aria-hidden="true"></div></div>
+          <h3 id="bsStepTitle"></h3>
+          <p id="bsStepBody"></p>
+          <div class="eq-caution" id="bsCaution" hidden><strong>Watch out:</strong><span id="bsCautionText"></span></div>
+        </div>
+        <ol class="eq-list" id="bsList" aria-label="All steps"></ol>
+       </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <div class="cropper" id="cropper" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
@@ -2072,11 +2092,11 @@ const PAD11 = (() => {
       { title: 'Place the conductor barrel', dur: 2000,
         body: 'Set the terminal in the {C} mm die with its open wings pointing at the upper die, so the conductor barrel sits inside the die. Line the back edge of the barrel up with the chamfered edge of the upper die, so a small bellmouth forms. Close the handles just enough to hold it.',
         tags: ['terminal', 'die16'], hot: ['terminal'],
-        keys: [[.1, { termOn: 1 }], [.3, { dieAlpha: 1 }], [.65, K_PLACE], [.7, { hotC: 1 }], [1, { open: .3, glowC: 0, inset: 1, insetTerm: 1, insetPress: .25 }]] },
+        keys: [[0, { wireOn: 0 }], [.1, { termOn: 1 }], [.3, { dieAlpha: 1 }], [.65, K_PLACE], [.7, { hotC: 1 }], [1, { open: .3, glowC: 0, inset: 1, insetTerm: 1, insetPress: .25 }]] },
       { title: 'Insert the stripped wire', dur: 1700,
         body: 'Slide the wire in from the front until the bare strands sit fully inside the first wing (the conductor barrel), with their ends just poking past it. The insulation should stop where the second wing begins.',
         tags: ['wire', 'terminal'], hot: ['wire'],
-        keys: [[0, { insetSide: 1, sideHot: 1 }], [.75, K_INSERT], [1, { insetWire: 1 }]] },
+        keys: [[0, { insetSide: 1, sideHot: 1 }], [.15, { wireOn: 1 }], [.75, K_INSERT], [1, { insetWire: 1 }]] },
       { title: 'Squeeze the handles firmly', dur: 2200,
         body: 'Squeeze all the way until the jaws close fully. The upper die curls the wings down into the strands. Then open the handles.',
         tags: ['handles'], hot: ['handles'],
@@ -2733,12 +2753,12 @@ const SOLDER = (() => {
   /* ===== Task 1: tinning a stranded wire ===== */
   const TIN = {
     key: 'tin', label: 'Tinning wires',
-    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 120, sx: -150, sy: -120, twist: 0, flux: 0, penOn: 0, px: -180, py: -90, tin: 0, smoke: 0, zoom: 0, zs: 2, fx: -40, fy: 20 },
+    base: { ironOn: 0, hot: 0, solderOn: 0, ix: 150, iy: 120, sx: -150, sy: -120, twist: .85, flux: 0, penOn: 0, px: -180, py: -90, tin: 0, smoke: 0, zoom: 0, zs: 2, fx: -40, fy: 20 },
     draw(st) {
       const y = 20, h = 18, x0 = -110, xIns = 20, gap = 18;           // strands from x0 to the insulation at xIns; gap ≈ 1 wire diameter
       let b = mat(this.viewBox);
       b += insulation(xIns, 400, y, h + 8, 'url(#sd-red)');
-      b += strands(x0, xIns, y, h, (1 - st.twist) * .55);
+      b += strands(x0, xIns, y, h, (1 - st.twist) * .3);
       b += fluxCoat(x0, xIns - gap * .5, y, h, st.flux * (1 - st.tin * .8));
       b += tinned(x0, lerp(x0, xIns - gap, st.tin), y, h);
       b += fluxPen(st.px, st.py, -140, st.penOn);
@@ -3021,7 +3041,70 @@ const SOLDER = (() => {
     ],
   };
 
-  const MODES = [TIN, SPLICE, XT, PAD];
+
+  /* ===== Task 5: heat-set inserts in a 3D-printed part ===== */
+  const HSI = {
+    key: 'hsi', label: 'Heat-set inserts',
+    base: { ironOn: 0, hot: 0, insOn: 0, insY: -70, melt: 0, flat: 0, flatY: -110, screw: 0, cool: 0, zoom: 1, zs: 2, fx: 10, fy: 16 },
+    draw(st) {
+      const top = 20, holeW = 30, holeD = 66, insW = 36, insH = 40;
+      let b = mat(this.viewBox);
+      // the printed part, cut away through the hole, with layer lines
+      let layers = '';
+      for (let y = top + 6; y < top + 120; y += 6) layers += `<line x1="-160" y1="${y}" x2="160" y2="${y}" stroke="rgba(0,0,0,.12)" stroke-width="1"/>`;
+      b += `<rect x="-160" y="${top}" width="320" height="120" rx="4" fill="url(#sd-pla)" stroke="rgba(0,0,0,.5)"/>${layers}`;
+      b += `<rect x="${-holeW / 2}" y="${top}" width="${holeW}" height="${holeD}" fill="#2a2d33" stroke="rgba(0,0,0,.5)"/>`;
+      // softened plastic round the insert while it's hot
+      const iy = top + st.insY;                                    // top of the insert
+      if (st.melt > .02) b += `<rect x="${-insW / 2 - 6}" y="${f(Math.max(top, iy))}" width="${insW + 12}" height="${f(Math.max(0, iy + insH - top + 4))}" rx="6" fill="#FF9A3C" opacity="${f(st.melt * .45)}"/>`;
+      // the insert: knurled brass, tapered at the bottom, threaded bore
+      if (st.insOn > .02) {
+        let knurl = '';
+        for (let i = -6; i < 10; i++) knurl += `<line x1="${-insW / 2 + i * 6}" y1="${f(iy + 6)}" x2="${-insW / 2 + i * 6 + 10}" y2="${f(iy + insH - 8)}" stroke="#8C6B1F" stroke-width="1.4"/><line x1="${-insW / 2 + i * 6 + 10}" y1="${f(iy + 6)}" x2="${-insW / 2 + i * 6}" y2="${f(iy + insH - 8)}" stroke="#8C6B1F" stroke-width="1.4" opacity=".7"/>`;
+        b += `<g opacity="${f(st.insOn)}"><clipPath id="sdKnurl"><path d="M${-insW / 2} ${f(iy)} L${insW / 2} ${f(iy)} L${insW / 2} ${f(iy + insH - 8)} L${insW / 2 - 5} ${f(iy + insH)} L${-insW / 2 + 5} ${f(iy + insH)} L${-insW / 2} ${f(iy + insH - 8)}Z"/></clipPath>
+          <path d="M${-insW / 2} ${f(iy)} L${insW / 2} ${f(iy)} L${insW / 2} ${f(iy + insH - 8)} L${insW / 2 - 5} ${f(iy + insH)} L${-insW / 2 + 5} ${f(iy + insH)} L${-insW / 2} ${f(iy + insH - 8)}Z" fill="url(#sd-brass)" stroke="rgba(0,0,0,.55)"/>
+          <g clip-path="url(#sdKnurl)">${knurl}</g>
+          <rect x="-7" y="${f(iy - .5)}" width="14" height="${insH}" fill="#3a2a10" opacity=".85"/></g>`;
+      }
+      // a screw test at the end
+      if (st.screw > .02) b += `<g opacity="${f(st.screw)}"><rect x="-6" y="${f(top - 60 + st.screw * 30)}" width="12" height="60" fill="url(#sd-barrel)" stroke="rgba(0,0,0,.5)"/><rect x="-14" y="${f(top - 76 + st.screw * 30)}" width="28" height="16" rx="3" fill="#2a2d31"/></g>`;
+      // flat metal block used to press it flush
+      if (st.flat > .02) b += `<rect x="-60" y="${f(st.flatY)}" width="120" height="26" rx="3" fill="url(#sd-barrel)" stroke="rgba(0,0,0,.5)" opacity="${f(st.flat)}"/>`;
+      b += iron(0, iy - 4, -90, st.hot, st.ironOn);
+      const tags = {
+        iron:   { xy: zoomPt(st, 0, iy - 120), dx: 70, dy: -10, text: 'Iron with an insert tip' },
+        hole:   { xy: zoomPt(st, holeW / 2, top + holeD - 6), dx: 90, dy: 40, text: 'Hole a little deeper than the insert' },
+        insert: { xy: zoomPt(st, insW / 2, iy + insH / 2), dx: 90, dy: -30, text: 'Insert, small end down' },
+        melt:   { xy: zoomPt(st, -insW / 2 - 4, iy + insH * .7), dx: -110, dy: 30, text: 'Plastic flows into the knurls' },
+        flat:   { xy: zoomPt(st, 60, st.flatY + 13), dx: 80, dy: -20, text: 'Flat block' },
+        flush:  { xy: zoomPt(st, insW / 2, top), dx: 90, dy: -50, text: 'Flush and square' },
+      };
+      return { svg: scene(st, b), tags, anchors: { flash: zoomPt(st, 0, top - 60) } };
+    },
+    steps: [
+      { title: 'Fit the insert tip and set the temperature', dur: 1600,
+        body: 'Swap to a heat-set insert tip that matches the insert size. Set the iron to about the plastic\'s printing temperature: roughly 200–220 °C for PLA and 230–250 °C for PETG or ABS.',
+        caution: 'Too hot and the plastic turns runny, floods the insert\'s threads and leaves a weak, sunken insert.',
+        tags: ['iron'], keys: [[.5, { ironOn: 1, hot: 1 }]] },
+      { title: 'Check the hole', dur: 1300,
+        body: 'The hole should be the diameter the insert\'s datasheet gives (often about 4 mm for a common M3 insert) and at least a millimetre deeper than the insert, so the displaced plastic has somewhere to go.',
+        tags: ['hole'], hot: ['hole'], keys: [] },
+      { title: 'Set the insert on the hole', dur: 1500,
+        body: 'Stand the insert on the hole with its smaller, tapered end down, square to the surface.',
+        tags: ['insert'], hot: ['insert'], keys: [[.2, { insOn: 1 }], [.9, { insY: -40 }]] },
+      { title: 'Heat it and press gently', dur: 3000,
+        body: 'Put the tip into the insert\'s thread and let the heat do the work: press lightly and keep the iron straight up and down. The insert sinks in over a few seconds as the plastic softens and flows into the knurls.',
+        caution: 'Don\'t force it or wobble the iron; that pushes the insert in crooked.',
+        tags: ['melt'], hot: ['melt'], keys: [[.15, { melt: 1 }], [.95, { insY: -4 }]] },
+      { title: 'Press it flush', dur: 2000,
+        body: 'Stop just before it\'s flush and lift the iron straight out. Straight away, press a flat metal block down on the insert to set it flush and square while the plastic is still soft.',
+        tags: ['flat'], hot: ['flat'], keys: [[.2, { ironOn: 0 }], [.35, { flat: 1, flatY: -36 }], [.7, { flatY: -6, insY: 0 }], [1, { melt: 0 }]] },
+      { title: 'Let it cool and check', dur: 1800,
+        body: 'Let the part cool for a minute. The insert should sit flush and square with no plastic in its thread. Run a screw in to check it threads smoothly and the insert doesn\'t spin.',
+        tags: ['flush'], hot: ['flush'], keys: [[.25, { flatY: -50, flat: 0 }], [.7, { screw: 1 }]] },
+    ],
+  };
+  const MODES = [TIN, SPLICE, XT, PAD, HSI];
   let mode = 0;
   const defs = `
     <radialGradient id="sd-glow"><stop offset="0" stop-color="#FFB060" stop-opacity=".95"/><stop offset=".5" stop-color="#FF6A1A" stop-opacity=".45"/><stop offset="1" stop-color="#FF4500" stop-opacity="0"/></radialGradient>
@@ -3034,11 +3117,12 @@ const SOLDER = (() => {
     <linearGradient id="sd-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE6A5A"/><stop offset=".5" stop-color="#C9362A"/><stop offset="1" stop-color="#8A1F17"/></linearGradient>
     <linearGradient id="sd-xt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F8E27A"/><stop offset=".5" stop-color="#E8C21E"/><stop offset="1" stop-color="#B8930C"/></linearGradient>
     <linearGradient id="sd-brass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5D98A"/><stop offset=".5" stop-color="#D4A73C"/><stop offset="1" stop-color="#9C7420"/></linearGradient>
+    <linearGradient id="sd-pla" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9FB4D1"/><stop offset="1" stop-color="#6E84A6"/></linearGradient>
     <linearGradient id="sd-pcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E8B57"/><stop offset="1" stop-color="#1B5A36"/></linearGradient>
     <linearGradient id="sd-pad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3D99A"/><stop offset="1" stop-color="#C79A3A"/></linearGradient>`;
 
   const tool = {
-    id: 'solder', fig: 5, name: 'Soldering iron', sub: 'Tinning, splicing, XT connectors, pads', cat: 'electrical',
+    id: 'solder', fig: 5, name: 'Soldering iron', sub: 'Tinning, splicing, XT, pads, inserts', cat: 'electrical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs,
     modes: MODES.map(m => m.label),
     get mode() { return mode; },
@@ -3494,14 +3578,829 @@ const CALIPER = (() => {
   };
 })();
 
-const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER, DRILL, PUNCH, CALIPER];
+/* ---------- Electrical Fig. 06: Multimeter (Fluke 115) ---------- */
+// Front view of the meter, its leads, and the part being tested. Functions and terminals follow the
+// Fluke 114/115/117 user manual: COM for all measurements, V Ω for voltage/resistance/continuity/diodes,
+// 10 A FUSED for current. Continuity beeps below about 20 Ω.
+const MULTI = (() => {
+  const { lerp, f } = EQ;
+  const DIAL = ['OFF', 'V~', 'V⎓', 'mV', 'Ω', '•)))', '⊣⊢', 'A'];
+  const DC = [-125, -6], DR = 40;                                 // dial centre and knob radius
+  const JACK = { A: [-172, 146], COM: [-125, 146], V: [-78, 146] };
+  const PARK = { r: [96, 196], b: [40, 196] };
+  const dialAng = i => (-135 + i * (270 / (DIAL.length - 1))) * Math.PI / 180;
+  const dialPt = (i, r) => [DC[0] + r * Math.sin(dialAng(i)), DC[1] - r * Math.cos(dialAng(i))];
+
+  function meter(st) {
+    let s = '';
+    // holster and body
+    s += `<rect x="-208" y="-200" width="166" height="396" rx="26" fill="url(#mm-holster)" stroke="rgba(0,0,0,.55)"/>`;
+    s += `<rect x="-196" y="-188" width="142" height="372" rx="16" fill="url(#mm-body)" stroke="rgba(0,0,0,.6)"/>`;
+    // display
+    s += `<rect x="-186" y="-176" width="122" height="74" rx="6" fill="#20252b"/><rect x="-181" y="-171" width="112" height="64" rx="4" fill="url(#mm-lcd)"/>`;
+    s += `<text x="-74" y="-123" text-anchor="end" class="mm-digits">${esc(st.disp || '')}</text>`;
+    s += `<text x="-74" y="-110" text-anchor="end" class="mm-unit">${esc(st.unit || '')}</text>`;
+    s += `<text x="-178" y="-160" class="mm-small">${st.dial > .5 ? 'AUTO' : ''}</text>`;
+    if (st.beep > .02) s += `<g opacity="${f(st.beep)}"><path d="M-176 -118 h5 l6 -5 v14 l-6 -5 h-5z" fill="#20252b"/><path d="M-162 -122 q4 4 0 8 M-158 -125 q7 7 0 14" fill="none" stroke="#20252b" stroke-width="1.6"/></g>`;
+    // buttons: yellow select, then HOLD, MIN MAX, RANGE
+    s += `<rect x="-184" y="-94" width="26" height="15" rx="4" fill="#F2C21B" stroke="rgba(0,0,0,.5)"/>`;
+    ['HOLD', 'MIN MAX', 'RANGE'].forEach((t, i) => { s += `<rect x="${-153 + i * 31}" y="-94" width="27" height="15" rx="4" fill="#3a3e45" stroke="rgba(0,0,0,.6)"/><text x="${-139.5 + i * 31}" y="-84" text-anchor="middle" class="mm-btn">${t}</text>`; });
+    if (st.yellow > .02) s += `<rect x="-186" y="-96" width="30" height="19" rx="5" fill="none" stroke="var(--mat)" stroke-width="2.4" opacity="${f(st.yellow)}"/>`;
+    // dial labels and knob
+    DIAL.forEach((t, i) => { const [x, y] = dialPt(i, DR + 16); s += `<text x="${f(x)}" y="${f(y + 4)}" text-anchor="middle" class="mm-dial${Math.abs(st.dial - i) < .5 ? ' on' : ''}">${esc(t)}</text>`; });
+    s += `<circle cx="${DC[0]}" cy="${DC[1]}" r="${DR}" fill="url(#mm-knob)" stroke="rgba(0,0,0,.6)"/>`;
+    const [px, py] = dialPt(st.dial, DR - 4), [qx, qy] = dialPt(st.dial + (DIAL.length - 1) / 2 * 0, -DR * .55);
+    s += `<path d="M${f(qx)} ${f(qy)} L${f(px)} ${f(py)}" stroke="#2a2d31" stroke-width="12" stroke-linecap="round"/><circle cx="${f(px)}" cy="${f(py)}" r="3.5" fill="#F2C21B"/>`;
+    s += `<text x="-125" y="70" text-anchor="middle" class="mm-logo">FLUKE</text><text x="-125" y="86" text-anchor="middle" class="mm-model">115 TRUE RMS MULTIMETER</text>`;
+    // jacks
+    for (const [k, [x, y]] of Object.entries(JACK)) {
+      const ring = k === 'COM' ? '#1d1f22' : '#C9362A';
+      s += `<circle cx="${x}" cy="${y}" r="14" fill="${ring}" stroke="rgba(0,0,0,.6)"/><circle cx="${x}" cy="${y}" r="7" fill="#0b0c0e"/>`;
+      s += `<text x="${x}" y="${y + 28}" text-anchor="middle" class="mm-jack">${k === 'A' ? '10A FUSED' : k === 'V' ? 'V Ω ▶|' : 'COM'}</text>`;
+    }
+    return s;
+  }
+  // a lead from a jack to a probe whose tip is at (tx, ty)
+  function lead(jack, tx, ty, color, op) {
+    if (op < .02) return '';
+    const [jx, jy] = JACK[jack], hx = tx - 20, hy = ty + 62;             // probe handle end
+    return `<g opacity="${f(op)}"><path d="M${jx} ${jy} C ${jx} ${jy + 60}, ${f(hx - 40)} ${f(hy + 80)}, ${f(hx)} ${f(hy)}" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round"/>
+      <path d="M${jx} ${jy} C ${jx} ${jy + 60}, ${f(hx - 40)} ${f(hy + 80)}, ${f(hx)} ${f(hy)}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"/>
+      <line x1="${f(hx)}" y1="${f(hy)}" x2="${f(tx - 4)}" y2="${f(ty + 14)}" stroke="#111" stroke-width="13" stroke-linecap="round"/>
+      <line x1="${f(hx)}" y1="${f(hy)}" x2="${f(tx - 4)}" y2="${f(ty + 14)}" stroke="${color}" stroke-width="10" stroke-linecap="round"/>
+      <line x1="${f(tx - 6)}" y1="${f(ty + 22)}" x2="${f(tx - 1)}" y2="${f(ty + 22)}" stroke="#111" stroke-width="6"/>
+      <line x1="${f(tx - 4)}" y1="${f(ty + 14)}" x2="${f(tx)}" y2="${f(ty)}" stroke="#C9CED3" stroke-width="3" stroke-linecap="round"/></g>`;
+  }
+  // the parts being tested
+  function dut(st) {
+    if (st.dutOn < .02) return '';
+    let s = '';
+    switch (st.dut) {
+      case 'battery':
+        s += `<rect x="170" y="-40" width="110" height="140" rx="8" fill="url(#mm-batt)" stroke="rgba(0,0,0,.6)"/><rect x="170" y="10" width="110" height="40" fill="#F2C21B" opacity=".9"/>
+          <text x="225" y="36" text-anchor="middle" class="mm-batt">9V</text>
+          <rect x="188" y="-58" width="24" height="18" rx="3" fill="#C9CED3" stroke="#555"/><text x="200" y="-62" text-anchor="middle" class="mm-pol">+</text>
+          <path d="M238 -58 l10 -6 l10 6 v18 h-20z" fill="#C9CED3" stroke="#555"/><text x="248" y="-68" text-anchor="middle" class="mm-pol">−</text>`;
+        break;
+      case 'resistor':
+        s += `<line x1="140" y1="0" x2="310" y2="0" stroke="#9AA2A9" stroke-width="3"/><rect x="185" y="-13" width="80" height="26" rx="12" fill="#D9C39A" stroke="rgba(0,0,0,.5)"/>`;
+        [['#C9362A', 198], ['#C9362A', 212], ['#7A4A22', 226], ['#D4A73C', 250]].forEach(([c, x]) => { s += `<rect x="${x}" y="-13" width="7" height="26" fill="${c}"/>`; });
+        s += `<text x="225" y="34" text-anchor="middle" class="mm-cap">220 Ω resistor</text>`;
+        break;
+      case 'wire':
+        s += `<path d="M140 -50 C 220 -120, 260 120, 320 50" fill="none" stroke="#1d1f22" stroke-width="12" stroke-linecap="butt"/><path d="M140 -50 C 220 -120, 260 120, 320 50" fill="none" stroke="#2F6FB0" stroke-width="9"/>
+          <circle cx="140" cy="-50" r="5" fill="#D98A4E"/><circle cx="320" cy="50" r="5" fill="#D98A4E"/>`;
+        break;
+      case 'diode':
+        s += `<line x1="140" y1="0" x2="310" y2="0" stroke="#9AA2A9" stroke-width="3"/><rect x="195" y="-12" width="60" height="24" rx="5" fill="#2a2d31" stroke="rgba(0,0,0,.6)"/><rect x="243" y="-12" width="8" height="24" fill="#C9CED3"/>
+          <text x="150" y="-18" class="mm-cap">anode</text><text x="296" y="-18" text-anchor="end" class="mm-cap">cathode</text>`;
+        break;
+      case 'circuit':
+        // battery on the left, resistor along the top, LED on the right, a break in the top wire for the meter
+        s += `<path d="M150 70 L150 -80 L215 -80 M265 -80 L320 -80 L320 70 L150 70" fill="none" stroke="#9AA2A9" stroke-width="4"/>`;
+        s += `<rect x="128" y="-10" width="44" height="60" rx="5" fill="url(#mm-batt)" stroke="rgba(0,0,0,.6)"/><text x="150" y="25" text-anchor="middle" class="mm-pol" fill="#fff">9V</text>`;
+        s += `<rect x="290" y="-105" width="60" height="22" rx="10" fill="#D9C39A" stroke="rgba(0,0,0,.5)" transform="rotate(90 320 -10)"/>`;
+        s += `<circle cx="235" cy="70" r="13" fill="#E0473A" opacity="${f(.35 + .65 * st.lit)}" stroke="rgba(0,0,0,.5)"/>${st.lit > .1 ? `<circle cx="235" cy="70" r="24" fill="#FF6A5A" opacity="${f(st.lit * .35)}"/>` : ''}`;
+        s += `<text x="240" y="-94" text-anchor="middle" class="mm-cap">break the circuit here</text>`;
+        break;
+    }
+    return `<g opacity="${f(st.dutOn)}">${s}</g>`;
+  }
+
+  const base = (dut, extra = {}) => ({ dial: 0, disp: '', unit: '', beep: 0, yellow: 0, leadsOn: 1, redJack: 'V', rx: PARK.r[0], ry: PARK.r[1], bx: PARK.b[0], by: PARK.b[1], dut, dutOn: 1, lit: 0, ...extra });
+  const D = n => DIAL.indexOf(n);
+  const MODES = [
+    { label: 'Leads & safety', base: base('', { leadsOn: 0, dutOn: 0 }), steps: [
+      { title: 'Check the test leads', dur: 1400, body: 'Before every use, look over the leads: no cracked insulation, no exposed metal, the probe tips undamaged and the finger guards intact. Replace damaged leads; don\'t tape them up.', tags: ['leads'], keys: [[.6, { leadsOn: 1 }]] },
+      { title: 'Plug the leads in', dur: 1500, body: 'Black always goes in COM, the common terminal for every measurement. Red goes in V Ω for voltage, resistance, continuity and diodes. The 10 A FUSED jack is only for measuring current.', tags: ['com', 'v', 'a'], hot: ['com', 'v'], keys: [] },
+      { title: 'Choose the function', dur: 1800, body: 'Turn the dial to what you\'re measuring: V~ for AC volts, V⎓ for DC volts, mV for small voltages, Ω for resistance, the speaker for continuity, ⊣⊢ for capacitance, A for current. The meter ranges automatically (AUTO on the display).', tags: ['dial'], hot: ['dial'], keys: [[.85, { dial: D('V⎓'), disp: '0.000', unit: 'V⎓' }]] },
+      { title: 'Know the limits', dur: 1500, body: 'Voltages above 30 V AC or 60 V DC are a shock hazard. Keep your fingers behind the finger guards, and test lab mains only if you\'re trained to. The yellow button switches between shared functions (for example AC/DC amps).', caution: 'Disconnect power and discharge capacitors before testing resistance, continuity, diodes or capacitance.', tags: ['yellow'], keys: [[.3, { yellow: 1 }], [1, { yellow: 0 }]] },
+      { title: 'Turn it off afterwards', dur: 1200, body: 'Turn the dial back to OFF when you\'re done to save the battery. If you used the 10 A jack, move the red lead back to V Ω so the next person doesn\'t short a voltage through the amps input.', tags: ['dial'], keys: [[.8, { dial: 0, disp: '', unit: '' }]] },
+    ] },
+    { label: 'DC voltage', base: base('battery'), steps: [
+      { title: 'Set up for volts', dur: 1500, body: 'Black lead in COM, red in V Ω. Turn the dial to V⎓ (DC volts). For voltages below about 600 mV, the mV position gives more resolution.', tags: ['dial', 'v'], hot: ['dial'], keys: [[.8, { dial: D('V⎓'), disp: '0.000', unit: 'V⎓' }]] },
+      { title: 'Probe across the source', dur: 1900, body: 'Voltage is measured across something, in parallel: black probe on the negative terminal, red probe on the positive.', tags: ['probes'], hot: ['probes'], keys: [[.85, { bx: 252, by: -66, rx: 200, ry: -60 }], [1, { disp: '9.32' }]] },
+      { title: 'Read the display', dur: 1300, body: 'Here it reads 9.32 V. A minus sign means the probes are the other way round; the reading is still right, just reversed. A fresh 9 V battery reads a little above 9 V.', tags: ['lcd'], hot: ['lcd'], keys: [] },
+    ] },
+    { label: 'Resistance', base: base('resistor'), steps: [
+      { title: 'Power off first', dur: 1300, body: 'Resistance is measured with the circuit unpowered and capacitors discharged. The meter sends its own small current; any outside voltage gives wrong readings and can damage it.', tags: [], keys: [] },
+      { title: 'Turn to Ω', dur: 1400, body: 'Turn the dial to Ω. With nothing connected the display shows OL (open loop: too high to measure).', tags: ['dial'], hot: ['dial'], keys: [[.8, { dial: D('Ω'), disp: 'OL', unit: 'MΩ' }]] },
+      { title: 'Touch the probes together', dur: 1500, body: 'Touch the tips together: you\'ll see a fraction of an ohm. That\'s the resistance of the leads themselves; take it off very low readings.', tags: ['lcd'], keys: [[.8, { rx: 120, ry: 40, bx: 124, by: 40 }], [1, { disp: '0.2', unit: 'Ω' }]] },
+      { title: 'Measure the part', dur: 1900, body: 'Hold the probes on each end of the part. Here: 220.4 Ω, matching its red–red–brown bands. Don\'t hold both probes in your fingers, or you\'ll measure your body too. For an accurate value, lift one end of the part out of the circuit.', tags: ['probes', 'lcd'], hot: ['lcd'], keys: [[.8, { rx: 302, ry: 0, bx: 148, by: 0 }], [1, { disp: '220.4', unit: 'Ω' }]] },
+    ] },
+    { label: 'Continuity', base: base('wire'), steps: [
+      { title: 'Power off, select continuity', dur: 1500, body: 'With the circuit unpowered, turn the dial to the speaker symbol. Continuity is a quick yes/no check for broken wires and shorts.', tags: ['dial'], hot: ['dial'], keys: [[.8, { dial: D('•)))'), disp: 'OL', unit: 'Ω' }]] },
+      { title: 'Test the beeper', dur: 1500, body: 'Touch the probes together: the meter beeps. The Fluke 115 beeps below about 20 Ω.', tags: ['lcd'], keys: [[.7, { rx: 120, ry: 40, bx: 124, by: 40 }], [.8, { disp: '0.2', beep: 1 }]], flashes: [[.82, 'Beep']] },
+      { title: 'Check the wire', dur: 1900, body: 'Put one probe on each end of the wire. A beep means it\'s continuous; no beep and OL means it\'s broken somewhere.', tags: ['probes'], hot: ['probes'], keys: [[0, { beep: 0, disp: 'OL' }], [.8, { rx: 322, ry: 50, bx: 142, by: -50 }], [.9, { disp: '0.4', beep: 1 }]], flashes: [[.92, 'Beep']] },
+      { title: 'Use it to find shorts', dur: 1400, body: 'The same check finds shorts: probe two pins that shouldn\'t be connected (say + and − on a connector). They should NOT beep.', tags: [], keys: [] },
+    ] },
+    { label: 'Diode test', base: base('diode'), steps: [
+      { title: 'Select diode test', dur: 1600, body: 'With power off, turn the dial to the continuity / diode position and press the yellow button until the diode symbol shows.', tags: ['dial', 'yellow'], hot: ['yellow'], keys: [[.5, { dial: D('•)))') }], [.75, { yellow: 1, disp: 'OL', unit: 'V' }], [1, { yellow: 0 }]] },
+      { title: 'Forward: red on the anode', dur: 1800, body: 'Red probe on the anode, black on the cathode (the end with the band). A silicon diode reads about 0.5–0.7 V, its forward voltage drop; an LED reads higher and may glow faintly.', tags: ['probes', 'lcd'], hot: ['lcd'], keys: [[.8, { rx: 148, ry: 0, bx: 302, by: 0 }], [1, { disp: '0.612' }]] },
+      { title: 'Reverse it', dur: 1800, body: 'Swap the probes. A good diode blocks current this way and the meter shows OL. OL both ways means it\'s open; near 0 both ways means it\'s shorted.', tags: ['lcd'], hot: ['lcd'], keys: [[.8, { rx: 302, ry: 0, bx: 148, by: 0 }], [1, { disp: 'OL' }]] },
+    ] },
+    { label: 'Current', base: base('circuit'), steps: [
+      { title: 'Move the red lead to 10 A', dur: 1800, body: 'With the circuit off, move the red lead to the 10 A FUSED jack. The meter flashes LEAd as a reminder whenever you turn to or from A.', tags: ['a'], hot: ['a'], keys: [[.5, { redJack: 'A' }], [.8, { dial: D('A'), disp: 'LEAd', unit: '' }]] },
+      { title: 'Select DC amps', dur: 1400, body: 'With the dial on A, press the yellow button to choose DC (or AC) current.', tags: ['yellow'], hot: ['yellow'], keys: [[.4, { yellow: 1 }], [.7, { disp: '0.000', unit: 'A⎓' }], [1, { yellow: 0 }]] },
+      { title: 'Put the meter in series', dur: 2000, body: 'Current is measured through the meter, in series: break the circuit and connect the probes across the gap, red towards the positive side, so all the current flows through the meter.', tags: ['probes'], hot: ['probes'], keys: [[.85, { rx: 214, ry: -80, bx: 266, by: -80 }]] },
+      { title: 'Power on and read', dur: 1500, body: 'Turn the circuit on and read the current: here 0.018 A (18 mA) for the LED. The 115 measures up to 10 A.', tags: ['lcd'], hot: ['lcd'], keys: [[.4, { lit: 1 }], [.7, { disp: '0.018' }]] },
+      { title: 'Put the lead back', dur: 1600, body: 'Power off, then move the red lead back to V Ω straight away.', caution: 'Never touch the probes across a voltage source while the red lead is in the 10 A jack: it\'s a short circuit through the meter that blows its fuse and can be dangerous.', tags: ['v'], hot: ['v'], keys: [[.2, { lit: 0 }], [.5, { rx: PARK.r[0], ry: PARK.r[1], bx: PARK.b[0], by: PARK.b[1] }], [.8, { redJack: 'V', disp: 'LEAd' }], [1, { dial: 0, disp: '' }]] },
+    ] },
+  ];
+  let mode = 0;
+  const defs = `
+    <linearGradient id="mm-holster" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F7D44A"/><stop offset=".5" stop-color="#F2C21B"/><stop offset="1" stop-color="#C99A0C"/></linearGradient>
+    <linearGradient id="mm-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5A5F66"/><stop offset="1" stop-color="#3A3E45"/></linearGradient>
+    <linearGradient id="mm-lcd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C8D3BF"/><stop offset="1" stop-color="#A9B7A0"/></linearGradient>
+    <radialGradient id="mm-knob" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#6A7078"/><stop offset="1" stop-color="#2A2D32"/></radialGradient>
+    <linearGradient id="mm-batt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3A3E45"/><stop offset=".5" stop-color="#5A5F66"/><stop offset="1" stop-color="#2A2D32"/></linearGradient>`;
+  return {
+    id: 'multimeter', fig: 6, name: 'Multimeter', sub: 'Fluke 115: volts, ohms, continuity, amps', cat: 'electrical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) {
+      let s = MK.mat(this.viewBox) + meter(st) + dut(st);
+      s += lead('COM', st.bx, st.by, '#1d1f22', st.leadsOn) + lead(st.redJack, st.rx, st.ry, '#C9362A', st.leadsOn);
+      const tags = {
+        lcd:    { xy: [-125, -140], dx: 150, dy: -40, text: 'Display' },
+        dial:   { xy: [-125 + DR, -6], dx: 150, dy: -40, text: 'Rotary dial' },
+        yellow: { xy: [-171, -86], dx: 150, dy: -110, text: 'Yellow select button' },
+        com:    { xy: [JACK.COM[0], JACK.COM[1] + 14], dx: 40, dy: 50, text: 'COM (black)' },
+        v:      { xy: [JACK.V[0] + 12, JACK.V[1]], dx: 140, dy: 20, text: 'V Ω (red)' },
+        a:      { xy: [JACK.A[0] - 12, JACK.A[1]], dx: -10, dy: 56, text: '10 A FUSED (current only)' },
+        leads:  { xy: [PARK.r[0] - 20, PARK.r[1] - 10], dx: 70, dy: -60, text: 'Test leads' },
+        probes: { xy: [st.rx, st.ry], dx: 60, dy: -60, text: 'Red probe' },
+      };
+      return { svg: s, tags, anchors: { flash: [-60, -160] } };
+    },
+  };
+})();
+
+/* ---------- Mechanical Fig. 04: Tap and die ---------- */
+// Cut-away side views. Tap drill ≈ nominal diameter − pitch (metric coarse threads).
+const TAPDIE = (() => {
+  const { lerp, f } = EQ;
+  const SIZES = [
+    { name: 'M3', d: 3, p: .5, drill: 2.5 }, { name: 'M4', d: 4, p: .7, drill: 3.3 }, { name: 'M5', d: 5, p: .8, drill: 4.2 },
+    { name: 'M6', d: 6, p: 1, drill: 5 }, { name: 'M8', d: 8, p: 1.25, drill: 6.8 },
+  ];
+  const SEL = { i: 3 };
+  const PX = 8;                                                    // px per mm for the part being threaded
+  const TOP = 40, BOT = 170;                                       // block top / bottom (tap mode)
+
+  // a threaded edge: zigzag from y0 to y1 at x, teeth pointing in direction dir (+1 right, −1 left)
+  function teeth(x, y0, y1, depth, pitchPx, dir) {
+    if (y1 - y0 < 1) return '';
+    let d = `M${f(x)} ${f(y0)}`;
+    for (let y = y0; y < y1; y += pitchPx) d += ` L${f(x + dir * depth)} ${f(Math.min(y1, y + pitchPx / 2))} L${f(x)} ${f(Math.min(y1, y + pitchPx))}`;
+    return d;
+  }
+  // T-handle wrench (or die stock): bar seen side-on, shortened as it turns
+  function wrench(cx, cy, rot, long, op = 1) {
+    if (op < .02) return '';
+    const half = long * Math.abs(Math.cos((rot + .25) * Math.PI)) + 18;   // shortens as it turns, never edge-on at rest
+    return `<g opacity="${f(op)}"><rect x="${f(cx - half)}" y="${f(cy - 6)}" width="${f(half * 2)}" height="12" rx="6" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>
+      ${[-1, 1].map(sg => `<rect x="${f(cx + sg * half - (sg > 0 ? 34 : 0))}" y="${f(cy - 8)}" width="34" height="16" rx="7" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`).join('')}
+      <rect x="${f(cx - 18)}" y="${f(cy - 16)}" width="36" height="32" rx="6" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/></g>`;
+  }
+
+  const TAP = {
+    label: 'Tapping a hole',
+    base: { drillOn: 0, drill: 0, chamfer: 0, tapOn: 0, tapY: -80, rot: 0, thread: 0, fluid: 0, chips: 0, square: 0, screw: 0, zoom: 1, zs: 1.15, fx: 20, fy: 40 },
+    draw(st) {
+      const sz = SIZES[SEL.i], hw = sz.drill * PX / 2, tw = sz.d * PX / 2, pp = Math.max(4, sz.p * PX);
+      let b = MK.mat(this.viewBox);
+      // block, cut away through the hole
+      const holeDepth = (BOT - TOP) * st.drill;
+      b += `<rect x="-170" y="${TOP}" width="340" height="${BOT - TOP}" rx="3" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/>`;
+      for (let i = 0; i < 12; i++) b += `<line x1="${-170 + i * 30}" y1="${BOT}" x2="${-140 + i * 30}" y2="${TOP}" stroke="rgba(0,0,0,.08)" stroke-width="6"/>`;   // cut-face hatching
+      if (holeDepth > 1) {
+        const ch = st.chamfer * (tw - hw + 4);
+        b += `<path d="M${f(-hw - ch)} ${TOP} L${f(-hw)} ${f(TOP + ch)} L${f(-hw)} ${f(TOP + holeDepth)} L${f(hw)} ${f(TOP + holeDepth)} L${f(hw)} ${f(TOP + ch)} L${f(hw + ch)} ${TOP}Z" fill="#2a2d33" stroke="rgba(0,0,0,.5)"/>`;
+        // threads cut into the hole walls as the tap goes down
+        const tDepth = TOP + Math.max(0, Math.min(holeDepth, st.thread));
+        if (tDepth > TOP + 2) b += `<path d="${teeth(-hw, TOP + ch, tDepth, -(tw - hw), pp, 1)}" fill="none" stroke="#B9C0C6" stroke-width="1.6"/><path d="${teeth(hw, TOP + ch, tDepth, (tw - hw), pp, -1)}" fill="none" stroke="#B9C0C6" stroke-width="1.6"/>`;
+      }
+      // drill bit for the tap drill
+      if (st.drillOn > .02) {
+        const dy = TOP - 120 + holeDepth;
+        b += `<g opacity="${f(st.drillOn)}"><rect x="${f(-hw)}" y="${f(dy - 120)}" width="${f(hw * 2)}" height="120" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/>
+          ${Array.from({ length: 8 }, (_, i) => `<path d="M${f(-hw)} ${f(dy - 115 + i * 14)} l ${f(hw * 2)} 10" stroke="#6b737a" stroke-width="2"/>`).join('')}
+          <path d="M${f(-hw)} ${f(dy)} L0 ${f(dy + hw * .6)} L${f(hw)} ${f(dy)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/></g>`;
+      }
+      // the tap: threaded, fluted, tapered lead, square drive in the wrench
+      if (st.tapOn > .02) {
+        const ty = TOP + st.tapY, L = 150;                         // ty = tap tip
+        let tooth = '';
+        tooth += `<path d="${teeth(-tw + 3, ty - L + 30, ty - 10, -3, pp, 1)}" fill="none" stroke="#5a6068" stroke-width="1.2"/>`;
+        b += `<g opacity="${f(st.tapOn)}"><path d="M${f(-tw)} ${f(ty - L + 30)} L${f(tw)} ${f(ty - L + 30)} L${f(tw)} ${f(ty - 22)} L${f(hw * .7)} ${f(ty)} L${f(-hw * .7)} ${f(ty)} L${f(-tw)} ${f(ty - 22)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>
+          ${Array.from({ length: 3 }, (_, i) => `<line x1="${f(-tw * .5 + i * tw * .5)}" y1="${f(ty - L + 34)}" x2="${f(-tw * .5 + i * tw * .5)}" y2="${f(ty - 6)}" stroke="#4a4f56" stroke-width="2.4" opacity=".55"/>`).join('')}
+          ${tooth}<path d="${teeth(tw - 3, ty - L + 30, ty - 10, 3, pp, -1)}" fill="none" stroke="#5a6068" stroke-width="1.2"/>
+          <rect x="${f(-tw * .8)}" y="${f(ty - L - 6)}" width="${f(tw * 1.6)}" height="40" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/></g>`;
+        b += wrench(0, ty - L + 4, st.rot, 120, st.tapOn);
+      }
+      if (st.fluid > .02) b += `<path d="M14 ${TOP - 40} q -7 10 0 16 q 7 -6 0 -16z" fill="#8FB8D9" opacity="${f(st.fluid)}"/>`;
+      if (st.chips > .02) for (let i = 0; i < 4; i++) b += `<path d="M${f(-tw - 6 - i * 7)} ${TOP - 2} q -6 -8 0 -12 q 6 4 0 12" fill="none" stroke="#C9CED3" stroke-width="2" opacity="${f(st.chips)}"/>`;
+      if (st.square > .02) b += `<g opacity="${f(st.square)}"><rect x="${f(tw + 30)}" y="${TOP - 130}" width="12" height="130" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/><rect x="${f(tw + 30)}" y="${TOP - 14}" width="90" height="14" fill="url(#mk-wood)" stroke="rgba(0,0,0,.5)"/></g>`;
+      if (st.screw > .02) b += `<g opacity="${f(st.screw)}"><rect x="${f(-tw)}" y="${f(TOP - 60 + st.screw * 70)}" width="${f(tw * 2)}" height="80" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/><rect x="${f(-tw * 1.7)}" y="${f(TOP - 84 + st.screw * 70)}" width="${f(tw * 3.4)}" height="24" rx="4" fill="#2a2d31"/></g>`;
+      const tags = {
+        drill:  { xy: MK.pt(st, hw, TOP - 60), dx: 90, dy: -40, text: `${sz.drill} mm tap drill` },
+        hole:   { xy: MK.pt(st, hw, TOP + 60), dx: 100, dy: 30, text: 'Drilled hole' },
+        chamf:  { xy: MK.pt(st, hw + 4, TOP + 2), dx: 100, dy: -30, text: 'Chamfered edge' },
+        tap:    { xy: MK.pt(st, tw, TOP + st.tapY - 60), dx: 100, dy: -20, text: `${sz.name} tap` },
+        wrench: { xy: MK.pt(st, 100, TOP + st.tapY - 146), dx: 60, dy: -40, text: 'Tap wrench' },
+        square: { xy: MK.pt(st, tw + 36, TOP - 80), dx: 90, dy: 0, text: 'Square: keep it upright' },
+        thread: { xy: MK.pt(st, hw, TOP + Math.max(10, st.thread * .5)), dx: 110, dy: 50, text: 'Threads cut in the wall' },
+        chips:  { xy: MK.pt(st, -tw - 14, TOP - 8), dx: -90, dy: -40, text: 'Chips' },
+      };
+      return { svg: MK.scene(st, b), tags, anchors: { flash: MK.pt(st, -tw - 60, TOP - 120) } };
+    },
+    steps: [
+      { title: 'Pick the tap and drill', dur: 1400,
+        body: 'Every tap needs a pilot hole of the right size, the tap drill: roughly the thread diameter minus the pitch. For {S} ({P} mm pitch) that\'s a {D} mm drill. Check the tap drill chart for other sizes.',
+        tags: [], keys: [] },
+      { title: 'Drill the hole', dur: 2000,
+        body: 'Mark the centre with a centre punch and drill the tap drill straight and square, ideally on a drill press. Drill a little deeper than the thread you need for a blind hole.',
+        tags: ['drill'], hot: ['drill'], keys: [[.15, { drillOn: 1 }], [.85, { drill: 1 }]] },
+      { title: 'Chamfer the edge', dur: 1300,
+        body: 'Run a countersink or a bigger drill lightly over the hole to put a small chamfer on the edge. It helps the tap start and stops the first thread being raised.',
+        tags: ['chamf'], hot: ['chamf'], keys: [[0, { drillOn: 0 }], [.8, { chamfer: 1 }]] },
+      { title: 'Fit the tap and add cutting fluid', dur: 1500,
+        body: 'Clamp the square end of the first (taper) tap in the tap wrench. Put a drop of cutting fluid on the tap and in the hole; it cuts cleaner and the tap is less likely to snap.',
+        tags: ['tap', 'wrench'], hot: ['wrench'], keys: [[.3, { tapOn: 1, tapY: -30 }], [.8, { fluid: 1 }], [1, { fluid: 0 }]] },
+      { title: 'Start it square', dur: 1700,
+        body: 'Put the tapered end into the hole and turn gently clockwise with even pressure on both handles until it bites. Check it\'s upright from two directions with a square before going on.',
+        caution: 'A tap started at an angle cuts crooked threads and is likely to break.',
+        tags: ['square'], hot: ['square'], keys: [[.5, { tapY: 20, rot: .5, thread: 10 }], [.7, { square: 1 }], [1, { square: 0 }]] },
+      { title: 'Half a turn in, a quarter back', dur: 3000,
+        body: 'Turn the tap half a turn clockwise, then a quarter turn back to break the chip off. Repeat, with steady, even pressure on both handles and a drop more fluid now and then. If it gets stiff, back it out and clear the chips; never force it.',
+        tags: ['thread', 'chips'], hot: ['thread'], keys: [[.25, { rot: 1, tapY: 45, thread: 36 }], [.35, { rot: .75, chips: 1 }], [.6, { rot: 1.75, tapY: 75, thread: 66 }], [.7, { rot: 1.5 }], [.95, { rot: 2.5, tapY: 105, thread: 96 }]],
+        flashes: [[.22, '½ turn'], [.34, '¼ back'], [.57, '½ turn'], [.68, '¼ back']] },
+      { title: 'Finish and clear the chips', dur: 2000,
+        body: 'Carry on until the threads go right through, or for a blind hole until the tap touches bottom, then follow with the plug and bottoming taps to thread to the bottom. Turn the tap back out and blow or brush out the chips.',
+        tags: ['thread'], keys: [[.5, { tapY: 150, thread: 130, rot: 4 }], [.85, { tapY: -100, rot: 1 }], [1, { tapOn: 0, chips: 0 }]] },
+      { title: 'Check with a screw', dur: 1600,
+        body: 'Clean out the cutting fluid and run in a screw of the right size. It should turn in smoothly by hand all the way.',
+        tags: [], keys: [[.8, { screw: 1 }]] },
+    ],
+  };
+
+  const DIE = {
+    label: 'Threading a rod (die)',
+    base: { chamfer: 0, dieOn: 0, dieY: -70, rot: 0, thread: 0, fluid: 0, nut: 0, zoom: 1, zs: 1.15, fx: 20, fy: 40 },
+    draw(st) {
+      const sz = SIZES[SEL.i], rw = sz.d * PX / 2, pp = Math.max(4, sz.p * PX), dr = sz.p * PX * .62;
+      const rTop = -40;
+      let b = MK.mat(this.viewBox);
+      // vice jaws holding the rod
+      b += `<rect x="${f(-rw - 70)}" y="110" width="70" height="80" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/><rect x="${f(rw)}" y="110" width="70" height="80" fill="url(#mk-black)" stroke="rgba(0,0,0,.6)"/>`;
+      // the rod with a chamfered end, threads cut from the top down
+      const ch = st.chamfer * rw * .5;
+      b += `<path d="M${f(-rw + ch)} ${rTop} L${f(rw - ch)} ${rTop} L${f(rw)} ${f(rTop + ch)} L${f(rw)} 200 L${f(-rw)} 200 L${f(-rw)} ${f(rTop + ch)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>`;
+      const tEnd = rTop + Math.max(0, st.thread);
+      if (st.thread > 2) b += `<path d="${teeth(-rw, rTop + ch, tEnd, dr, pp, 1)}" fill="none" stroke="#5a6068" stroke-width="1.6"/><path d="${teeth(rw, rTop + ch, tEnd, -dr, pp, -1)}" fill="none" stroke="#5a6068" stroke-width="1.6"/>`;
+      // the die in its stock
+      if (st.dieOn > .02) {
+        const dy = rTop + st.dieY;
+        b += `<g opacity="${f(st.dieOn)}"><rect x="${f(-rw - 36)}" y="${f(dy - 14)}" width="${f(rw * 2 + 72)}" height="28" rx="6" fill="url(#mk-steel)" stroke="rgba(0,0,0,.55)"/>
+          <rect x="${f(-rw - 1)}" y="${f(dy - 14)}" width="${f(rw * 2 + 2)}" height="28" fill="#5a6068" opacity=".35"/></g>`;
+        b += wrench(0, dy, st.rot, 150, st.dieOn);
+        b += `<rect x="${f(-rw - 1)}" y="${f(dy - 14)}" width="${f(rw * 2 + 2)}" height="28" fill="url(#mk-steelv)" opacity="${f(st.dieOn * .55)}"/>`;
+      }
+      if (st.fluid > .02) b += `<path d="M${f(rw + 12)} ${rTop - 30} q -7 10 0 16 q 7 -6 0 -16z" fill="#8FB8D9" opacity="${f(st.fluid)}"/>`;
+      if (st.nut > .02) { const ny = rTop - 40 + st.nut * 60; b += `<g opacity="${f(st.nut)}"><rect x="${f(-rw * 1.8)}" y="${f(ny)}" width="${f(rw * 3.6)}" height="${f(rw * 1.6)}" rx="3" fill="url(#mk-steel)" stroke="rgba(0,0,0,.55)"/><line x1="${f(-rw * .6)}" y1="${f(ny)}" x2="${f(-rw * .6)}" y2="${f(ny + rw * 1.6)}" stroke="rgba(0,0,0,.3)"/><line x1="${f(rw * .6)}" y1="${f(ny)}" x2="${f(rw * .6)}" y2="${f(ny + rw * 1.6)}" stroke="rgba(0,0,0,.3)"/></g>`; }
+      const tags = {
+        rod:    { xy: MK.pt(st, rw, 60), dx: 100, dy: 20, text: `${sz.d} mm rod` },
+        chamf:  { xy: MK.pt(st, rw - ch / 2, rTop + 2), dx: 100, dy: -40, text: 'Chamfered end' },
+        die:    { xy: MK.pt(st, rw + 20, rTop + st.dieY), dx: 110, dy: -30, text: `${sz.name} die in its stock` },
+        vice:   { xy: MK.pt(st, -rw - 35, 130), dx: -80, dy: 40, text: 'Vice' },
+        thread: { xy: MK.pt(st, -rw, rTop + Math.max(10, st.thread * .5)), dx: -110, dy: -30, text: 'Thread cut on the rod' },
+      };
+      return { svg: MK.scene(st, b), tags, anchors: { flash: MK.pt(st, -rw - 90, rTop - 60) } };
+    },
+    steps: [
+      { title: 'Check the rod size', dur: 1300,
+        body: 'For an {S} thread the rod should be {S2} mm across, or a hair under; measure it with a caliper. Clamp it upright in a vice with the end sticking up.',
+        tags: ['rod', 'vice'], keys: [] },
+      { title: 'Chamfer the end', dur: 1300,
+        body: 'File or grind a 45° chamfer on the end of the rod so the die can start cleanly.',
+        tags: ['chamf'], hot: ['chamf'], keys: [[.8, { chamfer: 1 }]] },
+      { title: 'Fit the die in the stock', dur: 1500,
+        body: 'Put the die in the die stock with its lead side (the tapered first threads, usually the unmarked face) towards the rod, and tighten the locking screw. Add a drop of cutting fluid.',
+        tags: ['die'], hot: ['die'], keys: [[.3, { dieOn: 1, dieY: -30 }], [.8, { fluid: 1 }], [1, { fluid: 0 }]] },
+      { title: 'Start it square', dur: 1600,
+        body: 'Rest the die on the chamfered end and turn clockwise with firm, even pressure until it bites. Keep the stock level so the thread goes on straight.',
+        tags: ['die'], keys: [[.8, { dieY: 0, rot: .5, thread: 6 }]] },
+      { title: 'Half a turn on, a quarter back', dur: 2800,
+        body: 'Turn half a turn clockwise, then a quarter back to break the chip. Repeat, adding a little cutting fluid as you go.',
+        tags: ['thread'], hot: ['thread'], keys: [[.25, { rot: 1, dieY: 22, thread: 28 }], [.35, { rot: .75 }], [.6, { rot: 1.75, dieY: 46, thread: 52 }], [.7, { rot: 1.5 }], [.95, { rot: 2.5, dieY: 70, thread: 76 }]],
+        flashes: [[.22, '½ turn'], [.34, '¼ back'], [.57, '½ turn'], [.68, '¼ back']] },
+      { title: 'Thread to length and back off', dur: 1800,
+        body: 'Carry on until the thread is as long as you need, then turn the die back off the rod and brush off the chips.',
+        tags: ['thread'], keys: [[.5, { dieY: 110, thread: 112, rot: 4 }], [.9, { dieY: -90, rot: 1 }], [1, { dieOn: 0 }]] },
+      { title: 'Check with a nut', dur: 1500,
+        body: 'Clean the thread and run on a nut of the same size. It should turn on smoothly by hand; if it\'s tight, run the die over again.',
+        tags: [], keys: [[.8, { nut: 1 }]] },
+    ],
+  };
+  const MODES = [TAP, DIE];
+  let mode = 0;
+  return {
+    id: 'tapdie', fig: 4, name: 'Tap and die', sub: 'Threading holes and rods, M3–M8', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    sizes: SIZES.map(s => s.name), get size() { return SEL.i; }, setSize(i) { SEL.i = i; }, showSizes: () => true, sizeLabel: 'Thread size',
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) { return MODES[mode].draw.call(this, st); },
+    vars: () => { const s = SIZES[SEL.i]; return { S: s.name, P: String(s.p), D: String(s.drill), S2: String(s.d) }; },
+  };
+})();
+
+const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER, MULTI, DRILL, PUNCH, CALIPER, TAPDIE];
 EQ_TOOLS.forEach(t => { if (!t.cat) t.cat = 'electrical'; });
+/* ===================== BASICS ===================== */
+// Illustrated reference guides, shown with the same step viewer as the Equipment tab.
+const BX = (() => {
+  const { lerp, f } = EQ;
+  // a dimension line with arrowheads and a label; hot = highlighted
+  function dim(x1, y1, x2, y2, label, hot, side = -1) {
+    const c = hot ? 'var(--mat)' : 'var(--muted)', w = hot ? 2 : 1.2;
+    const a = Math.atan2(y2 - y1, x2 - x1), ah = (x, y, d) => `<path d="M${f(x)} ${f(y)} l${f(8 * Math.cos(a + d * 2.7))} ${f(8 * Math.sin(a + d * 2.7))} l${f(-3 * Math.cos(a + d * 1.2))} ${f(-3 * Math.sin(a + d * 1.2))}Z" fill="${c}"/>`;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, horiz = Math.abs(x2 - x1) > Math.abs(y2 - y1);
+    return `<g><line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${c}" stroke-width="${w}"/>
+      <path d="M${f(x1)} ${f(y1)} l${f(9 * Math.cos(a + .35))} ${f(9 * Math.sin(a + .35))} M${f(x1)} ${f(y1)} l${f(9 * Math.cos(a - .35))} ${f(9 * Math.sin(a - .35))} M${f(x2)} ${f(y2)} l${f(-9 * Math.cos(a + .35))} ${f(-9 * Math.sin(a + .35))} M${f(x2)} ${f(y2)} l${f(-9 * Math.cos(a - .35))} ${f(-9 * Math.sin(a - .35))}" stroke="${c}" stroke-width="${w}" fill="none"/>
+      <text x="${f(horiz ? mx : mx + side * 8)}" y="${f(horiz ? my + side * 8 + (side > 0 ? 8 : 0) : my + 4)}" text-anchor="${horiz ? 'middle' : side < 0 ? 'end' : 'start'}" class="bx-dim${hot ? ' hot' : ''}">${label}</text></g>`;
+  }
+  const ext = (x1, y1, x2, y2) => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="var(--muted)" stroke-width=".8" stroke-dasharray="3 3"/>`;
+  const glow = (d, on) => on ? `<path d="${d}" fill="none" stroke="var(--mat)" stroke-width="3.5" opacity=".9"/>` : '';
+  const txt = (x, y, s, cls = 'bx-cap', anchor = 'middle') => `<text x="${f(x)}" y="${f(y)}" text-anchor="${anchor}" class="${cls}">${s}</text>`;
+  // a vertical screw: head on top at y, thread down to y + L; d = diameter (px), p = pitch (px)
+  function screw(cx, y, d, L, p, type, opt = {}) {
+    let s = '', h = 0, top = '';
+    const r = d / 2, hd = opt.hd || d * 1.65, hh = opt.hh || d;
+    switch (type) {
+      case 'socket': h = hh; top = `<rect x="${f(cx - hd / 2)}" y="${f(y - h)}" width="${f(hd)}" height="${f(h)}" rx="3" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>
+        ${[.2, .4, .6, .8].map(t => `<line x1="${f(cx - hd / 2 + hd * t)}" y1="${f(y - h + 2)}" x2="${f(cx - hd / 2 + hd * t)}" y2="${f(y - 2)}" stroke="rgba(0,0,0,.15)"/>`).join('')}
+        <rect x="${f(cx - d * .43)}" y="${f(y - h)}" width="${f(d * .86)}" height="${f(h * .55)}" fill="none" stroke="#2a2d31" stroke-dasharray="3 2"/>`; break;
+      case 'csk': h = d * .62; top = `<path d="M${f(cx - d)} ${f(y - h)} L${f(cx + d)} ${f(y - h)} L${f(cx + r)} ${f(y)} L${f(cx - r)} ${f(y)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`; break;
+      case 'button': h = d * .55; top = `<path d="M${f(cx - d * .95)} ${f(y)} Q ${f(cx - d * .95)} ${f(y - h * 1.6)} ${f(cx)} ${f(y - h * 1.6)} Q ${f(cx + d * .95)} ${f(y - h * 1.6)} ${f(cx + d * .95)} ${f(y)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`; break;
+      case 'pan': h = d * .7; top = `<path d="M${f(cx - d)} ${f(y)} L${f(cx - d)} ${f(y - h * .6)} Q ${f(cx - d)} ${f(y - h)} ${f(cx - d * .6)} ${f(y - h)} L${f(cx + d * .6)} ${f(y - h)} Q ${f(cx + d)} ${f(y - h)} ${f(cx + d)} ${f(y - h * .6)} L${f(cx + d)} ${f(y)}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`; break;
+      case 'hex': h = d * .7; top = `<rect x="${f(cx - d * .95)}" y="${f(y - h)}" width="${f(d * 1.9)}" height="${f(h)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/><line x1="${f(cx - d * .32)}" y1="${f(y - h)}" x2="${f(cx - d * .32)}" y2="${f(y)}" stroke="rgba(0,0,0,.3)"/><line x1="${f(cx + d * .32)}" y1="${f(y - h)}" x2="${f(cx + d * .32)}" y2="${f(y)}" stroke="rgba(0,0,0,.3)"/>`; break;
+    }
+    s += top;
+    const thrStart = type === 'shoulder' ? y : y + (opt.unthreaded || 0);
+    if (type === 'shoulder') {
+      const sd = opt.sd, sl = opt.sl;                          // shoulder diameter and length (px)
+      h = d * .9;
+      s += `<rect x="${f(cx - sd * .8)}" y="${f(y - h)}" width="${f(sd * 1.6)}" height="${f(h)}" rx="3" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`;
+      s += `<rect x="${f(cx - sd / 2)}" y="${f(y)}" width="${f(sd)}" height="${f(sl)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`;
+      y += sl;
+    }
+    // shank (unthreaded) and threads
+    if (opt.unthreaded) s += `<rect x="${f(cx - r)}" y="${f(y)}" width="${f(d)}" height="${f(opt.unthreaded)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>`;
+    const t0 = y + (opt.unthreaded || 0), t1 = y + L - (type === 'shoulder' ? 0 : 0);
+    const minor = r * .78;
+    let edge = `M${f(cx - r)} ${f(t0)}`;
+    for (let yy = t0; yy < t1 - p * .5; yy += p) edge += ` L${f(cx - minor)} ${f(yy + p / 2)} L${f(cx - r)} ${f(yy + p)}`;
+    let edgeR = `M${f(cx + r)} ${f(t0)}`;
+    for (let yy = t0 + p / 2; yy < t1 - p * .5; yy += p) edgeR += ` L${f(cx + minor)} ${f(yy)} L${f(cx + r)} ${f(yy + p / 2)}`;
+    s += `<rect x="${f(cx - minor)}" y="${f(t0)}" width="${f(minor * 2)}" height="${f(t1 - t0)}" fill="url(#mk-steelv)"/>`;
+    s += `<path d="${edge} L${f(cx - minor)} ${f(t1)} L${f(cx + minor)} ${f(t1)} ${edgeR.replace('M', 'L')}Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)" stroke-width=".9"/>`;
+    for (let yy = t0 + p * .2; yy < t1 - p; yy += p) s += `<line x1="${f(cx - r + 1)}" y1="${f(yy + p * .5)}" x2="${f(cx + r - 1)}" y2="${f(yy)}" stroke="rgba(0,0,0,.25)" stroke-width="1"/>`;
+    return { s, headTop: y - (type === 'shoulder' ? (opt.sl || 0) : 0) - h, headH: h, tEnd: t1 };
+  }
+  function topView(cx, cy, R, kind) {
+    let s = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+    const k = '#2a2d31';
+    switch (kind) {
+      case 'hexs': s += `<polygon points="${Array.from({ length: 6 }, (_, i) => `${f(cx + R * .5 * Math.cos(i * Math.PI / 3))},${f(cy + R * .5 * Math.sin(i * Math.PI / 3))}`).join(' ')}" fill="${k}"/>`; break;
+      case 'torx': s += `<path d="${Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6, rr = i % 2 ? R * .3 : R * .55; return `${i ? 'L' : 'M'}${f(cx + rr * Math.cos(a))} ${f(cy + rr * Math.sin(a))}`; }).join(' ')}Z" fill="${k}"/>`; break;
+      case 'phillips': s += `<path d="M${cx - R * .6} ${cy} L${cx + R * .6} ${cy} M${cx} ${cy - R * .6} L${cx} ${cy + R * .6}" stroke="${k}" stroke-width="${R * .22}" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="${R * .2}" fill="${k}"/>`; break;
+      case 'pozi': s += `<path d="M${cx - R * .6} ${cy} L${cx + R * .6} ${cy} M${cx} ${cy - R * .6} L${cx} ${cy + R * .6}" stroke="${k}" stroke-width="${R * .2}"/><path d="M${cx - R * .32} ${cy - R * .32} L${cx + R * .32} ${cy + R * .32} M${cx + R * .32} ${cy - R * .32} L${cx - R * .32} ${cy + R * .32}" stroke="${k}" stroke-width="${R * .06}"/>`; break;
+      case 'slot': s += `<rect x="${cx - R * .75}" y="${cy - R * .1}" width="${R * 1.5}" height="${R * .2}" fill="${k}"/>`; break;
+      case 'square': s += `<rect x="${cx - R * .25}" y="${cy - R * .25}" width="${R * .5}" height="${R * .5}" fill="${k}"/>`; break;
+      case 'hexhead': s = `<polygon points="${Array.from({ length: 6 }, (_, i) => `${f(cx + R * Math.cos(i * Math.PI / 3))},${f(cy + R * Math.sin(i * Math.PI / 3))}`).join(' ')}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`; break;
+    }
+    return s;
+  }
+  return { dim, ext, glow, txt, screw, topView };
+})();
+
+/* ---------- Mechanical basics 01: Screws ---------- */
+const B_SCREWS = (() => {
+  const { lerp, f } = EQ;
+  const PX = 9;                                                     // px per mm (anatomy figure)
+  const ANAT = { label: 'Anatomy', base: { hl: 'all', zoom: 1, zs: 1.25, fx: 100, fy: 10 },
+    draw(st) {
+      const cx = 30, y = -60, d = 6 * PX, L = 20 * PX, p = 1 * PX;
+      const sc = BX.screw(cx, y, d, L, p, 'socket', { hd: 10 * PX, hh: 6 * PX, unthreaded: 0 });
+      let s = MK.mat(this.viewBox) + sc.s;
+      const H = (k) => st.hl === k || st.hl === 'all';
+      s += BX.ext(cx - 5 * PX, y - 6 * PX, cx - 80, y - 6 * PX) + BX.ext(cx - d / 2, y + L, cx - 80, y + L) + BX.ext(cx - 5 * PX, y, cx - 80, y);
+      s += BX.dim(cx - 70, y, cx - 70, y + L, 'length', H('length'));
+      s += BX.dim(cx - 70, y - 6 * PX, cx - 70, y, 'head', H('head'));
+      s += BX.dim(cx - d / 2, y + L + 26, cx + d / 2, y + L + 26, 'major ⌀ = M size', H('dia'), 1);
+      s += BX.ext(cx - d / 2, y + L, cx - d / 2, y + L + 30) + BX.ext(cx + d / 2, y + L, cx + d / 2, y + L + 30);
+      s += BX.dim(cx + d / 2 + 20, y + 60, cx + d / 2 + 20, y + 60 + p, 'pitch', H('pitch'), 1);
+      s += BX.ext(cx + d / 2, y + 60, cx + d / 2 + 26, y + 60) + BX.ext(cx + d / 2, y + 60 + p, cx + d / 2 + 26, y + 60 + p);
+      s += BX.dim(cx - d * .39, y + 120, cx + d * .39, y + 120, 'minor ⌀', H('minor'));
+      if (H('drive')) s += `<rect x="${f(cx - d * .48)}" y="${f(y - 6 * PX - 3)}" width="${f(d * .96)}" height="${f(6 * PX * .62)}" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+      if (H('thread')) s += `<rect x="${f(cx - d / 2 - 4)}" y="${f(y)}" width="${f(d + 8)}" height="${f(L)}" fill="none" stroke="var(--mat)" stroke-width="2.5" rx="4"/>`;
+      if (H('tip')) s += `<circle cx="${cx}" cy="${f(y + L)}" r="16" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+      const tags = {
+        head:   { xy: MK.pt(st, cx + 5 * PX, y - 3 * PX), dx: 120, dy: -30, text: 'Head' },
+        drive:  { xy: MK.pt(st, cx + d * .4, y - 6 * PX + 10), dx: 140, dy: -60, text: 'Drive (hex socket)' },
+        thread: { xy: MK.pt(st, cx + d / 2, y + 120), dx: 130, dy: 0, text: 'Threaded shank' },
+        tip:    { xy: MK.pt(st, cx + 10, y + L), dx: 120, dy: 10, text: 'Tip (end)' },
+      };
+      return { svg: MK.scene(st, s), tags, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'The parts of a screw', dur: 900, body: 'Every machine screw has a head, a drive to turn it, and a threaded shank. Its size is written as M (metric) + the thread diameter × the length: this one is M6 × 20.', tags: ['head', 'drive', 'thread', 'tip'], keys: [[0, { hl: 'all' }]] },
+      { title: 'Head and drive', dur: 900, body: 'The head takes the clamping force and the drive is what the tool fits. A socket head cap screw has a deep hex socket, so it can be tightened hard with a hex key and doesn\'t need room round the head for a spanner.', tags: ['head', 'drive'], hot: ['drive'], keys: [[0, { hl: 'drive' }]] },
+      { title: 'Major diameter: the M number', dur: 900, body: 'The M number is the major diameter, measured over the tops of the threads, in millimetres. M6 = 6 mm. In practice the threads measure a fraction under (about 5.8–5.95 mm).', tags: [], keys: [[0, { hl: 'dia' }]] },
+      { title: 'Minor diameter', dur: 900, body: 'The minor diameter is at the bottom of the threads. It\'s what\'s left after threading, so it sets the strength, and it\'s why the tap drill for a thread is smaller than the screw (about diameter − pitch).', tags: [], keys: [[0, { hl: 'minor' }]] },
+      { title: 'Pitch', dur: 900, body: 'Pitch is the distance from one thread to the next, in millimetres. Each M size has a standard coarse pitch (M3 0.5, M4 0.7, M5 0.8, M6 1.0, M8 1.25). Fine pitches exist too and are written out, e.g. M8 × 1.', tags: [], keys: [[0, { hl: 'pitch' }]] },
+      { title: 'Length', dur: 900, body: 'For most heads, length is measured from under the head to the tip, because that\'s the part that goes into the work. Countersunk screws are the exception: they\'re measured overall, head included.', tags: [], keys: [[0, { hl: 'length' }]] },
+    ] };
+
+  const HEADS = [
+    { type: 'socket', name: 'Socket head cap', text: 'The lab default: a tall cylindrical head with a deep hex socket. Strong, easy to tighten with a hex key in tight spots, and it sits in a counterbored hole.' },
+    { type: 'csk', name: 'Countersunk (flat)', text: 'A 90° cone that sits flush in a countersunk hole, for surfaces that must be smooth. Measured overall, head included.' },
+    { type: 'button', name: 'Button head', text: 'A low, rounded head with a hex socket. Neat and low-profile, but the shallow socket can\'t take as much torque as a cap screw.' },
+    { type: 'pan', name: 'Pan head', text: 'A wide, slightly domed head, usually with a Phillips or Pozidriv cross. Common on electronics enclosures and PCB standoffs.' },
+    { type: 'hex', name: 'Hex head bolt', text: 'An external hex for a spanner or socket. Used where high torque is needed and there\'s room around the head.' },
+    { type: 'shoulder', name: 'Shoulder bolt', text: 'A precision-ground plain shoulder, then a smaller thread. The shoulder acts as an accurate pivot or axle for bearings and linkages. It\'s sized by the shoulder diameter and shoulder length, not the thread.' },
+  ];
+  const STYLES = { label: 'Head styles', base: { hl: -1, zoom: 1, zs: 1.05, fx: 55, fy: 30 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      HEADS.forEach((h, i) => {
+        const cx = -175 + i * 68, y = -40, on = st.hl === i;
+        const opt = h.type === 'shoulder' ? { sd: 26, sl: 70 } : {};
+        const sc = BX.screw(cx, y, 22, h.type === 'shoulder' ? 50 : 110, 5, h.type, opt);
+        s += `<g opacity="${st.hl < 0 || on ? 1 : .35}">${sc.s}</g>`;
+        if (on) s += `<rect x="${cx - 32}" y="${y - 44}" width="64" height="${h.type === 'shoulder' ? 172 : 162}" rx="8" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+        s += `<text x="${cx}" y="${y + 150}" text-anchor="middle" class="bx-small${on ? ' hot' : ''}">${h.name.split(' ')[0]}</text>`;
+      });
+      if (st.hl === 5) {                                       // shoulder bolt dimensions
+        const cx = -175 + 5 * 68;
+        s += BX.dim(cx + 30, -40, cx + 30, 30, 'shoulder length', true, 1) + BX.dim(cx - 13, 44, cx + 13, 44, '', true);
+        s += BX.txt(cx + 22, 64, 'shoulder ⌀', 'bx-dim hot', 'start');
+      }
+      return { svg: MK.scene(st, s), tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: HEADS.map((h, i) => ({ title: h.name, dur: 800, body: h.text, tags: [], keys: [[0, { hl: i }]] })) };
+
+  const MEAS = { label: 'Measuring (M3 × 10)', base: { hl: 'dia', jaw: 0, gauge: 0 },
+    draw(st) {
+      const P2 = 18, cx = -40, y = -40, d = 3 * P2, L = 10 * P2, p = .5 * P2;
+      let s = MK.mat(this.viewBox);
+      const type = st.hl === 'csk' ? 'csk' : 'socket';
+      const sc = BX.screw(cx, y, d, L, p, type, type === 'socket' ? { hd: 5.5 * P2, hh: 3 * P2 } : {});
+      s += sc.s;
+      // caliper jaws closing on the thread
+      if (st.hl === 'dia') {
+        const gap = lerp(d + 30, d, st.jaw);
+        s += `<rect x="${f(cx - gap / 2 - 16)}" y="${y + 60}" width="16" height="60" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/><rect x="${f(cx + gap / 2)}" y="${y + 60}" width="16" height="60" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+        s += `<rect x="150" y="-150" width="150" height="56" rx="6" fill="#20252b"/><text x="290" y="-108" text-anchor="end" class="bx-lcd">${(lerp(4.5, 2.94, st.jaw)).toFixed(2)}</text><text x="160" y="-136" class="bx-small" fill="#9fb">mm</text>`;
+        s += BX.txt(225, -70, 'Thread measures 2.94 mm → M3', 'bx-cap hot');
+      }
+      if (st.hl === 'pitch') {
+        // a thread gauge leaf sitting in the threads
+        s += `<path d="M${cx + d / 2 + 2} ${y + 20} ${Array.from({ length: 12 }, (_, i) => `L${cx + d / 2 + 2 - (i % 2 ? 0 : d * .22)} ${y + 20 + i * p / 2}`).join(' ')} L${cx + d / 2 + 70} ${y + 20 + 11 * p / 2} L${cx + d / 2 + 70} ${y + 20}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)" opacity="${f(st.gauge)}"/>`;
+        s += BX.txt(225, -70, 'The 0.5 gauge leaf fits with no light gap', 'bx-cap hot');
+      }
+      if (st.hl === 'length') { s += BX.dim(cx + 60, y, cx + 60, y + L, '10 mm', true, 1) + BX.ext(cx + d / 2, y, cx + 66, y) + BX.ext(cx + d / 2, y + L, cx + 66, y + L); s += BX.txt(225, -70, 'From under the head to the tip', 'bx-cap hot'); }
+      if (st.hl === 'csk') { s += BX.dim(cx + 60, sc.headTop, cx + 60, y + L, '10 mm', true, 1) + BX.ext(cx + d, sc.headTop, cx + 66, sc.headTop) + BX.ext(cx + d / 2, y + L, cx + 66, y + L); s += BX.txt(225, -70, 'Countersunk: measured overall', 'bx-cap hot'); }
+      if (st.hl === 'name') s += `<text x="225" y="-40" text-anchor="middle" class="bx-big">M3 × 10</text>` + BX.txt(225, -10, 'thread ⌀ × length (mm)', 'bx-cap');
+      return { svg: MK.scene(st, s), tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'Measure the thread diameter', dur: 1500, body: 'Close a caliper over the threads (the major diameter). It reads a little under the nominal size: 2.9–3.0 mm means M3, 3.8–4.0 M4, 4.8–5.0 M5, 5.8–6.0 M6.', tags: [], keys: [[0, { hl: 'dia', jaw: 0 }], [.8, { jaw: 1 }]] },
+      { title: 'Check the pitch', dur: 1400, body: 'Hold thread gauge leaves against the threads until one fits with no light showing: here 0.5 mm, the standard coarse pitch for M3. No gauge? Measure across 10 threads and divide by 10.', tags: [], keys: [[0, { hl: 'pitch', gauge: 0 }], [.7, { gauge: 1 }]] },
+      { title: 'Measure the length', dur: 1200, body: 'Measure from under the head to the tip: 10 mm. That\'s how cap, button, pan and hex head screws are sized.', tags: [], keys: [[0, { hl: 'length' }]] },
+      { title: 'Countersunk is different', dur: 1200, body: 'A countersunk head sits flush with the surface, so it\'s measured overall, from the top of the head to the tip.', tags: [], keys: [[0, { hl: 'csk' }]] },
+      { title: 'Name it', dur: 1200, body: 'Put it together: thread diameter × length, so M3 × 10. If the pitch isn\'t the standard coarse one, add it: M8 × 1 × 20. Shoulder bolts are named by shoulder diameter × shoulder length (for example 6 × 20, with an M5 thread).', tags: [], keys: [[0, { hl: 'name' }]] },
+    ] };
+
+  const DRIVES = [
+    { k: 'hexs', name: 'Hex socket (Allen)', text: 'Six-sided socket for a hex key. The lab standard on cap, button and countersunk screws. Use a key that fits snugly; a worn or slightly small key rounds the socket.' },
+    { k: 'torx', name: 'Torx (star)', text: 'Six-lobed star. Grips better than hex with less cam-out, so it\'s common on electronics and cars. Sizes are T-numbers (T10, T20…).' },
+    { k: 'phillips', name: 'Phillips (cross)', text: 'Cross with tapered, rounded slots. Designed to cam out (slip) when overtightened. Sizes PH0, PH1, PH2.' },
+    { k: 'pozi', name: 'Pozidriv', text: 'Cross with extra fine lines between the arms. Grips without camming out, but a Phillips driver in it slips and damages it. Use a PZ driver.' },
+    { k: 'slot', name: 'Slotted', text: 'A single slot for a flat screwdriver. Easy to slip out of; mostly on small terminal screws and older parts.' },
+    { k: 'square', name: 'Square (Robertson)', text: 'Square socket, common in North American woodwork; very little cam-out.' },
+    { k: 'hexhead', name: 'External hex', text: 'Not a recess at all: a hex head turned with a spanner, socket or nut driver.' },
+  ];
+  const DRV = { label: 'Drive types', base: { hl: -1 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      DRIVES.forEach((dv, i) => {
+        const col = i % 4, row = Math.floor(i / 4), cx = -110 + col * 110, cy = -90 + row * 150, on = st.hl === i;
+        s += `<g opacity="${st.hl < 0 || on ? 1 : .35}">${BX.topView(cx, cy, 38, dv.k)}</g>`;
+        if (on) s += `<circle cx="${cx}" cy="${cy}" r="46" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+        s += `<text x="${cx}" y="${cy + 64}" text-anchor="middle" class="bx-small${on ? ' hot' : ''}">${dv.name.split(' (')[0]}</text>`;
+      });
+      return { svg: MK.scene(st, s), tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: DRIVES.map((dv, i) => ({ title: dv.name, dur: 800, body: dv.text, tags: [], keys: [[0, { hl: i }]] })) };
+
+  const MODES = [ANAT, STYLES, MEAS, DRV];
+  let mode = 0;
+  return {
+    id: 'screws', fig: 1, name: 'Screws', sub: 'Anatomy, heads, sizes, drives', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return { zoom: 0, ...MODES[mode].base }; },
+    draw(st) { return MODES[mode].draw.call(this, st); },
+  };
+})();
+
+/* ---------- Mechanical basics 02: Drill bits ---------- */
+const B_DRILLS = (() => {
+  const { lerp, f } = EQ;
+  function bit(st) {
+    const y = -20, x0 = -190, shankEnd = -40, x1 = 200, R = 22;
+    let s = `<rect x="${x0}" y="${y - R}" width="${shankEnd - x0}" height="${R * 2}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+    // fluted body: helical bands
+    s += `<rect x="${shankEnd}" y="${y - R}" width="${x1 - shankEnd}" height="${R * 2}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+    for (let x = shankEnd + 4; x < x1 - 10; x += 30) s += `<path d="M${x} ${y - R} L${x + 26} ${y + R} L${x + 14} ${y + R} L${x - 12} ${y - R}Z" fill="#3a3e45" opacity=".85"/>`;
+    // point (118°)
+    const tip = x1 + R / Math.tan(59 * Math.PI / 180);
+    s += `<path d="M${x1} ${y - R} L${f(tip)} ${y} L${x1} ${y + R}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/><line x1="${x1}" y1="${y - R}" x2="${f(tip)}" y2="${y}" stroke="#e8eaed" stroke-width="1.4"/>`;
+    s += `<text x="-115" y="${y + 5}" text-anchor="middle" class="bx-etch">HSS 6.0</text>`;
+    return { s, y, x0, shankEnd, x1, R, tip };
+  }
+  const ANAT = { label: 'Anatomy', base: { hl: 'all' },
+    draw(st) {
+      const b = bit(st), H = k => st.hl === k || st.hl === 'all';
+      let s = MK.mat(this.viewBox) + b.s;
+      if (H('shank')) s += `<rect x="${b.x0 - 4}" y="${b.y - b.R - 4}" width="${b.shankEnd - b.x0 + 8}" height="${b.R * 2 + 8}" rx="6" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+      if (H('flute')) s += `<path d="M${b.shankEnd + 64} ${b.y - b.R} L${b.shankEnd + 90} ${b.y + b.R}" stroke="var(--mat)" stroke-width="3"/>`;
+      if (H('margin')) s += `<line x1="${b.shankEnd}" y1="${b.y - b.R}" x2="${b.x1}" y2="${b.y - b.R}" stroke="var(--mat)" stroke-width="3"/>`;
+      if (H('point')) {
+        s += `<path d="M${b.x1 - 40} ${b.y - b.R - 20} L${f(b.tip)} ${b.y} L${b.x1 - 40} ${b.y + b.R + 20}" fill="none" stroke="var(--mat)" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+        s += BX.txt(b.tip + 14, b.y + 4, '118°', 'bx-dim hot', 'start');
+      }
+      // end view of the point: cutting lips, chisel edge, web
+      const ex = 260, ey = 110, er = 48;
+      s += `<circle cx="${ex}" cy="${ey}" r="${er}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+      s += `<path d="M${ex} ${ey} L${ex + er} ${ey - 6} A ${er} ${er} 0 0 1 ${ex + 18} ${ey + er - 4}Z M${ex} ${ey} L${ex - er} ${ey + 6} A ${er} ${er} 0 0 1 ${ex - 18} ${ey - er + 4}Z" fill="#3a3e45"/>`;
+      s += `<line x1="${ex - 7}" y1="${ey + 6}" x2="${ex + 7}" y2="${ey - 6}" stroke="${H('chisel') ? 'var(--mat)' : '#111'}" stroke-width="${H('chisel') ? 4 : 2.4}"/>`;
+      if (H('lips')) s += `<path d="M${ex + 7} ${ey - 6} L${ex + er} ${ey - 6} M${ex - 7} ${ey + 6} L${ex - er} ${ey + 6}" stroke="var(--mat)" stroke-width="3.5"/>`;
+      s += BX.txt(ex, ey + er + 22, 'end view', 'bx-small');
+      const tags = {
+        shank:  { xy: [-115, b.y + b.R], dx: -20, dy: 70, text: 'Shank (smooth, gripped by the chuck)' },
+        flute:  { xy: [b.shankEnd + 77, b.y], dx: -10, dy: -90, text: 'Flutes (carry chips out)' },
+        margin: { xy: [b.x1 - 50, b.y - b.R], dx: 60, dy: -80, text: 'Margin / land' },
+        point:  { xy: [b.tip - 4, b.y], dx: 30, dy: 80, text: 'Point angle' },
+        lips:   { xy: [ex + er * .7, ey - 6], dx: -150, dy: 40, text: 'Cutting lips' },
+        chisel: { xy: [ex, ey], dx: -170, dy: -10, text: 'Chisel edge (web)' },
+      };
+      return { svg: s, tags, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'A twist drill', dur: 900, body: 'A twist drill has a smooth shank for the chuck, a fluted body, and a pointed tip with two cutting edges. Size and material are usually stamped on the shank: HSS 6.0 is a 6 mm high-speed-steel bit.', tags: ['shank', 'flute', 'point'], keys: [[0, { hl: 'all' }]] },
+      { title: 'Shank', dur: 900, body: 'The smooth, plain part the chuck grips. Always grip on the shank, never on the flutes.', tags: ['shank'], hot: ['shank'], keys: [[0, { hl: 'shank' }]] },
+      { title: 'Flutes', dur: 900, body: 'The spiral grooves carry chips out of the hole. Pull the bit out every few millimetres in deep holes so they don\'t clog.', tags: ['flute'], hot: ['flute'], keys: [[0, { hl: 'flute' }]] },
+      { title: 'Margins (lands)', dur: 900, body: 'The narrow raised edges along the flutes. They\'re the widest part of the bit, so they set the hole size and guide it straight.', tags: ['margin'], hot: ['margin'], keys: [[0, { hl: 'margin' }]] },
+      { title: 'Point angle', dur: 900, body: 'Most general-purpose bits have a 118° point. Bits for hard materials like stainless often have a flatter 135° split point, which starts without skating.', tags: ['point'], hot: ['point'], keys: [[0, { hl: 'point' }]] },
+      { title: 'Cutting lips and chisel edge', dur: 900, body: 'The two cutting lips do the cutting. The chisel edge in the middle doesn\'t cut well; it pushes material aside, which is why a centre punch mark or pilot hole helps the bit start where you want.', tags: ['lips', 'chisel'], hot: ['lips'], keys: [[0, { hl: 'lips' }]] },
+    ] };
+  const MEAS = { label: 'Measuring the size', base: { jaw: 0, hl: 'cal' },
+    draw(st) {
+      const b = bit(st);
+      let s = MK.mat(this.viewBox) + b.s;
+      if (st.hl === 'cal') {
+        const gx = b.x1 - 30, gap = lerp(b.R * 2 + 40, b.R * 2, st.jaw);
+        s += `<rect x="${gx - 8}" y="${f(b.y - gap / 2 - 70)}" width="16" height="70" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/><rect x="${gx - 8}" y="${f(b.y + gap / 2)}" width="16" height="70" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+        s += `<rect x="225" y="-180" width="150" height="56" rx="6" fill="#20252b"/><text x="365" y="-138" text-anchor="end" class="bx-lcd">${lerp(7.8, 5.98, st.jaw).toFixed(2)}</text>`;
+        s += BX.txt(300, -104, 'Across the margins', 'bx-cap hot');
+      }
+      if (st.hl === 'gauge') {
+        s += `<rect x="-160" y="60" width="360" height="110" rx="8" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+        [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6].forEach((d, i) => { const x = -140 + i * 32; s += `<circle cx="${x}" cy="105" r="${f(2 + d * 1.8)}" fill="#20252b"/><text x="${x}" y="150" text-anchor="middle" class="bx-small">${d}</text>`; });
+        s += `<circle cx="180" cy="105" r="${f(2 + 6 * 1.8 + 3)}" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+      }
+      if (st.hl === 'stamp') s += `<rect x="-160" y="${b.y - 16}" width="90" height="32" rx="5" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'Read the shank', dur: 1000, body: 'Most bits have their size stamped on the shank (here 6.0 mm). It wears off with use, so check with a caliper if it\'s hard to read.', tags: [], keys: [[0, { hl: 'stamp' }]] },
+      { title: 'Measure across the margins', dur: 1600, body: 'Close the caliper on the margins just behind the point. That\'s the true cutting diameter. Don\'t measure across the flutes (too small) or the shank, which can be slightly undersize.', tags: [], keys: [[0, { hl: 'cal', jaw: 0 }], [.8, { jaw: 1 }]] },
+      { title: 'Or use a drill gauge', dur: 1200, body: 'A drill gauge plate has a hole for each size: find the smallest hole the bit drops into. Remember imperial bits come in fractional, number and letter sizes too; don\'t mix them up with metric.', tags: [], keys: [[0, { hl: 'gauge' }]] },
+    ] };
+  const MODES = [ANAT, MEAS];
+  let mode = 0;
+  return {
+    id: 'drillbits', fig: 2, name: 'Drill bits', sub: 'Anatomy and measuring the size', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) { return MODES[mode].draw.call(this, st); },
+  };
+})();
+
+/* ---------- Electrical basics 01: Wire ---------- */
+// Diameters/areas are standard AWG values; chassis-wiring ampacity is the widely published guide figure for a
+// single wire in free air. Real limits depend on insulation rating, bundling, temperature and length.
+const B_WIRE = (() => {
+  const { lerp, f } = EQ;
+  const AWG = [
+    { g: 30, d: .255, a: .051, chassis: .86 }, { g: 28, d: .321, a: .081, chassis: 1.4 }, { g: 26, d: .405, a: .129, chassis: 2.2 },
+    { g: 24, d: .511, a: .205, chassis: 3.5 }, { g: 22, d: .644, a: .326, chassis: 7 }, { g: 20, d: .812, a: .518, chassis: 11 },
+    { g: 18, d: 1.024, a: .823, chassis: 16 }, { g: 16, d: 1.291, a: 1.31, chassis: 22 }, { g: 14, d: 1.628, a: 2.08, chassis: 32 },
+    { g: 12, d: 2.053, a: 3.31, chassis: 41 }, { g: 10, d: 2.588, a: 5.26, chassis: 55 },
+  ];
+  const GAUGE = { label: 'Finding the gauge', base: { hl: 'print' },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      // a wire with its insulation print
+      s += `<rect x="-200" y="-170" width="400" height="30" rx="8" fill="url(#sd-red)" stroke="rgba(0,0,0,.5)"/><text x="0" y="-150" text-anchor="middle" class="bx-print">UL1007  22 AWG  80°C  300V</text>`;
+      if (st.hl === 'print') s += `<rect x="-60" y="-166" width="80" height="22" rx="4" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
+      // conductor cross-sections to scale
+      const S = 34;
+      AWG.filter((_, i) => i % 2 === 0).forEach((w, i) => {
+        const x = -150 + i * 78, y = 20, on = st.hl === 'sizes' || (st.hl === 'meas' && w.g === 22);
+        s += `<circle cx="${x}" cy="${y}" r="${f(w.d * S / 2 + 10)}" fill="#C9362A" opacity=".8"/><circle cx="${x}" cy="${y}" r="${f(w.d * S / 2)}" fill="#D98A4E" stroke="${on ? 'var(--mat)' : '#7a4a22'}" stroke-width="${on ? 2.5 : 1}"/>`;
+        s += `<text x="${x}" y="${y + 70}" text-anchor="middle" class="bx-small${on ? ' hot' : ''}">${w.g} AWG</text><text x="${x}" y="${y + 86}" text-anchor="middle" class="bx-tiny">${w.d.toFixed(2)} mm</text><text x="${x}" y="${y + 99}" text-anchor="middle" class="bx-tiny">${w.a} mm²</text>`;
+      });
+      if (st.hl === 'strands') {
+        // 7 strands of 0.25 mm: one centre, six round it
+        const cx = -60, cy = 160, r = 12;
+        s += `<circle cx="${cx}" cy="${cy}" r="${r * 3 + 6}" fill="#C9362A" opacity=".8"/>` + [[0, 0], ...Array.from({ length: 6 }, (_, i) => [2 * r * Math.cos(i * Math.PI / 3), 2 * r * Math.sin(i * Math.PI / 3)])].map(([x, y]) => `<circle cx="${f(cx + x)}" cy="${f(cy + y)}" r="${r}" fill="#D98A4E" stroke="#7a4a22"/>`).join('');
+        s += BX.txt(cx + 70, cy - 10, '7 strands × 0.25 mm', 'bx-cap hot', 'start') + BX.txt(cx + 70, cy + 10, '= 7 × 0.049 mm² ≈ 0.34 mm² ≈ 22 AWG', 'bx-cap', 'start');
+      }
+      if (st.hl === 'rule') s += BX.txt(85, 160, 'Smaller AWG number = thicker wire. Every 3 gauges halves the area.', 'bx-cap hot');
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'Read the print', dur: 1000, body: 'Most hook-up wire has its size printed along the insulation, often with its standard, temperature rating and voltage rating: "22 AWG, 80 °C, 300 V".', tags: [], keys: [[0, { hl: 'print' }]] },
+      { title: 'Know the sizes', dur: 1000, body: 'AWG runs backwards: the smaller the number, the thicker the wire. Every 3 gauges roughly halves (or doubles) the copper area. Metric wire is sold by cross-section area in mm².', tags: [], keys: [[0, { hl: 'sizes' }]] },
+      { title: 'Measure a solid conductor', dur: 1000, body: 'No print? Strip a little and measure the bare copper with a caliper, then look it up: 0.64 mm is 22 AWG, 1.02 mm is 18 AWG. Measure the copper, not the insulation, which varies a lot between wire types.', tags: [], keys: [[0, { hl: 'meas' }]] },
+      { title: 'Stranded wire', dur: 1000, body: 'For stranded wire, count the strands and measure one: the area is strands × the area of one strand. 7 strands of 0.25 mm make about 0.34 mm², close to 22 AWG. Squashing the bundle with a caliper reads too small.', tags: [], keys: [[0, { hl: 'strands' }]] },
+    ] };
+  const CURRENT = { label: 'Gauge for the current', base: { hl: 0 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      s += BX.txt(85, -180, 'Chassis wiring guide (single wire in open air)', 'bx-title');
+      AWG.forEach((w, i) => {
+        const y = -150 + i * 30, len = w.chassis / 55 * 360;
+        const on = st.hl && Math.abs(st.hl - w.g) < .5;
+        s += `<text x="-140" y="${y + 15}" text-anchor="end" class="bx-small${on ? ' hot' : ''}">${w.g} AWG</text><rect x="-130" y="${y + 3}" width="${f(len)}" height="18" rx="3" fill="${on ? 'var(--mat)' : 'var(--accent-soft, #4a6a8a)'}" opacity="${on ? 1 : .55}"/><text x="${f(-122 + len)}" y="${y + 16}" class="bx-small">${w.chassis} A</text>`;
+      });
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'Start from the current', dur: 1000, body: 'Work out the most current the wire will ever carry (motors at stall, chargers, short peaks) and pick a gauge whose rating is comfortably above it. The chart shows the common chassis-wiring guide figures for a single wire in open air.', tags: [], keys: [[0, { hl: 0 }]] },
+      { title: 'Example: a 10 A load', dur: 1000, body: 'For 10 A the chart says 20 AWG is just enough (11 A), so in practice you\'d use 18 AWG (16 A) for some margin, and thicker still if it\'s bundled or long.', tags: [], keys: [[0, { hl: 18 }]] },
+      { title: 'Derate for real conditions', dur: 1000, body: 'Those figures drop sharply when wires are bundled together, enclosed, or near hot parts, because the heat can\'t escape. Power-distribution tables for bundled wire allow only a fraction of the chassis figure.', tags: [], keys: [[0, { hl: 0 }]] },
+      { title: 'Check the voltage drop', dur: 1000, body: 'On long runs or low-voltage circuits, the wire\'s resistance wastes voltage. 22 AWG is about 53 mΩ per metre: 2 m out and back at 3 A loses about 0.6 V. If that matters, go thicker.', tags: [], keys: [[0, { hl: 22 }]] },
+      { title: 'Match the rest of the path', dur: 1000, body: 'The connector, crimp terminal and fuse must be rated for the current too, and the wire must fit the terminal\'s gauge range. When in doubt, go one size thicker.', tags: [], keys: [[0, { hl: 0 }]] },
+    ] };
+  const MATS = [
+    { name: 'PVC', temp: '−20 to 80/105 °C', bar: 105, note: 'Cheap, the default for hook-up wire. Stiffens in the cold and shrinks back or melts near a soldering iron.' },
+    { name: 'Silicone', temp: '−60 to 200 °C', bar: 200, note: 'Very flexible, high temperature: great for battery and motor leads. Soft, so it cuts and tears easily on sharp edges.' },
+    { name: 'PTFE (Teflon)', temp: '−65 to 200/260 °C', bar: 260, note: 'Thin, tough, chemical resistant and doesn\'t melt when you solder. Harder to strip cleanly; use sharp or thermal strippers.' },
+    { name: 'XLPE / irradiated', temp: 'up to 125 °C', bar: 125, note: 'Cross-linked polymer: tougher and more heat-resistant than PVC, common in automotive and aerospace wire.' },
+    { name: 'Nylon PA66 (housings)', temp: 'about −40 to 105–125 °C', bar: 125, note: 'Most crimp connector housings (Molex, JST, XT60). Tough and slightly flexible so latches don\'t snap.' },
+    { name: 'PBT / LCP (housings)', temp: 'PBT ~130 °C, LCP 240+ °C', bar: 240, note: 'Glass-filled plastics for heat: PBT for automotive connectors, LCP for parts that go through reflow soldering.' },
+  ];
+  const MATERIALS = { label: 'Insulation & housings', base: { hl: -1 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      s += BX.txt(85, -180, 'Maximum working temperature', 'bx-title');
+      MATS.forEach((m, i) => {
+        const y = -150 + i * 56, len = m.bar / 260 * 300, on = st.hl === i;
+        s += `<g opacity="${st.hl < 0 || on ? 1 : .4}"><text x="-190" y="${y + 18}" class="bx-small${on ? ' hot' : ''}">${m.name}</text><rect x="-190" y="${y + 24}" width="${f(len)}" height="16" rx="3" fill="${on ? 'var(--mat)' : '#4a6a8a'}"/><text x="${f(-182 + len)}" y="${y + 36}" class="bx-tiny">${m.temp}</text></g>`;
+      });
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: MATS.map((m, i) => ({ title: m.name, dur: 800, body: `${m.note} Typical rating: ${m.temp}. Check the actual part\'s datasheet.`, tags: [], keys: [[0, { hl: i }]] })) };
+  const MODES = [GAUGE, CURRENT, MATERIALS];
+  let mode = 0;
+  return {
+    id: 'wire', fig: 1, name: 'Wire', sub: 'Gauge, current, insulation', cat: 'electrical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs + SOLDER.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) { return MODES[mode].draw.call(this, st); },
+  };
+})();
+
+/* ---------- Electrical basics 02: Solder ---------- */
+const B_SOLDER = (() => {
+  const { lerp, f } = EQ;
+  const ALLOYS = [
+    { name: 'Sn63/Pb37', kind: 'Leaded', lo: 183, hi: 183, note: 'Eutectic: melts and freezes at one temperature (183 °C), so it goes solid instantly. Easiest to use; bright, shiny joints.' },
+    { name: 'Sn60/Pb40', kind: 'Leaded', lo: 183, hi: 190, note: 'Very common leaded solder with a short pasty range (183–190 °C), so hold the joint still a moment longer.' },
+    { name: 'SAC305', kind: 'Lead-free', lo: 217, hi: 220, note: 'Tin-silver-copper (Sn96.5/Ag3/Cu0.5), the usual lead-free solder. Melts about 35 °C higher, so the iron runs hotter and wets slower.' },
+    { name: 'Sn99.3/Cu0.7', kind: 'Lead-free', lo: 227, hi: 227, note: 'Cheaper tin-copper lead-free solder with an even higher melting point, mostly for wave soldering.' },
+  ];
+  const ALLOY = { label: 'Leaded vs lead-free', base: { hl: -1, look: 0 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      const X = t => -150 + (t - 150) * 4.2;
+      s += BX.txt(85, -180, 'Melting range (°C)', 'bx-title');
+      for (let t = 160; t <= 240; t += 20) s += `<line x1="${X(t)}" y1="-160" x2="${X(t)}" y2="70" stroke="var(--muted)" stroke-width=".6" stroke-dasharray="3 3"/><text x="${X(t)}" y="86" text-anchor="middle" class="bx-tiny">${t}</text>`;
+      ALLOYS.forEach((a, i) => {
+        const y = -140 + i * 50, on = st.hl === i;
+        s += `<g opacity="${st.hl < 0 || on ? 1 : .4}"><text x="-200" y="${y + 14}" class="bx-small${on ? ' hot' : ''}">${a.name}</text><text x="-200" y="${y + 28}" class="bx-tiny">${a.kind}</text>
+          <rect x="${f(X(a.lo) - 3)}" y="${y}" width="${f(X(a.hi) - X(a.lo) + 6)}" height="22" rx="4" fill="${a.kind === 'Leaded' ? '#7f8c99' : '#D4A73C'}" stroke="${on ? 'var(--mat)' : 'none'}" stroke-width="2.5"/></g>`;
+      });
+      // joint appearance
+      if (st.look > .02) {
+        const joint = (x, shiny, lab) => `<g opacity="${f(st.look)}" transform="translate(0 46)"><rect x="${x - 50}" y="120" width="100" height="10" fill="url(#sd-pad)"/><path d="M${x - 46} 120 Q ${x - 14} 116 ${x - 6} 92 L${x + 6} 92 Q ${x + 14} 116 ${x + 46} 120Z" fill="${shiny ? 'url(#sd-tin)' : '#A9AFB4'}" stroke="rgba(0,0,0,.3)"/><rect x="${x - 4}" y="70" width="8" height="40" fill="#9AA2A9"/>${shiny ? `<path d="M${x - 30} 116 Q ${x - 14} 110 ${x - 10} 98" stroke="#fff" stroke-width="2" fill="none" opacity=".8"/>` : ''}<text x="${x}" y="150" text-anchor="middle" class="bx-small">${lab}</text></g>`;
+        s += joint(-60, true, 'Leaded: bright and shiny') + joint(170, false, 'Lead-free: satin, slightly grainy');
+      }
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      ...ALLOYS.map((a, i) => ({ title: a.name, dur: 800, body: a.note, tags: [], keys: [[0, { hl: i, look: 0 }]] })),
+      { title: 'How the joints look', dur: 1200, body: 'Good leaded joints are bright and shiny. Lead-free joints are naturally duller and slightly grainy; that\'s normal and not a cold joint. Judge lead-free joints by their shape: a smooth concave fillet that has wetted both surfaces.', tags: [], keys: [[0, { hl: -1 }], [.6, { look: 1 }]] },
+      { title: 'Which to use', dur: 1200, body: 'Lead-free is required for most products sold in the EU and many other places (RoHS). Leaded solder is easier for hand work and repairs where it\'s allowed. Don\'t mix them on one joint: the mixture can be weaker and less reliable.', caution: 'Lead is toxic: don\'t eat or drink at the bench, wash your hands after soldering, and use fume extraction for the flux smoke with either type.', tags: [], keys: [[0, { hl: -1, look: 0 }]] },
+    ] };
+  const FLUXES = [
+    { name: 'Rosin (R / RMA)', note: 'The traditional flux in most solder wire. Mildly active; the residue is non-conductive, but clean it off for appearance and for coatings.' },
+    { name: 'No-clean', note: 'Low-residue flux designed to be left on. Clear, almost invisible residue. Clean it only if your process calls for it, and then clean thoroughly; half-cleaned no-clean residue can be worse than leaving it.' },
+    { name: 'Water-soluble (OA)', note: 'Very active, great wetting, but the residue is corrosive and conductive: it must be washed off soon after soldering, usually with warm deionised water.' },
+    { name: 'Flux core %', note: 'Solder wire has flux inside it, typically 1–3 % by weight. For tinning, splices and solder cups, extra flux from a flux pen or paste still helps (see the soldering guides).' },
+  ];
+  const FLUX = { label: 'Flux types', base: { hl: 0 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      // cross-section of flux-cored solder wire
+      s += `<circle cx="85" cy="-60" r="80" fill="url(#sd-tin)" stroke="rgba(0,0,0,.4)"/>${[[0, 0], [-28, -20], [26, 24], [22, -30], [-24, 28]].map(([x, y]) => `<circle cx="${85 + x}" cy="${-60 + y}" r="9" fill="#E8B04A"/>`).join('')}`;
+      s += BX.txt(85, 50, 'Flux-cored solder wire (cross-section)', 'bx-cap');
+      FLUXES.forEach((fl, i) => { const on = st.hl === i; s += `<text x="${-120 + i * 140}" y="110" text-anchor="middle" class="bx-small${on ? ' hot' : ''}">${fl.name}</text>`; if (on) s += `<rect x="${-185 + i * 140}" y="92" width="130" height="28" rx="6" fill="none" stroke="var(--mat)" stroke-width="2"/>`; });
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: FLUXES.map((fl, i) => ({ title: fl.name, dur: 800, body: fl.note, tags: [], keys: [[0, { hl: i }]] })) };
+  const MODES = [ALLOY, FLUX];
+  let mode = 0;
+  return {
+    id: 'solder-basics', fig: 2, name: 'Solder', sub: 'Leaded vs lead-free, flux', cat: 'electrical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs + SOLDER.defs,
+    modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
+    get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    draw(st) { return MODES[mode].draw.call(this, st); },
+  };
+})();
+
+/* ---------- Electrical basics 03: Resistor colour codes ---------- */
+const B_RES = (() => {
+  const { f } = EQ;
+  const COL = [['Black', '#111'], ['Brown', '#7A4A22'], ['Red', '#C9362A'], ['Orange', '#E8822A'], ['Yellow', '#E8C21E'], ['Green', '#2E8B57'], ['Blue', '#2F6FB0'], ['Violet', '#7B4FA0'], ['Grey', '#8A9097'], ['White', '#F2F2F2']];
+  const GOLD = '#D4A73C', SILVER = '#C9CED3';
+  const EX = [
+    { bands: [2, 2, 1], tol: GOLD, tolT: '±5 %', value: '220 Ω', five: false },
+    { bands: [4, 7, 2], tol: GOLD, tolT: '±5 %', value: '4.7 kΩ', five: false },
+    { bands: [1, 0, 0, 2], tol: '#7A4A22', tolT: '±1 %', value: '10.0 kΩ', five: true },
+  ];
+  function draw(st) {
+    let s = MK.mat(this.viewBox);
+    const e = EX[Math.round(st.ex)], y = -90, x0 = -40, w = 250;
+    s += `<line x1="-200" y1="${y}" x2="380" y2="${y}" stroke="#9AA2A9" stroke-width="5"/><rect x="${x0}" y="${y - 34}" width="${w}" height="68" rx="30" fill="#D9C39A" stroke="rgba(0,0,0,.5)"/>`;
+    const n = e.bands.length, xs = e.bands.map((_, i) => x0 + 34 + i * 30);
+    e.bands.forEach((b, i) => { const on = st.hl === 'all' || st.hl === i || (st.hl === 'mult' && i === n - 1); s += `<rect x="${xs[i]}" y="${y - 34}" width="16" height="68" fill="${COL[b][1]}" stroke="${on ? 'var(--mat)' : 'rgba(0,0,0,.3)'}" stroke-width="${on ? 3 : 1}"/>`; });
+    s += `<rect x="${x0 + w - 50}" y="${y - 34}" width="16" height="68" fill="${e.tol}" stroke="${st.hl === 'tol' || st.hl === 'all' ? 'var(--mat)' : 'rgba(0,0,0,.3)'}" stroke-width="${st.hl === 'tol' ? 3 : 1}"/>`;
+    // reading
+    const digits = e.bands.slice(0, n - 1).map(b => b).join(''), mult = e.bands[n - 1];
+    s += `<text x="85" y="0" text-anchor="middle" class="bx-big">${e.value}</text>`;
+    s += BX.txt(85, 26, `${e.bands.slice(0, n - 1).map(b => COL[b][0]).join(', ')} = ${digits}; ${COL[mult][0]} = × 10${'⁰¹²³⁴⁵⁶'[mult]}; ${e.tol === GOLD ? 'gold' : 'brown'} = ${e.tolT}`, 'bx-cap');
+    // colour table
+    COL.forEach(([nm, c], i) => { const x = -190 + i * 58; s += `<rect x="${x}" y="70" width="50" height="40" rx="5" fill="${c}" stroke="rgba(0,0,0,.4)"/><text x="${x + 25}" y="95" text-anchor="middle" class="bx-small" fill="${i < 3 || i === 6 || i === 7 ? '#fff' : '#111'}">${i}</text><text x="${x + 25}" y="126" text-anchor="middle" class="bx-tiny">${nm}</text>`; });
+    s += `<rect x="-190" y="150" width="50" height="30" rx="5" fill="${GOLD}"/><text x="-130" y="170" class="bx-tiny">gold: ±5 % (or × 0.1 as a multiplier)</text><rect x="90" y="150" width="50" height="30" rx="5" fill="${SILVER}"/><text x="150" y="170" class="bx-tiny">silver: ±10 %</text>`;
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  return {
+    id: 'resistors', fig: 3, name: 'Resistor colour codes', sub: 'Reading 4- and 5-band resistors', cat: 'electrical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { ex: 0, hl: 'all' },
+    steps: [
+      { title: 'Which way round', dur: 900, body: 'Hold the resistor with the tolerance band (usually gold or silver, set slightly apart) on the right, and read from the left.', tags: [], keys: [[0, { ex: 0, hl: 'tol' }]] },
+      { title: 'Digits', dur: 900, body: 'On a 4-band resistor the first two bands are digits: red = 2, red = 2, giving 22.', tags: [], keys: [[0, { ex: 0, hl: 0 }]] },
+      { title: 'Multiplier', dur: 900, body: 'The third band is the multiplier, the number of zeros to add: brown = 1 zero, so 22 → 220 Ω.', tags: [], keys: [[0, { ex: 0, hl: 'mult' }]] },
+      { title: 'Another example', dur: 900, body: 'Yellow (4), violet (7), red (× 100) = 4700 Ω = 4.7 kΩ.', tags: [], keys: [[0, { ex: 1, hl: 'all' }]] },
+      { title: '5-band precision resistors', dur: 900, body: 'Precision (1 %) resistors use three digit bands, then the multiplier, then tolerance: brown, black, black, red, brown = 100 × 100 = 10.0 kΩ ±1 %.', tags: [], keys: [[0, { ex: 2, hl: 'all' }]] },
+      { title: 'Check with a meter', dur: 900, body: 'Colours can be hard to tell apart (red/orange, brown/red, blue/violet) under lab lights. If in doubt, measure it with a multimeter on Ω, out of circuit.', tags: [], keys: [[0, { ex: 2, hl: 'all' }]] },
+    ],
+  };
+})();
+
+const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_SOLDER, B_RES];
+
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
 /* ---------- Equipment tab controller ---------- */
-const eqUI = (() => {
+// Builds the step-by-step figure viewer. Used twice: the Equipment tab (prefix 'eq') and the Basics tab ('bs').
+function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) {
+  const el = id => $(prefix + id);
+  const root = $(panel);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  let tool = EQ_TOOLS[0], step = 0, t = 1, raf = 0, startAt = 0, playing = false, playTimer = 0;
+  let tool = TOOLS[0], step = 0, t = 1, raf = 0, startAt = 0, playing = false, playTimer = 0;
   const memo = new Map();   // end state of each step, per tool
 
   function applyKeys(s, prev, tt) {
@@ -3532,7 +4431,7 @@ const eqUI = (() => {
 
   function tagSvg(tg, hot) {
     // Keep labels about the same size on screen, whatever size the figure is drawn at
-    const fig = $('eqFigure'), [vx, vy, vw, vh] = tool.viewBox;
+    const fig = el('Figure'), [vx, vy, vw, vh] = tool.viewBox;
     const drawn = Math.min(fig.clientWidth, fig.clientHeight * vw / vh) || 520;
     const z = Math.min(1.6, Math.max(.7, 600 / drawn)) * vw / 522;
     // long labels wrap onto two lines at the space nearest the middle
@@ -3594,7 +4493,10 @@ const eqUI = (() => {
         flash += `<text class="eq-flash" x="${EQ.f(X + 26)}" y="${EQ.f(Y - 26 - rise)}" opacity="${EQ.f(Math.min(1, 2.2 * (1 - dt / 700)))}">${esc(text)}</text>`;
       }
     }
-    $('eqFigure').innerHTML = `<defs><filter id="eqBlur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.5"/></filter>${tool.defs || ''}</defs><g class="eq-ink${tool.look === 'real' ? ' eq-real' : ''}">${out.svg}</g><g opacity="${EQ.f(tagFade)}">${tags}</g>${flash}`;
+    let markup = `<defs><filter id="eqBlur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.5"/></filter>${tool.defs || ''}</defs><g class="eq-ink${tool.look === 'real' ? ' eq-real' : ''}">${out.svg}</g><g opacity="${EQ.f(tagFade)}">${tags}</g>${flash}`;
+    // both tabs draw figures with the same gradient/clip ids; give each tab its own so a hidden tab's copy is never used
+    if (prefix !== 'eq') markup = markup.replace(/id="([\w-]+)"/g, `id="${prefix}-$1"`).replace(/url\(#([\w-]+)\)/g, `url(#${prefix}-$1)`);
+    el('Figure').innerHTML = markup;
   }
 
   function animate() {
@@ -3618,16 +4520,16 @@ const eqUI = (() => {
 
   function renderText() {
     const s = tool.steps[step], n = tool.steps.length;
-    $('eqStepNum').textContent = `Step ${step + 1} of ${n}`;
-    const v = tool.vars ? tool.vars() : {}, fill = str => (str || '').replace(/\{(\w)\}/g, (m, k) => v[k] ?? m);
-    $('eqStepTitle').textContent = s.title;
-    $('eqStepBody').textContent = fill(s.body);
-    $('eqCaution').hidden = !s.caution;
-    $('eqCautionText').textContent = fill(s.caution);
-    $('eqPins').innerHTML = tool.steps.map((_, i) => `<span class="pin${i <= step ? ' on' : ''}"></span>`).join('');
-    $('eqBack').disabled = step === 0;
-    $('eqNext').textContent = step === n - 1 ? 'Start over' : 'Next step';
-    $('eqList').querySelectorAll('[data-step]').forEach(li => {
+    el('StepNum').textContent = `Step ${step + 1} of ${n}`;
+    const v = tool.vars ? tool.vars() : {}, fill = str => (str || '').replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m);
+    el('StepTitle').textContent = s.title;
+    el('StepBody').textContent = fill(s.body);
+    el('Caution').hidden = !s.caution;
+    el('CautionText').textContent = fill(s.caution);
+    el('Pins').innerHTML = tool.steps.map((_, i) => `<span class="pin${i <= step ? ' on' : ''}"></span>`).join('');
+    el('Back').disabled = step === 0;
+    el('Next').textContent = step === n - 1 ? 'Start over' : 'Next step';
+    el('List').querySelectorAll('[data-step]').forEach(li => {
       const i = +li.dataset.step;
       li.setAttribute('aria-current', i === step ? 'step' : 'false');
       li.classList.toggle('done', i < step);
@@ -3643,60 +4545,64 @@ const eqUI = (() => {
   function setPlaying(on) {
     playing = on;
     clearTimeout(playTimer);
-    $('eqPlay').setAttribute('aria-pressed', on);
-    $('eqPlay').textContent = on ? 'Pause' : 'Play all';
+    el('Play').setAttribute('aria-pressed', on);
+    el('Play').textContent = on ? 'Pause' : 'Play all';
     if (on) { if (step >= tool.steps.length - 1) go(0); else if (t >= 1) onDone(); }
   }
 
   function selectTool(id) {
-    tool = EQ_TOOLS.find(x => x.id === id) || EQ_TOOLS[0];
+    tool = TOOLS.find(x => x.id === id) || TOOLS[0];
     step = 0;                                    // the new tool may have fewer steps
     memo.clear();
     setPlaying(false);
-    $('eqFigure').setAttribute('viewBox', tool.viewBox.join(' '));
-    $('eqFigure').style.aspectRatio = `${tool.viewBox[2]} / ${tool.viewBox[3]}`;
-    $('eqTools').querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === tool.id));
-    if (typeof termPicker !== 'undefined') termPicker.showFor(tool.id);
-    if (typeof wirePicker !== 'undefined') wirePicker.showFor(tool.id);
-    if (typeof taskPicker !== 'undefined') taskPicker.showFor(tool);
-    $('eqList').innerHTML = tool.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s.title)}</button></li>`).join('');
+    el('Figure').setAttribute('viewBox', tool.viewBox.join(' '));
+    el('Figure').style.aspectRatio = `${tool.viewBox[2]} / ${tool.viewBox[3]}`;
+    el('Tools').querySelectorAll('[data-tool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tool === tool.id));
+    if (onTool) onTool(tool);
+    el('List').innerHTML = tool.steps.map((s, i) => `<li><button type="button" data-step="${i}">${esc(s.title)}</button></li>`).join('');
     go(0, { instant: true });
     animate();
   }
 
   function init() {
-    $('eqTools').innerHTML = EQ_TOOLS.map(x =>
+    el('Tools').innerHTML = TOOLS.map(x =>
       `<button type="button" class="eq-tool" data-tool="${x.id}" aria-pressed="false"><span class="eq-fig">Fig. ${String(x.fig).padStart(2, '0')}</span><span class="eq-tool-name">${esc(x.name)}</span><span class="eq-tool-sub">${esc(x.sub)}</span></button>`).join('')
-      + `<p class="eq-more">More equipment guides are on the way.</p>`;
-    $('eqTools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) selectTool(b.dataset.tool); });
-    $('eqList').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) { setPlaying(false); go(+b.dataset.step); } });
-    $('eqBack').addEventListener('click', () => { setPlaying(false); go(step - 1); });
-    $('eqNext').addEventListener('click', () => { setPlaying(false); go(step === tool.steps.length - 1 ? 0 : step + 1); });
-    $('eqReplay').addEventListener('click', () => { setPlaying(false); go(step); });
-    $('eqPlay').addEventListener('click', () => setPlaying(!playing));
-    $('eqStage').addEventListener('keydown', e => {
+      + `<p class="eq-more">${esc(more)}</p>`;
+    el('Tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) selectTool(b.dataset.tool); });
+    el('List').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) { setPlaying(false); go(+b.dataset.step); } });
+    el('Back').addEventListener('click', () => { setPlaying(false); go(step - 1); });
+    el('Next').addEventListener('click', () => { setPlaying(false); go(step === tool.steps.length - 1 ? 0 : step + 1); });
+    el('Replay').addEventListener('click', () => { setPlaying(false); go(step); });
+    el('Play').addEventListener('click', () => setPlaying(!playing));
+    el('Stage').addEventListener('keydown', e => {
       if (e.key === 'ArrowRight') { e.preventDefault(); setPlaying(false); go(step + 1); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); setPlaying(false); go(step - 1); }
     });
     let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
-    selectTool(EQ_TOOLS[0].id);
+    selectTool(TOOLS[0].id);
+    showCat(defaultCat);
   }
   // Called when the tool's settings change (e.g. a different terminal): recompute every step and redraw
   function refresh() { memo.clear(); renderText(); cancelAnimationFrame(raf); t = 1; render(); }
   // category switch: show only that category's tools
-  let cat = 'electrical';
+  let cat = defaultCat;
   function showCat(c) {
     cat = c;
-    document.querySelectorAll('.eq-cat').forEach(b => b.setAttribute('aria-checked', b.dataset.cat === c));
-    const list = EQ_TOOLS.filter(t => t.cat === c);
-    $('eqTools').querySelectorAll('[data-tool]').forEach(b => { b.hidden = !list.some(t => t.id === b.dataset.tool); });
-    $('eqEmpty').hidden = list.length > 0;
-    $('eqBody').hidden = list.length === 0;
+    root.querySelectorAll('.eq-cat').forEach(b => b.setAttribute('aria-checked', b.dataset.cat === c));
+    const list = TOOLS.filter(t => t.cat === c);
+    el('Tools').querySelectorAll('[data-tool]').forEach(b => { b.hidden = !list.some(t => t.id === b.dataset.tool); });
+    el('Empty').hidden = list.length > 0;
+    el('Body').hidden = list.length === 0;
     if (list.length && !list.includes(tool)) selectTool(list[0].id);
   }
-  document.querySelectorAll('.eq-cat').forEach(b => b.addEventListener('click', () => showCat(b.dataset.cat)));
+  root.querySelectorAll('.eq-cat').forEach(b => b.addEventListener('click', () => showCat(b.dataset.cat)));
   return { init, rerender: () => render(), replay: () => animate(), refresh, reload: () => selectTool(tool.id), showCat };
-})();
+}
+const bsUI = makeGuideUI({ prefix: 'bs', tools: BASICS, panel: 'panel-basics', more: 'More basics are on the way.', defaultCat: 'mechanical',
+  onTool: t => { if (typeof bsTask !== 'undefined') bsTask.showFor(t); } });
+const eqUI = makeGuideUI({ prefix: 'eq', tools: EQ_TOOLS, panel: 'panel-equip', more: 'More equipment guides are on the way.', defaultCat: 'electrical',
+  onTool: t => { if (typeof termPicker !== 'undefined') termPicker.showFor(t.id); if (typeof wirePicker !== 'undefined') wirePicker.showFor(t.id); if (typeof taskPicker !== 'undefined') taskPicker.showFor(t); } });
+
 
 
 // Every terminal Engineer lists as compatible with the PAD-11, from their compatibility tables
@@ -3882,25 +4788,30 @@ const wirePicker = (() => {
 })();
 
 /* ---------- Task picker (for tools with several procedures, like the soldering iron) ---------- */
-const taskPicker = (() => {
+function makeTaskPicker(prefix, getUI) {
+  const el = id => $(prefix + id);
   let tool = null;
   function render() {
-    $('eqTaskChips').innerHTML = tool.modes.map((m, i) => `<button type="button" class="eq-chip" role="radio" data-mode="${i}" aria-checked="${i === tool.mode}" aria-pressed="${i === tool.mode}">${esc(m)}</button>`).join('');
-    const showSizes = tool.sizes && tool.modes[tool.mode].startsWith('XT');
-    $('eqSizeWrap').hidden = !showSizes;
-    if (showSizes) $('eqSizeChips').innerHTML = tool.sizes.map((s, i) => `<button type="button" class="eq-chip" role="radio" data-size="${i}" aria-checked="${i === tool.size}" aria-pressed="${i === tool.size}">${esc(s)}</button>`).join('');
+    el('TaskChips').innerHTML = tool.modes.map((m, i) => `<button type="button" class="eq-chip" role="radio" data-mode="${i}" aria-checked="${i === tool.mode}" aria-pressed="${i === tool.mode}">${esc(m)}</button>`).join('');
+    const showSizes = tool.sizes && (tool.showSizes ? tool.showSizes() : tool.modes[tool.mode].startsWith('XT'));
+    if (showSizes && tool.sizeLabel) el('SizeLabel').textContent = tool.sizeLabel;
+    el('SizeWrap').hidden = !showSizes;
+    if (showSizes) el('SizeChips').innerHTML = tool.sizes.map((s, i) => `<button type="button" class="eq-chip" role="radio" data-size="${i}" aria-checked="${i === tool.size}" aria-pressed="${i === tool.size}">${esc(s)}</button>`).join('');
   }
   function showFor(t) {
-    $('eqTask').hidden = !t.modes;
+    el('Task').hidden = !t.modes;
     if (!t.modes) return;
     tool = t; render();
   }
   function init() {
-    $('eqTaskChips').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; tool.setMode(+b.dataset.mode); eqUI.reload(); });
-    $('eqSizeChips').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (!b) return; tool.setSize(+b.dataset.size); render(); eqUI.refresh(); });
+    el('TaskChips').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; tool.setMode(+b.dataset.mode); getUI().reload(); });
+    el('SizeChips').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (!b) return; tool.setSize(+b.dataset.size); render(); getUI().refresh(); });
   }
   return { init, showFor };
-})();
+}
+const taskPicker = makeTaskPicker('eq', () => eqUI);
+const bsTask = makeTaskPicker('bs', () => bsUI);
+
 
 /* ===================== THEME ===================== */
 const THEME_ICONS = {
@@ -3922,9 +4833,11 @@ $('themeToggle').addEventListener('click', () => {
 });
 showTheme();
 eqUI.init();
+bsUI.init();
 termPicker.init();
 wirePicker.init();
 taskPicker.init();
+bsTask.init();
 taskPicker.showFor(EQ_TOOLS[0]);
 termPicker.showFor(EQ_TOOLS[0].id);
 wirePicker.showFor(EQ_TOOLS[0].id);
@@ -3940,8 +4853,9 @@ function selectTab(tab) {
   });
   history.replaceState(null, '', '#' + tab.dataset.hash);
   tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  $('setBar').hidden = tab.dataset.hash === 'guide' || tab.dataset.hash === 'equipment';
+  $('setBar').hidden = !['scan', 'train'].includes(tab.dataset.hash);
   if (tab.dataset.hash === 'equipment') eqUI.replay();
+  if (tab.dataset.hash === 'basics') bsUI.replay();
 }
 tabs.forEach((t, i) => {
   t.addEventListener('click', () => selectTab(t));

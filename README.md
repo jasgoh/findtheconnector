@@ -76,17 +76,35 @@ Each tool is one object in `EQ_TOOLS`:
 - `draw(state)`: returns the SVG for that state plus label positions.
 
 To change the wording of a procedure, edit the `steps` text only. To add a new tool, copy the PAD-11's
-structure (Fig. 01 is the Engineer PAD-11). Drawing helpers (`prism`, `tube`) build parts from 2D outlines;
+structure (the PAD-11 is Fig. 02). Drawing helpers (`prism`, `tube`) build parts from 2D outlines;
 a tool can set its own camera (`EQ.setView`), shading (`look: 'real'` plus gradient `defs`) and a `zoom` state for close-ups.
 
 People who have asked their device to reduce motion see each step's end position without the animation.
 
 ## Equipment guides
-- Fig. 01, Engineer PA-14 wire stripper: 7 steps. The Wire size box picks the stripping hole from Engineer's chart
-  (0.25 to 0.95 mm holes for AWG 34-22 stranded and AWG 32-20 solid).
-- Fig. 02, IDEAL Custom Stripmaster automatic stripper: 6 steps. Shown with IDEAL's 16-26 AWG die-type blade
-  set; the Wire size box picks the hole. If your blades are a different set, change HOLES in the STRIPMASTER module.
-- Fig. 03, Engineer PAD-11 micro crimper: 11 steps, with the terminal picker below.
+The tab has an Electrical / Mechanical switch; every tool sets `cat` ('electrical' if left out).
+
+Mechanical:
+- Fig. 01, Power drill (Makita DHP482): tasks for the battery, fitting a drill bit, and torque and speed
+  (speed lever 1/2, action mode ring, 21-step torque ring, trigger), from Makita's instruction manual.
+- Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
+- Fig. 03, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
+- Fig. 04, Tap and die: tapping a hole and threading a rod, M3–M8 (tap drill ≈ diameter − pitch).
+
+Electrical:
+
+- Fig. 01, Wire stripper (Engineer PA-06): 7 steps. The Wire size box picks the stripping hole from Engineer's chart
+  (0.4 to 1.45 mm holes for AWG 30-18 stranded and AWG 28-16 solid).
+- Fig. 02, Engineer PAD-11 micro crimper: 11 steps, with the terminal picker below.
+- Fig. 03, Lug crimper (VCELINK GJ707): 7 steps, following VCELINK's operation instruction. Red, blue and yellow
+  nests for insulated terminals (22-18, 16-14 and 12-10 AWG); the Wire size box picks the nest.
+- Fig. 06, Multimeter (Fluke 115): leads and safety, DC voltage, resistance, continuity, diode test and current,
+  following the Fluke 114/115/117 user manual (COM / V Ω / 10 A FUSED terminals, continuity beep below ~20 Ω).
+- Fig. 05, Soldering iron: five tasks (now including heat-set inserts in 3D-printed parts); chosen in the Task box (tinning wires, splicing wires with a lap splice
+  (both ends fluxed and tinned, laid together, fluxed and soldered), XT30/XT60/XT90 solder cups, soldering a wire to a pad). Acceptance points follow IPC J-STD-001,
+  IPC-A-610 and IPC/WHMA-A-620; iron temperatures are typical values, not IPC requirements.
+- Fig. 04, Ferrule crimper (VCELINK GJ709): 7 steps, following VCELINK's operation instruction, including the
+  tension test. Self-adjusting, 0.25-6 mm²; the Wire size box picks the ferrule (collar colours per DIN 46228-4).
 
 ## PAD-11 terminal picker
 Seven lab terminals are built in as quick picks, each with its own model and the lab's die sizes:
@@ -107,3 +125,12 @@ query > paste > Run). Without it, die sizes only last until the page is reloaded
 Colours match the Stockroom (stock and orders) app: paper and card surfaces, an amber accent, pine for
 success and rust for errors. Dark mode is the default; the button in the header switches to light and the
 choice is remembered in that browser.
+
+## Basics tab
+Reference guides shown with the same step viewer as Equipment (`makeGuideUI` builds both; the Basics tab uses
+the `bs` element-id prefix). Topics live in the `BASICS` array and use the same shape as equipment tools.
+
+Mechanical: Screws (anatomy, head styles, measuring e.g. M3 × 10, drive types) and Drill bits (anatomy, measuring).
+Electrical: Wire (finding the gauge, gauge for the current, insulation and housing materials), Solder (leaded vs
+lead-free, flux types) and Resistor colour codes. Ampacity figures are the common chassis-wiring guide values for a
+single wire in open air; derate for bundling, enclosure, temperature and length.
