@@ -131,6 +131,15 @@ Reference guides shown with the same step viewer as Equipment (`makeGuideUI` bui
 the `bs` element-id prefix). Topics live in the `BASICS` array and use the same shape as equipment tools.
 
 Mechanical: Screws (anatomy, head styles, measuring e.g. M3 × 10, drive types) and Drill bits (anatomy, measuring).
-Electrical: Wire (finding the gauge, gauge for the current, insulation and housing materials), Solder (leaded vs
+Electrical: Connectors (interactive 3D crimp terminals, below), Wire (finding the gauge, gauge for the current, insulation and housing materials), Solder (leaded vs
 lead-free, flux types) and Resistor colour codes. Ampacity figures are the common chassis-wiring guide values for a
 single wire in open air; derate for bundling, enclosure, temperature and length.
+
+### Connectors (3D)
+Basics → Electrical → Connectors shows each crimp terminal as an interactive 3D model (three.js r128, loaded from
+cdnjs only when the topic opens). Drag to rotate, scroll or pinch to zoom; buttons for 3D / Side / Top / Mating end
+views, a Wire overlay, and Actual size (1:1 on screen after a one-time bank-card calibration, saved in
+localStorage as `cn-pxmm`). Families: Micro-Fit 3.0, Nano-Fit, Dupont 2.54 mm, JST GH, JST PH (the linked C111515
+is SPH-002T-P0.5S, a PH terminal), JST RCY/SM and Mega-Fit, male and female where both were linked.
+Series, wire range, insulation OD and plating come from the LCSC listings; body dimensions are approximate and
+the manufacturer's sales drawing is the reference. Part data is in `CONN_PARTS`.

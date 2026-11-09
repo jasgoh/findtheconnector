@@ -528,6 +528,32 @@ label.btn { cursor: pointer; }
 .bx-lcd { font-family: var(--font-mono); font-size: 30px; font-weight: 700; fill: #9fe8b0; }
 .bx-etch { font-family: var(--font-mono); font-size: 11px; font-weight: 700; fill: #4a4f56; }
 .bx-print { font-family: var(--font-mono); font-size: 12px; font-weight: 700; fill: #fff; letter-spacing: .06em; }
+.eq-stage { position: relative; }
+.cn3d { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #3a4250 0%, #20252d 70%); }
+.cn3d canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.cn3d canvas:active { cursor: grabbing; }
+.cn-ovl { position: absolute; inset: 0; pointer-events: none; }
+.cn-ovl > * { pointer-events: auto; }
+.cn-specs { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 2px; max-width: 58%; padding: 8px 10px; border-radius: 8px; background: rgba(15, 18, 22, .72); color: #E8EAED; font: 12px/1.35 var(--font-mono); }
+.cn-specs b { font-family: var(--font-display); font-size: 14px; color: #fff; }
+.cn-btns { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.cn-btns button { appearance: none; border: 1px solid rgba(255,255,255,.18); background: rgba(15, 18, 22, .78); color: #E8EAED; border-radius: 999px; padding: 6px 12px; font: 600 12px var(--font); cursor: pointer; min-height: 32px; }
+.cn-btns button:hover { border-color: var(--mat); }
+.cn-btns button[aria-pressed="true"] { background: var(--mat); color: #1b1b1b; border-color: var(--mat); }
+.cn-cal { position: absolute; top: 10px; right: 10px; width: min(46%, 340px); padding: 8px 10px; border-radius: 8px; background: rgba(15, 18, 22, .8); color: #E8EAED; font: 11px/1.35 var(--font); }
+.cn-cal input { width: 100%; margin: 6px 0; }
+.cn-card { height: 10px; border-radius: 3px; background: var(--mat); max-width: 100%; }
+.cn-ruler { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); height: 26px; border-top: 1.5px solid #E8EAED; }
+.cn-ruler i { position: absolute; top: 0; width: 1px; background: #E8EAED; }
+.cn-ruler em { position: absolute; top: 14px; transform: translateX(-50%); font: 10px var(--font-mono); color: #E8EAED; font-style: normal; }
+@media (max-width: 700px) {
+  .eq-stage.has3d { min-height: 420px; }
+  .cn-specs { font-size: 10.5px; padding: 6px 8px; max-width: 70%; }
+  .cn-specs b { font-size: 12.5px; }
+  .cn-btns button { padding: 5px 10px; font-size: 11.5px; min-height: 30px; }
+  .cn-cal { width: auto; left: 10px; top: auto; bottom: 92px; }
+}
+.cn-load { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #C9CED3; font: 13px var(--font); pointer-events: none; }
 .mm-digits { font-family: 'DSEG7 Classic', var(--font-mono); font-size: 30px; font-weight: 700; fill: #1d2318; letter-spacing: .04em; }
 .mm-unit { font-family: var(--font-mono); font-size: 11px; font-weight: 700; fill: #1d2318; }
 .mm-small { font-family: var(--font-mono); font-size: 8px; font-weight: 700; fill: #1d2318; }
@@ -4522,7 +4548,285 @@ const B_RES = (() => {
   };
 })();
 
-const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_SOLDER, B_RES];
+/* ---------- Electrical basics 04: Connectors (interactive 3D crimp terminals) ---------- */
+// Specs (series, gender, wire range, insulation OD, plating) are from the LCSC listings for the linked parts.
+// Body dimensions are approximate (scaled from product photos and distributor listings); the official
+// sales drawing is the reference.
+const CONN_PARTS = [
+  { fam: 'Micro-Fit 3.0', maker: 'Molex', pitch: 3.0, parts: [
+    { g: 'Male', mpn: '43031-0007', lcsc: 'C293534', awg: '20–24', ins: '1.85 mm max', len: 13.9,
+      contact: { type: 'pin-sq', w: 1.0, L: 5.2, body: { w: 2.4, h: 2.2, L: 3.0 } }, cond: { L: 1.9, w: 1.9, h: 1.6 }, insw: { L: 2.1, w: 2.5, h: 2.3 },
+      look: 'A square pin in front of a box-shaped body with a locking lance on top.' },
+    { g: 'Female', mpn: '43030-0007', lcsc: 'C293530', awg: '20–24', ins: '1.85 mm max', len: 11.25,
+      contact: { type: 'box', w: 2.54, h: 2.29, L: 5.6 }, cond: { L: 1.9, w: 1.9, h: 1.6 }, insw: { L: 2.1, w: 2.5, h: 2.3 },
+      look: 'A square box receptacle about 2.5 mm across with a locking lance on top. 11.25 mm long overall.' } ] },
+  { fam: 'Nano-Fit', maker: 'Molex', pitch: 2.5, parts: [
+    { g: 'Male', mpn: '201447-1400', lcsc: 'C724083', awg: '24–26', ins: '1.3 mm max', len: 11.5,
+      contact: { type: 'pin-sq', w: .8, L: 4.2, body: { w: 1.9, h: 1.8, L: 2.6 } }, cond: { L: 1.6, w: 1.5, h: 1.3 }, insw: { L: 1.8, w: 1.9, h: 1.8 },
+      look: 'A slim square pin on a small box body: a smaller version of the Micro-Fit male.' },
+    { g: 'Female', mpn: '105300-1100', lcsc: 'C177226', awg: '24–26', ins: '1.3 mm', len: 10.0,
+      contact: { type: 'box', w: 1.9, h: 1.8, L: 4.8 }, cond: { L: 1.6, w: 1.5, h: 1.3 }, insw: { L: 1.8, w: 1.9, h: 1.8 },
+      look: 'A box receptacle a little under 2 mm across; noticeably smaller than Micro-Fit.' } ] },
+  { fam: 'Dupont (2.54 mm)', maker: 'Generic', pitch: 2.54, parts: [
+    { g: 'Male', mpn: 'Dupont male pin', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', len: 15.0,
+      contact: { type: 'pin-sq', w: .64, L: 6.0, body: { w: 1.9, h: 1.9, L: 3.4 } }, cond: { L: 2.0, w: 1.4, h: 1.2 }, insw: { L: 2.4, w: 2.0, h: 1.9 },
+      look: 'A long 0.64 mm square pin (the same size as a header pin) on a box body.' },
+    { g: 'Female', mpn: 'Dupont female socket', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', len: 14.5,
+      contact: { type: 'box', w: 2.0, h: 2.0, L: 6.6 }, cond: { L: 2.0, w: 1.4, h: 1.2 }, insw: { L: 2.4, w: 2.0, h: 1.9 },
+      look: 'A long, narrow square socket that takes a 0.64 mm header pin.' } ] },
+  { fam: 'JST GH', maker: 'JST', pitch: 1.25, parts: [
+    { g: 'Female', mpn: 'SSHL-002T-P0.2', lcsc: 'C189897', awg: '26–30', ins: '0.76–1.0 mm', len: 5.6,
+      contact: { type: 'box', w: .95, h: .85, L: 2.5 }, cond: { L: .9, w: .75, h: .65 }, insw: { L: 1.0, w: 1.05, h: 1.0 },
+      look: 'Tiny: about 5–6 mm long with a box under 1 mm across. Comes on a wide carrier strip.' } ] },
+  { fam: 'JST PH', maker: 'JST', pitch: 2.0, parts: [
+    { g: 'Female', mpn: 'SPH-002T-P0.5S', lcsc: 'C111515', awg: '24–30', ins: '0.8–1.5 mm', len: 7.7,
+      contact: { type: 'box', w: 1.3, h: 1.2, L: 3.4 }, cond: { L: 1.2, w: 1.0, h: .9 }, insw: { L: 1.4, w: 1.5, h: 1.4 },
+      look: 'Small box contact about 1.3 mm across, roughly 7–8 mm long. (The linked part is PH, not SH.)' } ] },
+  { fam: 'JST RCY / SM', maker: 'JST', pitch: 2.5, parts: [
+    { g: 'Male', mpn: 'SYM-001T-P0.6(N)', lcsc: 'C246760', awg: '22–28', ins: '1.2–1.8 mm', len: 15.4,
+      contact: { type: 'pin-round', w: 1.0, L: 6.4, body: { w: 1.9, h: 1.9, L: 2.8, round: true } }, cond: { L: 1.8, w: 1.4, h: 1.3 }, insw: { L: 2.2, w: 2.1, h: 2.0 },
+      look: 'A round pin with a rounded nose, on a round barrel with a locking lance.' },
+    { g: 'Female', mpn: 'SYF-001T-P0.6', lcsc: 'C2983905', awg: '22–28', ins: '1.2–1.8 mm', len: 14.4,
+      contact: { type: 'tube', w: 1.95, L: 6.4 }, cond: { L: 1.8, w: 1.4, h: 1.3 }, insw: { L: 2.2, w: 2.1, h: 2.0 },
+      look: 'A round tube socket (not a box) with a slit spring: the giveaway for RCY/SM.' } ] },
+  { fam: 'Mega-Fit', maker: 'Molex', pitch: 5.7, parts: [
+    { g: 'Male', mpn: '105417-0334', lcsc: 'C6360589', awg: '14–16', ins: '3.15–3.58 mm', len: 22.0,
+      contact: { type: 'blade', w: 2.4, h: 1.0, L: 8.0, body: { w: 4.2, h: 3.8, L: 4.2 } }, cond: { L: 3.8, w: 2.9, h: 2.5 }, insw: { L: 4.2, w: 4.2, h: 3.8 },
+      look: 'Big: a flat rectangular blade on a large box body, for 14–16 AWG power wire.' },
+    { g: 'Female', mpn: '76823-0321', lcsc: 'C293693', awg: '14–16', ins: '3.18–3.66 mm', len: 21.0,
+      contact: { type: 'box', w: 4.3, h: 4.0, L: 10.0 }, cond: { L: 3.8, w: 2.9, h: 2.5 }, insw: { L: 4.2, w: 4.2, h: 3.8 },
+      look: 'Big box receptacle over 4 mm across, about 21 mm long. Much larger than anything else here.' } ] },
+];
+
+// ---------- the 3D viewer (three.js, loaded on demand) ----------
+const CONN3D = (() => {
+  let THREE = null, loading = null, renderer, scene, camera, group, wrap, canvas, overlay, raf = 0, spec = null, mounted = false;
+  let rotX = -.35, rotY = .6, dist = 40, target = { rotX: -.35, rotY: .6, dist: 40 }, auto = true, actual = false, pxPerMm = 3.78, showWire = false;
+  function load() {
+    if (window.THREE) { THREE = window.THREE; return Promise.resolve(); }
+    if (loading) return loading;
+    loading = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; s.onload = () => { THREE = window.THREE; res(); }; s.onerror = rej; document.head.appendChild(s); });
+    return loading;
+  }
+  // ----- geometry helpers (mm, x along the terminal: + towards the mating end) -----
+  // tin plating: bright, satin metal (no environment map, so keep metalness moderate or it renders black)
+  const MET = () => new THREE.MeshStandardMaterial({ color: 0xB9C0C7, metalness: .55, roughness: .3 });
+  const DARK = () => new THREE.MeshStandardMaterial({ color: 0x8C949B, metalness: .5, roughness: .45 });
+  function boxAt(w, h, L, x, y = 0, z = 0, mat) { const m = new THREE.Mesh(new THREE.BoxGeometry(L, h, w), mat || MET()); m.position.set(x + L / 2, y, z); return m; }
+  // hollow rectangular tube (box receptacle), open at the front
+  function boxTube(w, h, L, t, x) {
+    const sh = new THREE.Shape(); sh.moveTo(-w / 2, -h / 2); sh.lineTo(w / 2, -h / 2); sh.lineTo(w / 2, h / 2); sh.lineTo(-w / 2, h / 2); sh.lineTo(-w / 2, -h / 2);
+    const hole = new THREE.Path(); hole.moveTo(-w / 2 + t, -h / 2 + t); hole.lineTo(-w / 2 + t, h / 2 - t); hole.lineTo(w / 2 - t, h / 2 - t); hole.lineTo(w / 2 - t, -h / 2 + t); hole.lineTo(-w / 2 + t, -h / 2 + t);
+    sh.holes.push(hole);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false });
+    const m = new THREE.Mesh(g, MET()); m.rotation.y = Math.PI / 2; m.position.x = x; return m;
+  }
+  // open U-shaped crimp wings: floor and two upright wings, extruded along the length
+  function uWings(w, h, L, t, x) {
+    const sh = new THREE.Shape(), r = w / 2;
+    sh.moveTo(-r, h - r); sh.lineTo(-r, 0); sh.absarc(0, 0, r, Math.PI, 2 * Math.PI, false); sh.lineTo(r, h - r);
+    sh.lineTo(r - t, h - r); sh.lineTo(r - t, 0); sh.absarc(0, 0, r - t, 2 * Math.PI, Math.PI, true); sh.lineTo(-r + t, h - r); sh.lineTo(-r, h - r);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false, curveSegments: 14 });
+    const m = new THREE.Mesh(g, MET()); m.rotation.y = Math.PI / 2; m.position.set(x, -h / 2 + r * .9, 0); return m;
+  }
+  function build(p) {
+    const grp = new THREE.Group(), c = p.contact, t = Math.max(.12, c.w * .07);
+    const Lins = p.insw.L, Lcond = p.cond.L, Lc = c.L + (c.body ? c.body.L : 0);
+    const trans = Math.max(.4, p.len - Lins - Lcond - Lc - .3);
+    // from the back (x = 0) forward: insulation wings, gap, conductor wings, transition, contact
+    let x = 0;
+    grp.add(uWings(p.insw.w, p.insw.h, Lins, t, x)); x += Lins + .3;
+    grp.add(uWings(p.cond.w, p.cond.h, Lcond, t, x));
+    for (let i = 1; i < 4; i++) grp.add(boxAt(p.cond.w * .7, t * .6, t * .7, x + Lcond * i / 4, -p.cond.h / 2 + p.cond.w * .45 - p.cond.w / 2 + t, 0, DARK()));   // serrations
+    x += Lcond;
+    const fh = Math.max(.25, t * 1.4);                                       // floor strip between the barrels and the contact
+    grp.add(boxAt(Math.max(p.cond.w * .7, .5), fh, trans, x, -p.cond.h / 2 + .1, 0)); x += trans;
+    // a carrier-strip stub at the very back
+    grp.add(boxAt(p.insw.w * .55, t, .6, -.6, -p.insw.h / 2 + .1, 0, DARK()));
+    const ch = c.h || c.w;
+    if (c.type === 'box') {
+      grp.add(boxTube(c.w, ch, c.L, t, x));
+      // chamfered lead-in round the mouth
+      const lip = boxTube(c.w * 1.04, ch * 1.04, Math.max(.12, c.L * .04), t * .8, x + c.L - Math.max(.12, c.L * .04)); lip.material = DARK(); grp.add(lip);
+      // locking lance: a small tab angled up from the top
+      const l = boxAt(c.w * .45, t, c.L * .35, 0, 0, 0); l.position.set(x + c.L * .35, ch / 2 + c.L * .06, 0); l.rotation.z = .25; grp.add(l);
+      // contact spring inside, visible through the mouth
+      const sp = boxAt(c.w * .5, t, c.L * .5, 0, 0, 0, DARK()); sp.position.set(x + c.L * .65, -ch / 2 + t * 2.5, 0); sp.rotation.z = -.15; grp.add(sp);
+    } else if (c.type === 'tube') {
+      const g = new THREE.CylinderGeometry(c.w / 2, c.w / 2, c.L, 28, 1, true, .25, Math.PI * 2 - .5);
+      const m = new THREE.Mesh(g, MET()); m.material.side = THREE.DoubleSide; m.rotation.z = Math.PI / 2; m.position.x = x + c.L / 2; grp.add(m);
+      const l = boxAt(c.w * .4, t, c.L * .3, 0, 0, 0); l.position.set(x + c.L * .3, c.w / 2 + c.L * .05, 0); l.rotation.z = .25; grp.add(l);
+    } else {
+      // male: body then pin or blade
+      const b = c.body;
+      if (b.round) { const g = new THREE.CylinderGeometry(b.w / 2, b.w / 2, b.L, 24); const m = new THREE.Mesh(g, MET()); m.rotation.z = Math.PI / 2; m.position.x = x + b.L / 2; grp.add(m); }
+      else grp.add(boxTube(b.w, b.h, b.L, t, x));
+      const l = boxAt(b.w * .45, t, b.L * .45, 0, 0, 0); l.position.set(x + b.L * .4, (b.h || b.w) / 2 + b.L * .07, 0); l.rotation.z = .3; grp.add(l);
+      x += b.L;
+      if (c.type === 'pin-round') {
+        const g = new THREE.CylinderGeometry(c.w / 2, c.w / 2, c.L - c.w * .6, 24); const m = new THREE.Mesh(g, MET()); m.rotation.z = Math.PI / 2; m.position.x = x + (c.L - c.w * .6) / 2; grp.add(m);
+        const s = new THREE.Mesh(new THREE.SphereGeometry(c.w / 2, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), MET()); s.rotation.z = -Math.PI / 2; s.position.x = x + c.L - c.w * .6; grp.add(s);
+      } else {
+        const w = c.type === 'blade' ? c.h : c.w, hh = c.type === 'blade' ? c.w : c.w;
+        grp.add(boxAt(w, hh, c.L - .5, x));
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(.08, Math.max(w, hh) * .62, .5, 4), MET()); tip.rotation.z = -Math.PI / 2; tip.rotation.x = Math.PI / 4; tip.position.x = x + c.L - .25; grp.add(tip);
+      }
+    }
+    // optional wire: copper strands in the conductor wings, insulation in the insulation wings
+    if (showWire) {
+      const od = parseFloat(p.ins) || p.insw.w * .8, cu = p.cond.w * .55;
+      const ins = new THREE.Mesh(new THREE.CylinderGeometry(od / 2 * .9, od / 2 * .9, 16, 20), new THREE.MeshStandardMaterial({ color: 0xc9362a, roughness: .6 }));
+      ins.rotation.z = Math.PI / 2; ins.position.set(-8 + Lins * .9, -p.insw.h / 2 + od / 2 * .9 + .1, 0); grp.add(ins);
+      const cuM = new THREE.Mesh(new THREE.CylinderGeometry(cu / 2, cu / 2, Lcond + .6, 14), new THREE.MeshStandardMaterial({ color: 0xd98a4e, metalness: .6, roughness: .35 }));
+      cuM.rotation.z = Math.PI / 2; cuM.position.set(Lins + .3 + (Lcond + .6) / 2 - .3, -p.cond.h / 2 + cu / 2 + .15, 0); grp.add(cuM);
+    }
+    // centre it
+    const box = new THREE.Box3().setFromObject(grp), ctr = box.getCenter(new THREE.Vector3());
+    grp.children.forEach(ch => ch.position.sub(ctr));
+    return grp;
+  }
+  function frame() {
+    if (!mounted) return;
+    raf = requestAnimationFrame(frame);
+    if (!wrap.offsetParent) return;                                // tab hidden: don't render
+    const k = .15;
+    if (auto && !actual) target.rotY += .0035;
+    rotX += (target.rotX - rotX) * k; rotY += (target.rotY - rotY) * k; dist += (target.dist - dist) * k;
+    if (group) {
+      group.rotation.set(rotX, rotY, 0, 'XYZ');
+      // keep the model clear of the spec panel (top left) except at actual size
+      const L = spec ? spec.len : 10; group.position.set(actual ? 0 : L * .1, actual ? 0 : -L * .1, 0);
+    }
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (canvas.width !== Math.round(w * devicePixelRatio) || canvas.height !== Math.round(h * devicePixelRatio)) renderer.setSize(w, h, false);
+    if (actual) {
+      // orthographic-style: true size, 1 mm = pxPerMm CSS pixels
+      camera.fov = 2 * Math.atan((h / 2) / (pxPerMm * 400)) * 180 / Math.PI; camera.position.set(0, 0, 400);
+    } else { camera.fov = 35; camera.position.set(0, 0, dist); }
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+  }
+  function setPart(p) {
+    spec = p;
+    if (!THREE || !scene) return;
+    if (group) scene.remove(group);
+    group = build(p); scene.add(group);
+    target.dist = Math.max(10, p.len * 2.15);
+    if (!actual && auto) { target.rotX = -.35; target.rotY = .6; rotX = target.rotX; rotY = target.rotY; }   // each new part starts from the same 3D view
+    updateOverlay();
+  }
+  function updateOverlay() {
+    if (!overlay || !spec) return;
+    const f = spec._fam;
+    overlay.querySelector('.cn-specs').innerHTML = `<b>${esc(f.fam)} · ${esc(spec.g)}</b><span>${esc(spec.mpn)}${spec.lcsc ? ` · LCSC ${esc(spec.lcsc)}` : ''}</span>
+      <span>Pitch ${f.pitch.toFixed(2)} mm · ${esc(spec.awg)} AWG</span><span>Insulation OD ${esc(spec.ins)}</span><span>Length ≈ ${spec.len} mm (approx.)</span>`;
+    overlay.querySelector('[data-cn="actual"]').setAttribute('aria-pressed', actual);
+    overlay.querySelector('[data-cn="wire"]').setAttribute('aria-pressed', showWire);
+    overlay.querySelector('.cn-cal').hidden = !actual;
+    overlay.querySelector('.cn-ruler').hidden = !actual;
+    if (actual) drawRuler();
+  }
+  function drawRuler() {
+    const r = overlay.querySelector('.cn-ruler'), n = 30;
+    r.innerHTML = Array.from({ length: n + 1 }, (_, i) => `<i style="left:${i * pxPerMm}px;height:${i % 10 === 0 ? 14 : i % 5 === 0 ? 10 : 6}px"></i>${i % 10 === 0 ? `<em style="left:${i * pxPerMm}px">${i}</em>` : ''}`).join('');
+    r.style.width = `${n * pxPerMm}px`;
+    overlay.querySelector('.cn-card').style.width = `${85.6 * pxPerMm}px`;
+  }
+  function setView(v) {
+    if (v === 'side') Object.assign(target, { rotX: 0, rotY: 0 });
+    else if (v === 'top') Object.assign(target, { rotX: Math.PI / 2, rotY: 0 });
+    else if (v === 'front') Object.assign(target, { rotX: 0, rotY: -Math.PI / 2 });
+    else if (v === 'back') Object.assign(target, { rotX: -.25, rotY: Math.PI / 2 - .3 });
+    else Object.assign(target, { rotX: -.35, rotY: .6 });
+    auto = v === 'iso';
+  }
+  async function mount(stage) {
+    if (mounted) return;
+    mounted = true;
+    wrap = document.createElement('div'); wrap.className = 'cn3d';
+    wrap.innerHTML = `<canvas aria-label="3D model of the crimp terminal. Drag to rotate, scroll or pinch to zoom."></canvas>
+      <div class="cn-ovl"><div class="cn-specs"></div>
+        <div class="cn-btns"><button type="button" data-cn="iso">3D</button><button type="button" data-cn="side">Side</button><button type="button" data-cn="top">Top</button><button type="button" data-cn="front">Mating end</button><button type="button" data-cn="wire" aria-pressed="false">Wire</button><button type="button" data-cn="actual" aria-pressed="false">Actual size</button></div>
+        <div class="cn-cal" hidden><span>Calibrate: hold a bank card against the screen and drag until the bar matches its width.</span><input type="range" min="2" max="8" step="0.01" aria-label="Screen scale"><div class="cn-card"></div></div>
+        <div class="cn-ruler" hidden></div><p class="cn-load">Loading 3D model…</p></div>`;
+    stage.appendChild(wrap); stage.classList.add('has3d'); hostStage = stage;
+    overlay = wrap.querySelector('.cn-ovl'); canvas = wrap.querySelector('canvas');
+    try { pxPerMm = parseFloat(localStorage.getItem('cn-pxmm')) || pxPerMm; } catch {}
+    const rng = overlay.querySelector('input[type=range]'); rng.value = pxPerMm;
+    rng.addEventListener('input', () => { pxPerMm = +rng.value; try { localStorage.setItem('cn-pxmm', pxPerMm); } catch {} drawRuler(); });
+    overlay.querySelector('.cn-btns').addEventListener('click', e => {
+      const b = e.target.closest('[data-cn]'); if (!b) return;
+      const k = b.dataset.cn;
+      if (k === 'actual') { actual = !actual; if (actual) setView('side'); }
+      else if (k === 'wire') { showWire = !showWire; if (spec) setPart(spec); }
+      else { actual = false; setView(k); }
+      updateOverlay();
+    });
+    // drag to rotate, wheel / pinch to zoom
+    let drag = null, pinch = 0;
+    canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; auto = false; canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('pointermove', e => { if (!drag || actual) return; target.rotY += (e.clientX - drag.x) * .01; target.rotX += (e.clientY - drag.y) * .01; target.rotX = Math.max(-1.6, Math.min(1.6, target.rotX)); drag = { x: e.clientX, y: e.clientY }; });
+    canvas.addEventListener('pointerup', () => { drag = null; });
+    canvas.addEventListener('wheel', e => { if (actual) return; e.preventDefault(); target.dist = Math.max(5, Math.min(140, target.dist * (1 + Math.sign(e.deltaY) * .1))); }, { passive: false });
+    canvas.addEventListener('touchmove', e => { if (e.touches.length !== 2 || actual) return; e.preventDefault(); const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); if (pinch) target.dist = Math.max(5, Math.min(140, target.dist * pinch / d)); pinch = d; }, { passive: false });
+    canvas.addEventListener('touchend', () => { pinch = 0; });
+    try { await load(); } catch { overlay.querySelector('.cn-load').textContent = 'Couldn\'t load the 3D viewer. Check your connection.'; return; }
+    if (!mounted) return;
+    overlay.querySelector('.cn-load').hidden = true;
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(35, 1, .1, 2000);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x3a4552, .75));
+    const d1 = new THREE.DirectionalLight(0xffffff, 1.05); d1.position.set(30, 45, 50); scene.add(d1);
+    const d2 = new THREE.DirectionalLight(0xcfe0ff, .55); d2.position.set(-45, 10, -30); scene.add(d2);
+    const d3 = new THREE.DirectionalLight(0xffffff, .3); d3.position.set(0, -40, 20); scene.add(d3);
+    if (spec) setPart(spec);
+    frame();
+  }
+  let hostStage = null;
+  function unmount() {
+    mounted = false; cancelAnimationFrame(raf);
+    if (hostStage) hostStage.classList.remove('has3d');
+    if (renderer) { renderer.dispose(); renderer = null; }
+    if (wrap) wrap.remove(); wrap = null; scene = null; group = null;
+  }
+  return { mount, unmount, setPart, setView, get mounted() { return mounted; } };
+})();
+
+const B_CONN = (() => {
+  let fam = 0, gi = 0;
+  const part = () => { const f = CONN_PARTS[fam], p = f.parts[Math.min(gi, f.parts.length - 1)]; p._fam = f; return p; };
+  const steps = [
+    { title: 'Pick the connector family', dur: 600, view: 'iso',
+      body: 'Choose the family and male or female above. The model is the {N} {G} ({M}). Drag it to turn it, scroll or pinch to zoom. {LOOK}', tags: [], keys: [[0, { view: 'iso' }]] },
+    { title: 'Compare the mating end', dur: 600, view: 'front',
+      body: 'Look straight at the front: box receptacle, round socket, square pin, round pin or flat blade. The size of the opening (or pin) separates families at a glance. Pitch for {N} is {P} mm.', tags: [], keys: [[0, { view: 'front' }]] },
+    { title: 'Compare the side profile', dur: 600, view: 'side',
+      body: 'From the side you can see the contact, the locking lance on top, and the two pairs of crimp wings at the back: conductor wings first, then the larger insulation wings.', tags: [], keys: [[0, { view: 'side' }]] },
+    { title: 'Check the crimp wings', dur: 600, view: 'top',
+      body: 'From above, check the wing sizes match your wire: {N} takes {A} AWG with insulation up to {I}. Turn on Wire to see where the strands and insulation sit.', tags: [], keys: [[0, { view: 'top' }]] },
+    { title: 'Hold it against the screen', dur: 600, view: 'actual',
+      body: 'Turn on Actual size, calibrate once with a bank card, then hold your crimp against the screen. It should match the outline and length (about {L} mm). Body dimensions here are approximate; the official drawing is the reference.', tags: [], keys: [[0, { view: 'side' }]] },
+  ];
+  return {
+    id: 'connectors', fig: 4, name: 'Connectors', sub: 'Compare crimp terminals in 3D', cat: 'electrical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: '',
+    modes: CONN_PARTS.map(f => f.fam), get mode() { return fam; }, setMode(i) { fam = i; gi = Math.min(gi, CONN_PARTS[i].parts.length - 1); },
+    get sizes() { return CONN_PARTS[fam].parts.map(p => p.g); }, get size() { return Math.min(gi, CONN_PARTS[fam].parts.length - 1); },
+    setSize(i) { gi = i; CONN3D.setPart(part()); }, showSizes: () => true, sizeLabel: 'Terminal',
+    steps, base: { view: 'iso' },
+    vars: () => { const p = part(), f = p._fam; return { N: f.fam, G: p.g.toLowerCase(), M: p.mpn, P: f.pitch.toFixed(2), A: p.awg, I: p.ins, L: String(p.len), LOOK: p.look }; },
+    onShow(stage) { CONN3D.mount(stage); CONN3D.setPart(part()); },
+    onHide() { CONN3D.unmount(); },
+    draw(st) {
+      if (this._lastView !== st.view) { this._lastView = st.view; if (st.view !== 'actual') CONN3D.setView(st.view); }
+      return { svg: '', tags: {}, anchors: { flash: [85, -160] } };
+    },
+  };
+})();
+
+const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_SOLDER, B_RES, B_CONN];
 
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
@@ -4683,7 +4987,10 @@ function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) 
   }
 
   function selectTool(id) {
+    const prev = tool;
     tool = TOOLS.find(x => x.id === id) || TOOLS[0];
+    if (prev && prev !== tool && prev.onHide) prev.onHide();
+    if (tool.onShow) tool.onShow(el('Stage'));
     step = 0;                                    // the new tool may have fewer steps
     memo.clear();
     setPlaying(false);
