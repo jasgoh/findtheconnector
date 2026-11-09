@@ -3590,7 +3590,7 @@ const MULTI = (() => {
   const DIAL = ['OFF', 'V~', 'V⎓', 'mV', 'Ω', '•)))', '⊣⊢', 'A'];
   const DC = [-125, -6], DR = 40;                                 // dial centre and knob radius
   const JACK = { A: [-172, 146], COM: [-125, 146], V: [-78, 146] };
-  const PARK = { r: [96, 196], b: [40, 196] };
+  const PARK = { r: [120, 150], b: [56, 150] };
   const dialAng = i => (-135 + i * (270 / (DIAL.length - 1))) * Math.PI / 180;
   const dialPt = (i, r) => [DC[0] + r * Math.sin(dialAng(i)), DC[1] - r * Math.cos(dialAng(i))];
 
@@ -3623,16 +3623,41 @@ const MULTI = (() => {
     }
     return s;
   }
-  // a lead from a jack to a probe whose tip is at (tx, ty)
-  function lead(jack, tx, ty, color, op) {
+  // shrouded banana plug in a jack: body points down-and-out along angle a (deg); out = how far it's pulled out (0 = in)
+  function plug(jack, a, out, color) {
+    const [jx, jy] = JACK[jack], r = a * Math.PI / 180, ux = Math.cos(r), uy = Math.sin(r);
+    const ox = jx + ux * out * 70, oy = jy + uy * out * 70;
+    let ribs = '';
+    for (let i = 0; i < 5; i++) ribs += `<line x1="${14 + i * 5}" y1="-8" x2="${14 + i * 5}" y2="8" stroke="rgba(0,0,0,.35)"/>`;
+    const pin = out > .05 ? `<rect x="-16" y="-3.5" width="18" height="7" rx="2" fill="${color === 'red' ? '#C9362A' : '#1d1f22'}" stroke="rgba(0,0,0,.5)"/><rect x="-24" y="-1.6" width="10" height="3.2" fill="#D4A73C"/>` : '';
+    const body = color === 'red' ? '#C9362A' : '#26292e';
+    return { end: [ox + ux * 64, oy + uy * 64], svg: `<g transform="translate(${f(ox)} ${f(oy)}) rotate(${f(a)})">${pin}
+      <path d="M0 -10 L44 -9 L58 -5 L64 -4 L64 4 L58 5 L44 9 L0 10Z" fill="${body}" stroke="rgba(0,0,0,.6)"/>${ribs}
+      <rect x="2" y="-7" width="40" height="3" rx="1.5" fill="#fff" opacity=".18"/></g>` };
+  }
+  // test probe: tip at (tx, ty), handle running back along angle a (deg); returns where the cable leaves it
+  function probe(tx, ty, a, color) {
+    const r = a * Math.PI / 180, ux = Math.cos(r), uy = Math.sin(r);
+    const c = color === 'red' ? '#C9362A' : '#1d1f22', grip = '#6E737A';
+    let ribs = '';
+    for (let i = 0; i < 7; i++) ribs += `<line x1="${60 + i * 8}" y1="-6" x2="${60 + i * 8}" y2="6" stroke="rgba(0,0,0,.3)"/>`;
+    return { end: [tx + ux * 150, ty + uy * 150], svg: `<g transform="translate(${f(tx)} ${f(ty)}) rotate(${f(a)})">
+      <rect x="0" y="-1.2" width="24" height="2.4" fill="url(#mm-needle)"/><path d="M0 0 L3 -1.3 L3 1.3Z" fill="#E8EAED"/>
+      <rect x="23" y="-2.4" width="6" height="4.8" fill="#C9A23C"/>
+      <path d="M29 -3.5 L42 -5.5 L42 5.5 L29 3.5Z" fill="${c}" stroke="rgba(0,0,0,.5)"/>
+      <rect x="42" y="-10" width="7" height="20" rx="3" fill="${c}" stroke="rgba(0,0,0,.6)"/>
+      <path d="M49 -7 L118 -6.5 L124 -5 L124 5 L118 6.5 L49 7Z" fill="${grip}" stroke="rgba(0,0,0,.55)"/>${ribs}
+      <rect x="52" y="-2" width="62" height="4" rx="2" fill="${c}"/>
+      <path d="M124 -4.5 L150 -2.6 L150 2.6 L124 4.5Z" fill="#4a4f56" stroke="rgba(0,0,0,.5)"/></g>` };
+  }
+  // a whole lead: plug in its jack, silicone cable, probe at the tip
+  function lead(jack, tx, ty, color, op, out, pa) {
     if (op < .02) return '';
-    const [jx, jy] = JACK[jack], hx = tx - 20, hy = ty + 62;             // probe handle end
-    return `<g opacity="${f(op)}"><path d="M${jx} ${jy} C ${jx} ${jy + 60}, ${f(hx - 40)} ${f(hy + 80)}, ${f(hx)} ${f(hy)}" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round"/>
-      <path d="M${jx} ${jy} C ${jx} ${jy + 60}, ${f(hx - 40)} ${f(hy + 80)}, ${f(hx)} ${f(hy)}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"/>
-      <line x1="${f(hx)}" y1="${f(hy)}" x2="${f(tx - 4)}" y2="${f(ty + 14)}" stroke="#111" stroke-width="13" stroke-linecap="round"/>
-      <line x1="${f(hx)}" y1="${f(hy)}" x2="${f(tx - 4)}" y2="${f(ty + 14)}" stroke="${color}" stroke-width="10" stroke-linecap="round"/>
-      <line x1="${f(tx - 6)}" y1="${f(ty + 22)}" x2="${f(tx - 1)}" y2="${f(ty + 22)}" stroke="#111" stroke-width="6"/>
-      <line x1="${f(tx - 4)}" y1="${f(ty + 14)}" x2="${f(tx)}" y2="${f(ty)}" stroke="#C9CED3" stroke-width="3" stroke-linecap="round"/></g>`;
+    const pl = plug(jack, jack === 'COM' ? 100 : 80, out, color), pr = probe(tx, ty, pa, color);
+    const [x1, y1] = pl.end, [x2, y2] = pr.end, cc = color === 'red' ? '#B73226' : '#1d1f22';
+    const cable = `M${f(x1)} ${f(y1)} C ${f(x1 + 10)} ${f(y1 + 90)}, ${f(x2 + 30)} ${f(y2 + 90)}, ${f(x2)} ${f(y2)}`;
+    return `<g opacity="${f(op)}"><path d="${cable}" fill="none" stroke="#0b0c0e" stroke-width="8" stroke-linecap="round"/><path d="${cable}" fill="none" stroke="${cc}" stroke-width="6" stroke-linecap="round"/>
+      <path d="${cable}" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".18" transform="translate(-1.5 -1.5)"/>${pl.svg}${pr.svg}</g>`;
   }
   // the parts being tested
   function dut(st) {
@@ -3670,12 +3695,13 @@ const MULTI = (() => {
     return `<g opacity="${f(st.dutOn)}">${s}</g>`;
   }
 
-  const base = (dut, extra = {}) => ({ dial: 0, disp: '', unit: '', beep: 0, yellow: 0, leadsOn: 1, redJack: 'V', rx: PARK.r[0], ry: PARK.r[1], bx: PARK.b[0], by: PARK.b[1], dut, dutOn: 1, lit: 0, ...extra });
+  const base = (dut, extra = {}) => ({ dial: 0, disp: '', unit: '', beep: 0, yellow: 0, leadsOn: 1, redJack: 'V', redOut: 0, blackOut: 0, rx: PARK.r[0], ry: PARK.r[1], bx: PARK.b[0], by: PARK.b[1],
+    dut, dutOn: 1, lit: 0, zoom: 1, zs: .78, fx: 80, fy: 22, ...extra });
   const D = n => DIAL.indexOf(n);
   const MODES = [
-    { label: 'Leads & safety', base: base('', { leadsOn: 0, dutOn: 0 }), steps: [
+    { label: 'Leads & safety', base: base('', { leadsOn: 0, dutOn: 0, redOut: 1, blackOut: 1 }), steps: [
       { title: 'Check the test leads', dur: 1400, body: 'Before every use, look over the leads: no cracked insulation, no exposed metal, the probe tips undamaged and the finger guards intact. Replace damaged leads; don\'t tape them up.', tags: ['leads'], keys: [[.6, { leadsOn: 1 }]] },
-      { title: 'Plug the leads in', dur: 1500, body: 'Black always goes in COM, the common terminal for every measurement. Red goes in V Ω for voltage, resistance, continuity and diodes. The 10 A FUSED jack is only for measuring current.', tags: ['com', 'v', 'a'], hot: ['com', 'v'], keys: [] },
+      { title: 'Plug the leads in', dur: 2600, body: 'Push each plug straight into its jack until the shroud sits fully home. Black always goes in COM, the common terminal for every measurement. Red goes in V Ω for voltage, resistance, continuity and diodes. The 10 A FUSED jack is only for measuring current.', tags: ['com', 'v', 'a'], hot: ['com', 'v'], keys: [[.45, { blackOut: 0 }], [.9, { redOut: 0 }]], flashes: [[.46, 'Black to COM'], [.9, 'Red to V Ω']] },
       { title: 'Choose the function', dur: 1800, body: 'Turn the dial to what you\'re measuring: V~ for AC volts, V⎓ for DC volts, mV for small voltages, Ω for resistance, the speaker for continuity, ⊣⊢ for capacitance, A for current. The meter ranges automatically (AUTO on the display).', tags: ['dial'], hot: ['dial'], keys: [[.85, { dial: D('V⎓'), disp: '0.000', unit: 'V⎓' }]] },
       { title: 'Know the limits', dur: 1500, body: 'Voltages above 30 V AC or 60 V DC are a shock hazard. Keep your fingers behind the finger guards, and test lab mains only if you\'re trained to. The yellow button switches between shared functions (for example AC/DC amps).', caution: 'Disconnect power and discharge capacitors before testing resistance, continuity, diodes or capacitance.', tags: ['yellow'], keys: [[.3, { yellow: 1 }], [1, { yellow: 0 }]] },
       { title: 'Turn it off afterwards', dur: 1200, body: 'Turn the dial back to OFF when you\'re done to save the battery. If you used the 10 A jack, move the red lead back to V Ω so the next person doesn\'t short a voltage through the amps input.', tags: ['dial'], keys: [[.8, { dial: 0, disp: '', unit: '' }]] },
@@ -3703,11 +3729,11 @@ const MULTI = (() => {
       { title: 'Reverse it', dur: 1800, body: 'Swap the probes. A good diode blocks current this way and the meter shows OL. OL both ways means it\'s open; near 0 both ways means it\'s shorted.', tags: ['lcd'], hot: ['lcd'], keys: [[.8, { rx: 302, ry: 0, bx: 148, by: 0 }], [1, { disp: 'OL' }]] },
     ] },
     { label: 'Current', base: base('circuit'), steps: [
-      { title: 'Move the red lead to 10 A', dur: 1800, body: 'With the circuit off, move the red lead to the 10 A FUSED jack. The meter flashes LEAd as a reminder whenever you turn to or from A.', tags: ['a'], hot: ['a'], keys: [[.5, { redJack: 'A' }], [.8, { dial: D('A'), disp: 'LEAd', unit: '' }]] },
+      { title: 'Move the red lead to 10 A', dur: 2400, body: 'With the circuit off, pull the red plug out of V Ω and push it into the 10 A FUSED jack. The meter flashes LEAd as a reminder whenever you turn to or from A.', tags: ['a'], hot: ['a'], keys: [[.3, { redOut: 1 }], [.45, { redJack: 'A' }], [.7, { redOut: 0 }], [.9, { dial: D('A'), disp: 'LEAd', unit: '' }]] },
       { title: 'Select DC amps', dur: 1400, body: 'With the dial on A, press the yellow button to choose DC (or AC) current.', tags: ['yellow'], hot: ['yellow'], keys: [[.4, { yellow: 1 }], [.7, { disp: '0.000', unit: 'A⎓' }], [1, { yellow: 0 }]] },
       { title: 'Put the meter in series', dur: 2000, body: 'Current is measured through the meter, in series: break the circuit and connect the probes across the gap, red towards the positive side, so all the current flows through the meter.', tags: ['probes'], hot: ['probes'], keys: [[.85, { rx: 214, ry: -80, bx: 266, by: -80 }]] },
       { title: 'Power on and read', dur: 1500, body: 'Turn the circuit on and read the current: here 0.018 A (18 mA) for the LED. The 115 measures up to 10 A.', tags: ['lcd'], hot: ['lcd'], keys: [[.4, { lit: 1 }], [.7, { disp: '0.018' }]] },
-      { title: 'Put the lead back', dur: 1600, body: 'Power off, then move the red lead back to V Ω straight away.', caution: 'Never touch the probes across a voltage source while the red lead is in the 10 A jack: it\'s a short circuit through the meter that blows its fuse and can be dangerous.', tags: ['v'], hot: ['v'], keys: [[.2, { lit: 0 }], [.5, { rx: PARK.r[0], ry: PARK.r[1], bx: PARK.b[0], by: PARK.b[1] }], [.8, { redJack: 'V', disp: 'LEAd' }], [1, { dial: 0, disp: '' }]] },
+      { title: 'Put the lead back', dur: 1600, body: 'Power off, then move the red lead back to V Ω straight away.', caution: 'Never touch the probes across a voltage source while the red lead is in the 10 A jack: it\'s a short circuit through the meter that blows its fuse and can be dangerous.', tags: ['v'], hot: ['v'], keys: [[.2, { lit: 0 }], [.45, { rx: PARK.r[0], ry: PARK.r[1], bx: PARK.b[0], by: PARK.b[1], redOut: 1 }], [.6, { redJack: 'V' }], [.8, { redOut: 0, disp: 'LEAd' }], [1, { dial: 0, disp: '' }]] },
     ] },
   ];
   let mode = 0;
@@ -3716,6 +3742,7 @@ const MULTI = (() => {
     <linearGradient id="mm-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5A5F66"/><stop offset="1" stop-color="#3A3E45"/></linearGradient>
     <linearGradient id="mm-lcd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C8D3BF"/><stop offset="1" stop-color="#A9B7A0"/></linearGradient>
     <radialGradient id="mm-knob" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#6A7078"/><stop offset="1" stop-color="#2A2D32"/></radialGradient>
+    <linearGradient id="mm-needle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6F7"/><stop offset="1" stop-color="#8E959B"/></linearGradient>
     <linearGradient id="mm-batt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3A3E45"/><stop offset=".5" stop-color="#5A5F66"/><stop offset="1" stop-color="#2A2D32"/></linearGradient>`;
   return {
     id: 'multimeter', fig: 6, name: 'Multimeter', sub: 'Fluke 115: volts, ohms, continuity, amps', cat: 'electrical',
@@ -3724,7 +3751,8 @@ const MULTI = (() => {
     get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
     draw(st) {
       let s = MK.mat(this.viewBox) + meter(st) + dut(st);
-      s += lead('COM', st.bx, st.by, '#1d1f22', st.leadsOn) + lead(st.redJack, st.rx, st.ry, '#C9362A', st.leadsOn);
+      // probes point their tips up and away; handles angle back down towards the cables
+      s += lead('COM', st.bx, st.by, 'black', st.leadsOn, st.blackOut, 100) + lead(st.redJack, st.rx, st.ry, 'red', st.leadsOn, st.redOut, 80);
       const tags = {
         lcd:    { xy: [-125, -140], dx: 150, dy: -40, text: 'Display' },
         dial:   { xy: [-125 + DR, -6], dx: 150, dy: -40, text: 'Rotary dial' },
@@ -3732,10 +3760,11 @@ const MULTI = (() => {
         com:    { xy: [JACK.COM[0], JACK.COM[1] + 14], dx: 40, dy: 50, text: 'COM (black)' },
         v:      { xy: [JACK.V[0] + 12, JACK.V[1]], dx: 140, dy: 20, text: 'V Ω (red)' },
         a:      { xy: [JACK.A[0] - 12, JACK.A[1]], dx: -10, dy: 56, text: '10 A FUSED (current only)' },
-        leads:  { xy: [PARK.r[0] - 20, PARK.r[1] - 10], dx: 70, dy: -60, text: 'Test leads' },
+        leads:  { xy: [PARK.r[0] + 10, PARK.r[1] + 40], dx: 80, dy: -40, text: 'Test probes' },
         probes: { xy: [st.rx, st.ry], dx: 60, dy: -60, text: 'Red probe' },
       };
-      return { svg: s, tags, anchors: { flash: [-60, -160] } };
+      for (const t of Object.values(tags)) t.xy = MK.pt(st, t.xy[0], t.xy[1]);
+      return { svg: MK.scene(st, s), tags, anchors: { flash: MK.pt(st, -40, -150) } };
     },
   };
 })();
@@ -3993,13 +4022,11 @@ const BX = (() => {
     const hexPts = (x, yy, R, sy) => Array.from({ length: 6 }, (_, i) => `${f(x + R * Math.cos(i * Math.PI / 3 + Math.PI / 6))},${f(yy + R * Math.sin(i * Math.PI / 3 + Math.PI / 6) * sy)}`).join(' ');
     switch (type) {
       case 'socket': {
-        h = hh; const ry = hd * .17;
-        // cylinder side, then the top face seen slightly from above with its chamfered rim and hex socket
-        top = `<path d="M${f(cx - hd / 2)} ${f(y - h)} L${f(cx - hd / 2)} ${f(y - 3)} Q ${f(cx - hd / 2)} ${f(y)} ${f(cx - hd / 2 + 3)} ${f(y)} L${f(cx + hd / 2 - 3)} ${f(y)} Q ${f(cx + hd / 2)} ${f(y)} ${f(cx + hd / 2)} ${f(y - 3)} L${f(cx + hd / 2)} ${f(y - h)}Z" fill="${OX}" stroke="${EDGE}"/>
-          <ellipse cx="${f(cx)}" cy="${f(y - h)}" rx="${f(hd / 2)}" ry="${f(ry)}" fill="url(#bx-oxtop)" stroke="${EDGE}"/>
-          <ellipse cx="${f(cx)}" cy="${f(y - h)}" rx="${f(hd / 2 - hd * .07)}" ry="${f(ry * .82)}" fill="none" stroke="rgba(255,255,255,.18)"/>
-          <polygon points="${hexPts(cx, y - h, d * .42, ry / (hd / 2))}" fill="#141619" stroke="rgba(255,255,255,.12)"/>
-          <path d="M${f(cx - hd / 2 + 2)} ${f(y - h + 3)} Q ${f(cx)} ${f(y - h + ry + 4)} ${f(cx + hd / 2 - 2)} ${f(y - h + 3)}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="1.4"/>`;
+        // straight side view: a cylinder with a chamfered top edge; the hex socket is hidden, shown dashed
+        h = hh; const ch = Math.min(4, h * .12);
+        top = `<path d="M${f(cx - hd / 2 + ch)} ${f(y - h)} L${f(cx + hd / 2 - ch)} ${f(y - h)} L${f(cx + hd / 2)} ${f(y - h + ch)} L${f(cx + hd / 2)} ${f(y - 2)} Q ${f(cx + hd / 2)} ${f(y)} ${f(cx + hd / 2 - 2)} ${f(y)} L${f(cx - hd / 2 + 2)} ${f(y)} Q ${f(cx - hd / 2)} ${f(y)} ${f(cx - hd / 2)} ${f(y - 2)} L${f(cx - hd / 2)} ${f(y - h + ch)}Z" fill="${OX}" stroke="${EDGE}"/>
+          <line x1="${f(cx - hd / 2 + 1)}" y1="${f(y - h + ch)}" x2="${f(cx + hd / 2 - 1)}" y2="${f(y - h + ch)}" stroke="rgba(255,255,255,.22)"/>
+          <rect x="${f(cx - d * .43)}" y="${f(y - h)}" width="${f(d * .86)}" height="${f(h * .58)}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".9" stroke-dasharray="3 2"/>`;
         break;
       }
       case 'csk': h = d * .62; top = `<path d="M${f(cx - d)} ${f(y - h)} L${f(cx + d)} ${f(y - h)} L${f(cx + r)} ${f(y)} L${f(cx - r)} ${f(y)}Z" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - d + 2)}" y1="${f(y - h + 2)}" x2="${f(cx + d - 2)}" y2="${f(y - h + 2)}" stroke="rgba(255,255,255,.25)"/>`; break;
@@ -4012,7 +4039,8 @@ const BX = (() => {
       const sd = opt.sd, sl = opt.sl;                          // shoulder diameter and length (px)
       h = d * .9; const ry = sd * .8 * .17;
       s += `<rect x="${f(cx - sd * .8)}" y="${f(y - h)}" width="${f(sd * 1.6)}" height="${f(h)}" rx="2" fill="${OX}" stroke="${EDGE}"/>
-        <ellipse cx="${f(cx)}" cy="${f(y - h)}" rx="${f(sd * .8)}" ry="${f(ry)}" fill="url(#bx-oxtop)" stroke="${EDGE}"/><polygon points="${hexPts(cx, y - h, sd * .36, .17 / .8 * 1.25)}" fill="#141619"/>`;
+        <line x1="${f(cx - sd * .8 + 1)}" y1="${f(y - h + 2.5)}" x2="${f(cx + sd * .8 - 1)}" y2="${f(y - h + 2.5)}" stroke="rgba(255,255,255,.22)"/>
+        <rect x="${f(cx - sd * .34)}" y="${f(y - h)}" width="${f(sd * .68)}" height="${f(h * .55)}" fill="none" stroke="rgba(255,255,255,.35)" stroke-width=".9" stroke-dasharray="3 2"/>`;
       s += `<rect x="${f(cx - sd / 2)}" y="${f(y)}" width="${f(sd)}" height="${f(sl)}" fill="${OX}" stroke="${EDGE}"/><line x1="${f(cx - sd * .18)}" y1="${f(y + 2)}" x2="${f(cx - sd * .18)}" y2="${f(y + sl - 2)}" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>`;
       y += sl;
     }
