@@ -4569,12 +4569,14 @@ const CONN_PARTS = [
     { g: 'Female', mpn: '43030-0007', lcsc: 'C293530', awg: '20–24', ins: '1.85 mm max', base: 'f', cad: true,
       look: 'Real Molex CAD model. A narrow box receptacle about 1.1 × 1.35 mm with a side window and lances; 11.0 mm long.' } ] },
   { fam: 'Nano-Fit', maker: 'Molex', pitch: 2.5, parts: [
-    { g: 'Male', mpn: '201447-1400', lcsc: 'C724083', awg: '24–26', ins: '1.3 mm max', base: 'm',
-      sec: { ins: [.95, 1.90, 2.10], cond: [2.30, 1.60, 1.70], mid: [3.30, 1.05, 1.50], contact: [3.70, .55, .72] },
-      look: 'Like a smaller Micro-Fit male: a thin pin on a short barrel.' },
-    { g: 'Female', mpn: '105300-1100', lcsc: 'C177226', awg: '24–26', ins: '1.3 mm', base: 'f',
-      sec: { ins: [1.30, 2.00, 1.85], cond: [2.10, 1.65, 1.50], mid: [.90, .95, 1.15], contact: [5.00, .95, 1.15] },
-      look: 'Like a smaller Micro-Fit female: a box receptacle just under 1 mm wide.' } ] },
+    { g: 'Male', mpn: '201447-1400', lcsc: 'C724083', awg: '24–26', ins: '1.30 mm max', base: 'm', drawing: true,
+      // Molex sales drawing 2014471000-SD: 15.20 overall, 0.64 pin, 4.23 crimp section (2.00 + 1.18 wings), body 1.78 tall
+      sec: { ins: [2.00, 2.10, 2.20], cond: [2.23, 1.70, 1.78], mid: [4.60, 1.10, 1.78], contact: [6.37, .64, .64] },
+      look: 'A 0.64 mm square pin, 15.2 mm long overall: longer than the Micro-Fit male, with a thinner pin.' },
+    { g: 'Female', mpn: '105300-1100', lcsc: 'C177226', awg: '24–26', ins: '1.30 mm max', base: 'f', drawing: true,
+      // Molex sales drawing 2004570710: 12.63 overall, 7.25 contact box, 4.23 crimp section (2.00 + 1.18 wings), 1.80 tall
+      sec: { ins: [2.00, 2.10, 1.80], cond: [2.23, 1.60, 1.60], mid: [1.15, 1.10, 1.27], contact: [7.25, 1.10, 1.27] },
+      look: 'A box receptacle about 1.1 mm wide with a long 7.25 mm contact; 12.6 mm long overall.' } ] },
   { fam: 'Dupont (2.54 mm)', maker: 'Generic', pitch: 2.54, parts: [
     { g: 'Male', mpn: 'Dupont male pin', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', base: 'm',
       sec: { ins: [1.60, 2.00, 2.10], cond: [2.60, 1.60, 1.70], mid: [3.80, 1.30, 1.30], contact: [6.00, .64, .64] },
@@ -4731,7 +4733,7 @@ const CONN3D = (() => {
     if (!overlay || !spec) return;
     const f = spec._fam;
     overlay.querySelector('.cn-specs').innerHTML = `<b>${esc(f.fam)} · ${esc(spec.g)}</b><span>${esc(spec.mpn)}${spec.lcsc ? ` · LCSC ${esc(spec.lcsc)}` : ''}</span>
-      <span>Pitch ${f.pitch.toFixed(2)} mm · ${esc(spec.awg)} AWG</span><span>Insulation OD ${esc(spec.ins)}</span><span>${spec.cad ? `Length ${spec.len} mm · real CAD model` : `Length ≈ ${spec.len} mm (approx.)`}</span>`;
+      <span>Pitch ${f.pitch.toFixed(2)} mm · ${esc(spec.awg)} AWG</span><span>Insulation OD ${esc(spec.ins)}</span><span>${spec.cad ? `Length ${spec.len} mm · real CAD model` : spec.drawing ? `Length ${spec.len} mm · from Molex drawing` : `Length ≈ ${spec.len} mm (approx.)`}</span>`;
     overlay.querySelector('[data-cn="actual"]').setAttribute('aria-pressed', actual);
     overlay.querySelector('[data-cn="wire"]').setAttribute('aria-pressed', showWire);
     overlay.querySelector('.cn-cal').hidden = !actual;
