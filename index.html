@@ -4221,9 +4221,13 @@ const B_WIRE = (() => {
       s += `<rect x="-200" y="-170" width="400" height="30" rx="8" fill="url(#sd-red)" stroke="rgba(0,0,0,.5)"/><text x="0" y="-150" text-anchor="middle" class="bx-print">UL1007  22 AWG  80°C  300V</text>`;
       if (st.hl === 'print') s += `<rect x="-60" y="-166" width="80" height="22" rx="4" fill="none" stroke="var(--mat)" stroke-width="2.5"/>`;
       // conductor cross-sections to scale
-      const S = 34;
-      AWG.filter((_, i) => i % 2 === 0).forEach((w, i) => {
-        const x = -150 + i * 78, y = 20, on = st.hl === 'sizes' || (st.hl === 'meas' && w.g === 22);
+      const S = 34, GAP = 32;
+      const row = AWG.filter((_, i) => i % 2 === 0), rad = row.map(w => w.d * S / 2 + 10);
+      // space the circles by their real size so the big ones don't overlap, and centre the row
+      const total = rad.reduce((t, r) => t + 2 * r, 0) + GAP * (row.length - 1);
+      const xs = []; rad.reduce((x, r, i) => { xs[i] = x + r; return x + 2 * r + GAP; }, 85 - total / 2);
+      row.forEach((w, i) => {
+        const x = xs[i], y = 20, on = st.hl === 'sizes' || (st.hl === 'meas' && w.g === 22);
         s += `<circle cx="${x}" cy="${y}" r="${f(w.d * S / 2 + 10)}" fill="#C9362A" opacity=".8"/><circle cx="${x}" cy="${y}" r="${f(w.d * S / 2)}" fill="#D98A4E" stroke="${on ? 'var(--mat)' : '#7a4a22'}" stroke-width="${on ? 2.5 : 1}"/>`;
         s += `<text x="${x}" y="${y + 70}" text-anchor="middle" class="bx-small${on ? ' hot' : ''}">${w.g} AWG</text><text x="${x}" y="${y + 86}" text-anchor="middle" class="bx-tiny">${w.d.toFixed(2)} mm</text><text x="${x}" y="${y + 99}" text-anchor="middle" class="bx-tiny">${w.a} mm²</text>`;
       });
