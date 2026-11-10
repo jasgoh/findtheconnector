@@ -4588,26 +4588,47 @@ const CONN_PARTS = [
     { g: 'Female', mpn: 'SSHL-002T-P0.2', lcsc: 'C189897', awg: '26–30', ins: '0.76–1.0 mm', base: 'f',
       sec: { ins: [.80, 1.10, 1.05], cond: [1.10, .85, .80], mid: [.50, .60, .70], contact: [2.90, .60, .70] },
       look: 'Tiny: about 5 mm long with a box well under 1 mm across.' } ] },
+  { fam: 'JST SH', maker: 'JST', pitch: 1.0, parts: [
+    { g: 'Female', mpn: 'SSH-003GA-P0.2-H', lcsc: '', awg: '28–32', ins: '0.4–0.8 mm', plating: 'Phosphor bronze, selective gold (GA)',
+      // JST SH drawing (SSH-003T/GA-P0.2-H): 6.3 overall, 2.9 contact, 0.2 lance rise, 0.7 × 1.2 box. Wing widths and the split of the
+      // 3.4 mm crimp end are read off the outline text and may be off by a few tenths.
+      proc: { t: .10, cu: .38, src: 'JST SH drawing (6.3 overall, 2.9 contact)', plate: 'gold',
+        ins: { L: 1.0, W: 1.0, H: 1.2 }, gap: .3, cond: { L: 1.0, W: .7, H: .9 }, mid: { L: 1.1, W: .7 }, contact: { type: 'box', L: 2.9, W: .7, H: 1.2 } },
+      look: 'Tiny: 6.3 mm long with a flat box about 0.7 × 1.2 mm and a small lance on top. Gold-plated contact area (GA).' } ] },
   { fam: 'JST PH', maker: 'JST', pitch: 2.0, parts: [
-    { g: 'Female', mpn: 'SPH-002T-P0.5S', lcsc: 'C111515', awg: '24–30', ins: '0.8–1.5 mm', base: 'f',
-      sec: { ins: [1.20, 1.50, 1.45], cond: [1.50, 1.15, 1.10], mid: [.70, .85, 1.00], contact: [3.80, .85, 1.00] },
-      look: 'Small box contact under 1 mm wide, about 7 mm long. (The linked part is PH, not SH.)' } ] },
+    { g: 'Female', mpn: 'SPH-002T-P0.5S', lcsc: 'C111515', awg: '24–30', ins: '0.8–1.5 mm', plating: 'Phosphor bronze, tin',
+      // JST PH drawing: 5.7 overall = 2.85 crimp end + 2.85 contact; 2.08 insulation wings, 1.5 conductor wings and box width, 2.05 box height.
+      proc: { t: .15, cu: .55, src: 'JST PH drawing (5.7 overall, 2.85 contact)',
+        ins: { L: 1.1, W: 2.08, H: 1.6 }, gap: .3, cond: { L: 1.0, W: 1.5, H: 1.2 }, mid: { L: .45, W: 1.5 }, contact: { type: 'box', L: 2.85, W: 1.5, H: 2.05 } },
+      look: 'Small box contact about 1.5 mm wide, 5.7 mm long, with a dimple on the spring and a wide insulation grip.' } ] },
   { fam: 'JST RCY / SM', maker: 'JST', pitch: 2.5, parts: [
-    { g: 'Male', mpn: 'SYM-001T-P0.6(N)', lcsc: 'C246760', awg: '22–28', ins: '1.2–1.8 mm', base: 'm',
-      sec: { ins: [1.40, 2.00, 2.20], cond: [2.40, 1.60, 1.70], mid: [4.00, 1.30, 1.70], contact: [6.00, 1.00, 1.00] },
-      look: 'A round 1 mm pin on a barrel with a locking lance.' },
-    { g: 'Female', mpn: 'SYF-001T-P0.6', lcsc: 'C2983905', awg: '22–28', ins: '1.2–1.8 mm', base: 'f', tube: 1.5,
-      sec: { ins: [1.60, 2.10, 2.00], cond: [2.20, 1.60, 1.50], mid: [1.20, 1.20, 1.30], contact: [8.00, 1.20, 1.30] },
-      look: 'A round tube socket (not a box) with a slit spring: the giveaway for RCY/SM.' } ] },
+    { g: 'Male', mpn: 'SYM-001T-P0.6(N)', lcsc: 'C246760', awg: '22–28', ins: '1.2–1.8 mm', plating: 'Phosphor bronze, tin',
+      // JST RCY drawing: pin contact 15.8 overall, 0.64 pin, 1.7 / 2.0 wing widths. The barrel / pin split is estimated.
+      proc: { t: .15, cu: .65, src: 'JST RCY drawing (15.8 overall, 0.64 pin)',
+        ins: { L: 1.8, W: 2.0, H: 2.0 }, gap: .4, cond: { L: 2.0, W: 1.7, H: 1.5 }, mid: { L: 3.6, W: 1.7, H: 1.7, box: true }, contact: { type: 'pin', L: 8.0, W: .64, H: .64, tip: .8 } },
+      look: 'A long 0.64 mm square pin, 15.8 mm overall, on a square barrel with a locking lance.' },
+    { g: 'Female', mpn: 'SYF-001T-P0.6', lcsc: 'C2983905', awg: '22–28', ins: '1.2–1.8 mm', plating: 'Phosphor bronze, tin',
+      // JST RCY drawing: socket contact 11.0 overall, 1.7 × 1.7 body (free spring contact), 1.8 / 2.0 wing widths.
+      proc: { t: .15, cu: .65, src: 'JST RCY drawing (11.0 overall, 1.7 × 1.7 body)',
+        ins: { L: 1.8, W: 2.0, H: 2.0 }, gap: .4, cond: { L: 1.9, W: 1.8, H: 1.5 }, mid: { L: .6, W: 1.7 }, contact: { type: 'box', L: 6.3, W: 1.7, H: 1.7 } },
+      look: 'A square 1.7 mm box socket, 11.0 mm long, with a free spring inside and a lance on top.' } ] },
   { fam: 'Mega-Fit', maker: 'Molex', pitch: 5.7, parts: [
-    { g: 'Male', mpn: '105417-0334', lcsc: 'C6360589', awg: '14–16', ins: '3.15–3.58 mm', base: 'm',
-      sec: { ins: [3.20, 4.20, 4.20], cond: [3.80, 3.20, 3.20], mid: [5.00, 2.60, 2.80], contact: [8.00, 2.40, .90] },
-      look: 'Big: a flat blade about 2.4 mm wide on a large barrel, for 14–16 AWG power wire.' },
-    { g: 'Female', mpn: '76823-0321', lcsc: 'C293693', awg: '14–16', ins: '3.18–3.66 mm', base: 'f',
-      sec: { ins: [3.50, 4.30, 4.00], cond: [3.80, 3.30, 3.00], mid: [1.80, 2.60, 2.80], contact: [11.0, 2.60, 2.80] },
-      look: 'Big box receptacle about 2.6 mm across, roughly 20 mm long: much larger than anything else here.' } ] },
+    { g: 'Male', mpn: '105417-0334', lcsc: 'C6360589', awg: '14–16', ins: '3.15–3.58 mm', plating: 'Copper alloy, hot-dip tin',
+      // Molex drawing 1054170100: 22.88 overall, blade 2.30 × 1.07 and 10.86 long, 3.57 body, 3.40 / 5.00 wing widths (14/16 AWG).
+      proc: { t: .35, cu: 1.8, matte: true, src: 'Molex 1054170334 drawing (22.88 overall, blade 2.30 × 1.07)',
+        ins: { L: 3.6, W: 5.0, H: 4.4 }, gap: .8, cond: { L: 3.4, W: 3.4, H: 3.0 }, mid: { L: 4.22, W: 3.57, H: 3.4, box: true }, contact: { type: 'pin', L: 10.86, W: 2.30, H: 1.07, tip: 1.3 } },
+      look: 'Big: a flat 2.30 × 1.07 mm blade, 22.9 mm overall, on a boxy body with a retention lance, for 14–16 AWG power wire.' },
+    { g: 'Female', mpn: '76823-0321', lcsc: 'C293693', awg: '14–16', ins: '3.18–3.66 mm', plating: 'Copper alloy, reflowed tin',
+      // Molex drawing SD-76823-0100: 18.64 overall, 11.07 contact, 0.20 cut-off vestige, 3.40 × 3.55 box, 5.0 insulation wings.
+      proc: { t: .35, cu: 1.8, vest: .2, src: 'Molex 768230321 drawing (18.64 overall, 11.07 contact)',
+        ins: { L: 3.0, W: 5.0, H: 4.3 }, gap: .8, cond: { L: 3.0, W: 3.4, H: 3.0 }, mid: { L: .57, W: 3.4 }, contact: { type: 'box', L: 11.07, W: 3.4, H: 3.55 } },
+      look: 'Big box receptacle about 3.4 × 3.55 mm, 18.6 mm long: much larger than anything else here.' } ] },
 ];
 CONN_PARTS.forEach(f => f.parts.forEach(p => {
+  if (p.proc) {                                                        // procedural part: sections for the viewer's camera and length
+    const q = p.proc, d = (o, L) => [L, o.W, o.H || o.W];
+    p.sec = { ins: d(q.ins, (q.vest || 0) + q.ins.L + (q.gap || 0)), cond: d(q.cond, q.cond.L), mid: d(q.mid, q.mid.L), contact: d(q.contact, q.contact.L) };
+  }
   if (!p.sec) p.sec = MF_BASE[p.base].sec;
   p.len = +['ins', 'cond', 'mid', 'contact'].reduce((t, k) => t + p.sec[k][0], 0).toFixed(1);
 }));
@@ -4679,7 +4700,86 @@ const CONN3D = (() => {
     const floor = [0, 1].map(s => { let m = 1e9; for (let i = 0; i < out.length; i += 3) if (secOf[i / 3] === s) m = Math.min(m, out[i + 1]); return m; });
     return { g, bounds, floor };
   }
+  // ----- procedural terminals: built section by section from a sales drawing's sizes (p.proc) -----
+  // x along the terminal (0 = wire end), y up, z across. Open-barrel crimp: insulation wings, bridge, conductor wings, then barrel/contact.
+  const GOLD = () => new THREE.MeshStandardMaterial({ color: 0xD9B54A, metalness: .55, roughness: .3 });
+  const MATT = () => new THREE.MeshStandardMaterial({ color: 0xAEB5BC, metalness: .45, roughness: .55 });
+  const maxNum = str => Math.max(0, ...(String(str).match(/\d+(\.\d+)?/g) || []).map(Number));
+  // U-shaped crimp wings: round floor, two upright wings, extruded along x. Outer bottom sits at y = 0.
+  function uChannel(W, H, L, t, x, mat) {
+    const r = W / 2; H = Math.max(H, r + .2);
+    const sh = new THREE.Shape();
+    sh.moveTo(-r, H); sh.lineTo(-r, r); sh.absarc(0, r, r, Math.PI, 2 * Math.PI, false); sh.lineTo(r, H);
+    sh.lineTo(r - t, H); sh.lineTo(r - t, r); sh.absarc(0, r, r - t, 2 * Math.PI, Math.PI, true); sh.lineTo(-r + t, H); sh.lineTo(-r, H);
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false, curveSegments: 16 }), mat);
+    m.rotation.y = Math.PI / 2; m.position.set(x, 0, 0); return m;
+  }
+  // closed rectangular shell (box receptacle or barrel), bottom at y = 0
+  function boxShell(W, H, L, t, x, mat) {
+    const a = W / 2, b = H / 2, sh = new THREE.Shape(), hole = new THREE.Path();
+    sh.moveTo(-a, -b); sh.lineTo(a, -b); sh.lineTo(a, b); sh.lineTo(-a, b); sh.lineTo(-a, -b);
+    hole.moveTo(-a + t, -b + t); hole.lineTo(-a + t, b - t); hole.lineTo(a - t, b - t); hole.lineTo(a - t, -b + t); hole.lineTo(-a + t, -b + t);
+    sh.holes.push(hole);
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false }), mat);
+    m.rotation.y = Math.PI / 2; m.position.set(x, H / 2, 0); return m;
+  }
+  // square or blade pin with a tapered tip: W across (z), H thick (y)
+  function tipPin(W, H, L, tip, x, y, mat) {
+    const out = [], bodyL = L - tip;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(bodyL, H, W), mat); body.position.set(x + bodyL / 2, y, 0); out.push(body);
+    const g = new THREE.CylinderGeometry(W / Math.SQRT2 * .55, W / Math.SQRT2, tip, 4);
+    g.rotateY(Math.PI / 4); g.rotateZ(-Math.PI / 2); g.scale(1, H / W, 1);
+    const cone = new THREE.Mesh(g, mat); cone.position.set(x + bodyL + tip / 2, y, 0); out.push(cone);
+    return out;
+  }
+  // retention lance (hinged at the front, free end raised at the rear) and the dark seam along the top of a shell
+  function lanceAndSeam(W, H, L, t, x, mat) {
+    const out = [], ll = L * .32, a = .32;
+    const lance = new THREE.Mesh(new THREE.BoxGeometry(ll, t, W * .45), mat);
+    lance.rotation.z = -a; lance.position.set(x + L * .3, H + Math.sin(a) * ll / 2 + t * .4, 0); out.push(lance);
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(L, .02, Math.max(.02, W * .03)), new THREE.MeshStandardMaterial({ color: 0x3c4147, roughness: .8 }));
+    seam.position.set(x + L / 2, H + .005, 0); out.push(seam);
+    return out;
+  }
+  function buildProc(p) {
+    const q = p.proc, t = q.t, grp = new THREE.Group();
+    const tin = q.matte ? MATT() : MET(), cm = q.plate === 'gold' ? GOLD() : tin;
+    tin.side = cm.side = THREE.DoubleSide;
+    const add = m => (Array.isArray(m) ? m : [m]).forEach(o => grp.add(o));
+    let x = 0;
+    if (q.vest) {                                                       // stub left by the carrier strip
+      const v = new THREE.Mesh(new THREE.BoxGeometry(q.vest, t, q.cond.W * .5), tin); v.position.set(q.vest / 2, t / 2, 0); add(v); x += q.vest;
+    }
+    const at = { ins: x };
+    add(uChannel(q.ins.W, q.ins.H, q.ins.L, t, x, tin)); x += q.ins.L;
+    if (q.gap) { add(uChannel(q.cond.W, q.cond.W / 2 + .2, q.gap, t, x, tin)); x += q.gap; }
+    at.cond = x; add(uChannel(q.cond.W, q.cond.H, q.cond.L, t, x, tin)); x += q.cond.L;
+    at.mid = x;
+    if (q.mid.box) { add(boxShell(q.mid.W, q.mid.H, q.mid.L, t, x, tin)); add(lanceAndSeam(q.mid.W, q.mid.H, q.mid.L, t, x, tin)); }
+    else add(uChannel(q.mid.W, q.mid.W / 2 + .3, q.mid.L, t, x, tin));
+    x += q.mid.L; at.contact = x;
+    const c = q.contact;
+    if (c.type === 'box') {
+      add(boxShell(c.W, c.H, c.L, t, x, cm)); add(lanceAndSeam(c.W, c.H, c.L, t, x, cm));
+      const sp = new THREE.Mesh(new THREE.BoxGeometry(c.L * .75, t * .8, c.W - 2 * t - .06), cm);      // spring tongue inside the box
+      sp.rotation.z = .1; sp.position.set(x + c.L * .4, t + (c.H - 2 * t) * .22, 0); add(sp);
+    } else {
+      add(tipPin(c.W, c.H, c.L, c.tip || c.L * .1, x, q.mid.box ? q.mid.H / 2 : c.H / 2 + t, cm));
+    }
+    if (showWire) {
+      const inner = w => 2 * (w / 2 - t) - .02, od = Math.min(maxNum(p.ins) || q.ins.H * .7, inner(q.ins.W)), cu = Math.min(q.cu || od * .55, inner(q.cond.W));
+      const ie = at.ins + q.ins.L, ce = at.cond + q.cond.L + .25;
+      const im = new THREE.Mesh(new THREE.CylinderGeometry(od / 2, od / 2, 14, 24), new THREE.MeshStandardMaterial({ color: 0xc9362a, roughness: .6 }));
+      im.rotation.z = Math.PI / 2; im.position.set(ie - 7, t + od / 2 + .02, 0); grp.add(im);
+      const cw = new THREE.Mesh(new THREE.CylinderGeometry(cu / 2, cu / 2, ce - ie, 16), new THREE.MeshStandardMaterial({ color: 0xd98a4e, metalness: .6, roughness: .35 }));
+      cw.rotation.z = Math.PI / 2; cw.position.set((ie + ce) / 2, t + cu / 2 + .02, 0); grp.add(cw);
+    }
+    const box = new THREE.Box3().setFromObject(grp), ctr = box.getCenter(new THREE.Vector3());
+    grp.children.forEach(ch => ch.position.sub(ctr));
+    return grp;
+  }
   function build(p) {
+    if (p.proc) return buildProc(p);
     const grp = new THREE.Group(), M = morph(p);
     const mesh = new THREE.Mesh(M.g, MET()); mesh.material.side = THREE.DoubleSide; grp.add(mesh);
     if (p.tube) {                                                       // the RCY/SM socket: an open slit tube with a lance
@@ -4733,7 +4833,7 @@ const CONN3D = (() => {
     if (!overlay || !spec) return;
     const f = spec._fam;
     overlay.querySelector('.cn-specs').innerHTML = `<b>${esc(f.fam)} · ${esc(spec.g)}</b><span>${esc(spec.mpn)}${spec.lcsc ? ` · LCSC ${esc(spec.lcsc)}` : ''}</span>
-      <span>Pitch ${f.pitch.toFixed(2)} mm · ${esc(spec.awg)} AWG</span><span>Insulation OD ${esc(spec.ins)}</span><span>${spec.cad ? `Length ${spec.len} mm · real CAD model` : spec.drawing ? `Length ${spec.len} mm · from Molex drawing` : `Length ≈ ${spec.len} mm (approx.)`}</span>`;
+      <span>Pitch ${f.pitch.toFixed(2)} mm · ${esc(spec.awg)} AWG</span><span>Insulation OD ${esc(spec.ins)}</span>${spec.plating ? `<span>${esc(spec.plating)}</span>` : ''}<span>${spec.cad ? `Length ${spec.len} mm · real CAD model` : spec.proc ? `Length ${spec.len} mm · ${esc(spec.proc.src)}` : spec.drawing ? `Length ${spec.len} mm · from Molex drawing` : `Length ≈ ${spec.len} mm (approx.)`}</span>`;
     overlay.querySelector('[data-cn="actual"]').setAttribute('aria-pressed', actual);
     overlay.querySelector('[data-cn="wire"]').setAttribute('aria-pressed', showWire);
     overlay.querySelector('.cn-cal').hidden = !actual;
