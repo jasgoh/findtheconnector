@@ -4569,25 +4569,50 @@ const CONN_PARTS = [
     { g: 'Female', mpn: '43030-0007', lcsc: 'C293530', awg: '20–24', ins: '1.85 mm max', base: 'f', cad: true,
       look: 'Real Molex CAD model. A narrow box receptacle about 1.1 × 1.35 mm with a side window and lances; 11.0 mm long.' } ] },
   { fam: 'Nano-Fit', maker: 'Molex', pitch: 2.5, parts: [
-    { g: 'Male', mpn: '201447-1400', lcsc: 'C724083', awg: '24–26', ins: '1.30 mm max', base: 'm', drawing: true,
-      // Molex sales drawing 2014471000-SD: 15.20 overall, 0.64 pin, 4.23 crimp section (2.00 + 1.18 wings), body 1.78 tall
-      sec: { ins: [2.00, 2.10, 2.20], cond: [2.23, 1.70, 1.78], mid: [4.60, 1.10, 1.78], contact: [6.37, .64, .64] },
-      look: 'A 0.64 mm square pin, 15.2 mm long overall: longer than the Micro-Fit male, with a thinner pin.' },
-    { g: 'Female', mpn: '105300-1100', lcsc: 'C177226', awg: '24–26', ins: '1.30 mm max', base: 'f', drawing: true,
-      // Molex sales drawing 2004570710: 12.63 overall, 7.25 contact box, 4.23 crimp section (2.00 + 1.18 wings), 1.80 tall
-      sec: { ins: [2.00, 2.10, 1.80], cond: [2.23, 1.60, 1.60], mid: [1.15, 1.10, 1.27], contact: [7.25, 1.10, 1.27] },
-      look: 'A box receptacle about 1.1 mm wide with a long 7.25 mm contact; 12.6 mm long overall.' } ] },
+    { g: 'Male', mpn: '201447-1400', lcsc: 'C724083', awg: '24–26', ins: '1.30 mm max', plating: 'Copper alloy, tin',
+      // 15.2 overall, 0.64 pin and ~4.2 crimp end are from Molex sales drawing 2014471000. The section split, the open window with its tongue,
+      // the see-through gap, the funnel, the dimples and the barrel width (about 1.75) were measured off photos of the real terminal.
+      proc: { t: .12, cu: .5, vest: .3, serr: 3, src: 'Molex 2014471000 drawing (15.2 overall, 0.64 pin) + photos of the real part',
+        ins: { L: 1.2, W: 2.1, H: 1.9, splay: .3 }, gap: .9, flare: true, cond: { L: 2.2, W: 1.3, H: 1.4 }, mid: { L: .6, W: 1.3 },
+        barrel: [ { type: 'channel', L: 1.8, W: 1.75, H: 1.6 }, { type: 'window', L: 2.3, W: 1.75, H: 1.6, tongue: { L: 1.5, W: .9, at: .7 } },
+                  { type: 'box', L: .7, W: 1.75, H: 1.6 }, { type: 'cone', L: 1.0, W: 1.75, H: 1.6, W1: .64 } ],
+        barrelDimples: [.2, 3.2, 4.0], pinY: .8,
+        contact: { type: 'pin', L: 4.2, W: .64, H: .64, tip: 1.1, tipR: .3 } },
+      look: 'A short pointed 0.64 mm pin, a funnel, then a long 1.75 mm barrel with an open window showing a tongue and a see-through gap, dimples on the side, a serrated crimp and a wide insulation grip. 15.2 mm long.' },
+    { g: 'Female', mpn: '105300-1100', lcsc: 'C177226', awg: '24–26', ins: '1.30 mm max', plating: 'Copper alloy, tin',
+      // 12.63 overall and ~4.2 crimp end are from Molex sales drawing 2004570710. The split between sections, the open window with brass rails,
+      // the copper tab, the bell-mouths, the serrations, the dimples and the lance position were measured off photos of the real terminal.
+      proc: { t: .12, cu: .5, vest: .27, serr: 3, src: 'Molex 2004570710 drawing (12.63 overall) + photos of the real part',
+        ins: { L: 1.75, W: 2.1, H: 2.1, splay: .3 }, gap: .9, flare: true, cond: { L: 1.56, W: 1.15, H: 1.3 },
+        mid: { L: 1.65, W: 1.0, H: 1.15, W1: 1.2, H1: 1.3 }, neck: { L: 2.0, W: 1.1, H: 1.2, tab: { L: 1.0, W: .6 } },
+        contact: { type: 'box', L: 4.5, W: 1.1, H: 1.2, lanceAt: .8, dimples: true } },
+      look: 'A long thin box about 1.1 mm wide with two small dimples, an open window crossed by thin brass rails, then a serrated conductor crimp and a wide, round insulation grip. 12.6 mm long.' } ] },
   { fam: 'Dupont (2.54 mm)', maker: 'Generic', pitch: 2.54, parts: [
-    { g: 'Male', mpn: 'Dupont male pin', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', base: 'm',
-      sec: { ins: [1.60, 2.00, 2.10], cond: [2.60, 1.60, 1.70], mid: [3.80, 1.30, 1.30], contact: [6.00, .64, .64] },
-      look: 'A long 0.64 mm square pin (header-pin size) on a square body.' },
-    { g: 'Female', mpn: 'Dupont female socket', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', base: 'f',
-      sec: { ins: [1.80, 2.00, 1.90], cond: [2.40, 1.60, 1.50], mid: [1.20, 1.25, 1.25], contact: [7.00, 1.25, 1.25] },
-      look: 'A long square socket that takes a 0.64 mm header pin.' } ] },
+    { g: 'Male', mpn: 'Dupont male pin', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', plating: 'Tin (typical; generic part)',
+      // Generic part with no manufacturer drawing: every size is measured off photos of the real pin, scaled so the pin is the standard 0.64 mm.
+      proc: { t: .15, cu: .6, vest: .25, serr: 3, src: 'photos of the real pin, scaled from the 0.64 mm pin (no drawing)',
+        ins: { L: 1.25, W: 2.2, H: 1.7, splay: .3 }, gap: .7, flare: true, cond: { L: 1.95, W: 1.5, H: 1.4 }, mid: { L: .25, W: 1.4 },
+        barrel: [ { type: 'channel', L: 1.1, W: 1.35, H: 1.3 }, { type: 'box', L: 1.5, W: 1.35, H: 1.3 },
+                  { type: 'channel', L: 1.25, W: 1.35, H: 1.3 }, { type: 'vfunnel', L: 1.25, W: 1.35, H: 1.3, W1: .7, H1: .8 } ],
+        pinY: .65, contact: { type: 'pin', L: 5.7, W: .64, H: .55, tip: .5, tipR: .5, seam: true } },
+      look: 'A long rolled 0.64 mm pin with a slit seam, an open V funnel, a barrel with open ends and a closed plate in the middle, a serrated crimp and a splayed insulation grip.' },
+    { g: 'Female', mpn: 'Dupont female socket', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', plating: 'Tin (typical; generic part)',
+      // Generic part with no manufacturer drawing: sizes are measured off photos of the real socket, scaled to about 12 mm overall.
+      proc: { t: .15, cu: .6, vest: .3, src: 'photos of the real socket, scaled to about 12 mm (no drawing)',
+        ins: { L: 1.5, W: 2.5, H: 2.0, splay: .35 }, gap: .6, flare: true, cond: { L: 3.0, W: 2.0, H: 1.6 }, mid: { L: 2.0, W: 1.4 },
+        barrel: [ { type: 'box', L: .7, W: 1.7, H: 1.6, lance: true },
+                  { type: 'window', L: 3.0, W: 1.7, H: 1.6, floor: true, tongue: { L: 1.8, W: .6, at: .6 } },
+                  { type: 'box', L: .9, W: 1.7, H: 1.6 } ],
+        contact: { type: 'none', L: 0, W: 1.7, H: 1.6 } },
+      look: 'A long socket with a short closed cap, an open window with a spring tongue inside, a collar with a small lance, a long smooth crimp and V-shaped insulation wings.' } ] },
   { fam: 'JST GH', maker: 'JST', pitch: 1.25, parts: [
-    { g: 'Female', mpn: 'SSHL-002T-P0.2', lcsc: 'C189897', awg: '26–30', ins: '0.76–1.0 mm', base: 'f',
-      sec: { ins: [.80, 1.10, 1.05], cond: [1.10, .85, .80], mid: [.50, .60, .70], contact: [2.90, .60, .70] },
-      look: 'Tiny: about 5 mm long with a box well under 1 mm across.' } ] },
+    { g: 'Female', mpn: 'SSHL-002T-P0.2', lcsc: 'C189897', awg: '26–30', ins: '0.76–1.0 mm', plating: 'Phosphor bronze, tin (reflow)',
+      // JST's drawing text gives a 1.35 mm wing width but no overall length I could read. Lengths, heights and the box size are measured off
+      // photos of the real contact, scaled so the insulation wings are 1.35 mm wide (overall comes out near 4.85 mm).
+      proc: { t: .10, cu: .3, vest: .3, src: 'photos of the real contact, scaled from the 1.35 mm wing width (JST drawing)',
+        ins: { L: .7, W: 1.35, H: 1.4, splay: .25 }, gap: .4, cond: { L: 1.1, W: 1.15, H: .95 }, mid: { L: .4, W: .85 },
+        contact: { type: 'box', L: 1.95, W: .85, H: .65, lanceAt: .8 } },
+      look: 'Tiny: under 5 mm long, a flat box about 0.85 mm wide with a seam and a small side lance, then low conductor wings and tall splayed insulation wings.' } ] },
   { fam: 'JST SH', maker: 'JST', pitch: 1.0, parts: [
     { g: 'Female', mpn: 'SSH-003GA-P0.2-H', lcsc: '', awg: '28–32', ins: '0.4–0.8 mm', plating: 'Phosphor bronze, selective gold (GA)',
       // JST SH drawing (SSH-003T/GA-P0.2-H): 6.3 overall, 2.9 contact, 0.2 lance rise, 0.7 × 1.2 box. Wing widths and the split of the
@@ -4627,7 +4652,7 @@ const CONN_PARTS = [
 CONN_PARTS.forEach(f => f.parts.forEach(p => {
   if (p.proc) {                                                        // procedural part: sections for the viewer's camera and length
     const q = p.proc, d = (o, L) => [L, o.W, o.H || o.W];
-    p.sec = { ins: d(q.ins, (q.vest || 0) + q.ins.L + (q.gap || 0)), cond: d(q.cond, q.cond.L), mid: d(q.mid, q.mid.L), contact: d(q.contact, q.contact.L) };
+    p.sec = { ins: d(q.ins, (q.vest || 0) + q.ins.L + (q.gap || 0)), cond: d(q.cond, q.cond.L), mid: d(q.mid, q.mid.L + (q.neck ? q.neck.L : 0) + (q.barrel ? q.barrel.reduce((t, b) => t + b.L, 0) : 0)), contact: d(q.contact, q.contact.L) };
   }
   if (!p.sec) p.sec = MF_BASE[p.base].sec;
   p.len = +['ins', 'cond', 'mid', 'contact'].reduce((t, k) => t + p.sec[k][0], 0).toFixed(1);
@@ -4706,13 +4731,44 @@ const CONN3D = (() => {
   const MATT = () => new THREE.MeshStandardMaterial({ color: 0xAEB5BC, metalness: .45, roughness: .55 });
   const maxNum = str => Math.max(0, ...(String(str).match(/\d+(\.\d+)?/g) || []).map(Number));
   // U-shaped crimp wings: round floor, two upright wings, extruded along x. Outer bottom sits at y = 0.
-  function uChannel(W, H, L, t, x, mat) {
+  function uChannel(W, H, L, t, x, mat, sp = 0) {                      // sp = how far the wing tips splay outwards (a V instead of a U)
     const r = W / 2; H = Math.max(H, r + .2);
     const sh = new THREE.Shape();
-    sh.moveTo(-r, H); sh.lineTo(-r, r); sh.absarc(0, r, r, Math.PI, 2 * Math.PI, false); sh.lineTo(r, H);
-    sh.lineTo(r - t, H); sh.lineTo(r - t, r); sh.absarc(0, r, r - t, 2 * Math.PI, Math.PI, true); sh.lineTo(-r + t, H); sh.lineTo(-r, H);
+    sh.moveTo(-r - sp, H); sh.lineTo(-r, r); sh.absarc(0, r, r, Math.PI, 2 * Math.PI, false); sh.lineTo(r + sp, H);
+    sh.lineTo(r - t + sp, H); sh.lineTo(r - t, r); sh.absarc(0, r, r - t, 2 * Math.PI, Math.PI, true); sh.lineTo(-r + t - sp, H); sh.lineTo(-r - sp, H);
     const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false, curveSegments: 16 }), mat);
     m.rotation.y = Math.PI / 2; m.position.set(x, 0, 0); return m;
+  }
+  // outline of a U section as [y, z] points (outer path, then the inner path back)
+  function uRing(W, H, t, sp = 0) {
+    const r = W / 2, ri = r - t, n = 10, pts = []; H = Math.max(H, r + .2);
+    pts.push([H, -r - sp], [r, -r]);
+    for (let i = 1; i < n; i++) { const a = Math.PI + Math.PI * i / n; pts.push([r + r * Math.sin(a), r * Math.cos(a)]); }
+    pts.push([r, r], [H, r + sp], [H, ri + sp], [r, ri]);
+    for (let i = n - 1; i > 0; i--) { const a = Math.PI + Math.PI * i / n; pts.push([r + ri * Math.sin(a), ri * Math.cos(a)]); }
+    pts.push([r, -ri], [H, -ri - sp]);
+    return pts;
+  }
+  // flared (bell-mouth) wings: a U that changes size from the rear end (W0 × H0) to the front end (W1 × H1)
+  function uLoft(W0, H0, W1, H1, L, t, x, mat, sp0 = 0, sp1 = 0) {
+    const A = uRing(W0, H0, t, sp0), B = uRing(W1, H1, t, sp1), N = A.length, P = new Float32Array(N * 6), I = [];
+    for (let i = 0; i < N; i++) { P.set([0, A[i][0], A[i][1]], i * 3); P.set([L, B[i][0], B[i][1]], (N + i) * 3); }
+    for (let i = 0; i < N; i++) { const j = (i + 1) % N; I.push(i, j, N + j, i, N + j, N + i); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setIndex(new THREE.BufferAttribute(new Uint16Array(I), 1)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); m.position.set(x, 0, 0); return m;
+  }
+  // square-cornered open channel (floor and two straight walls), bottom at y = 0
+  function rectU(W, H, L, t, x, mat) {
+    const a = W / 2, sh = new THREE.Shape();
+    sh.moveTo(-a, 0); sh.lineTo(a, 0); sh.lineTo(a, H); sh.lineTo(a - t, H); sh.lineTo(a - t, t); sh.lineTo(-a + t, t); sh.lineTo(-a + t, H); sh.lineTo(-a, H); sh.lineTo(-a, 0);
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false }), mat);
+    m.rotation.y = Math.PI / 2; m.position.set(x, 0, 0); return m;
+  }
+  // square funnel from a barrel (W × H) down to a pin (W1 square); the narrow end points towards +x
+  function frustum(W, H, W1, L, x, y, mat) {
+    const g = new THREE.CylinderGeometry(W1 / Math.SQRT2, W / Math.SQRT2, L, 4);
+    g.rotateY(Math.PI / 4); g.rotateZ(-Math.PI / 2); g.scale(1, H / W, 1);
+    const m = new THREE.Mesh(g, mat); m.position.set(x + L / 2, y, 0); return m;
   }
   // closed rectangular shell (box receptacle or barrel), bottom at y = 0
   function boxShell(W, H, L, t, x, mat) {
@@ -4724,19 +4780,19 @@ const CONN3D = (() => {
     m.rotation.y = Math.PI / 2; m.position.set(x, H / 2, 0); return m;
   }
   // square or blade pin with a tapered tip: W across (z), H thick (y)
-  function tipPin(W, H, L, tip, x, y, mat) {
+  function tipPin(W, H, L, tip, x, y, mat, tipR) {
     const out = [], bodyL = L - tip;
     const body = new THREE.Mesh(new THREE.BoxGeometry(bodyL, H, W), mat); body.position.set(x + bodyL / 2, y, 0); out.push(body);
-    const g = new THREE.CylinderGeometry(W / Math.SQRT2 * .55, W / Math.SQRT2, tip, 4);
+    const g = new THREE.CylinderGeometry(W / Math.SQRT2 * (tipR || .55), W / Math.SQRT2, tip, 4);
     g.rotateY(Math.PI / 4); g.rotateZ(-Math.PI / 2); g.scale(1, H / W, 1);
     const cone = new THREE.Mesh(g, mat); cone.position.set(x + bodyL + tip / 2, y, 0); out.push(cone);
     return out;
   }
   // retention lance (hinged at the front, free end raised at the rear) and the dark seam along the top of a shell
-  function lanceAndSeam(W, H, L, t, x, mat) {
+  function lanceAndSeam(W, H, L, t, x, mat, at = .3) {
     const out = [], ll = L * .32, a = .32;
     const lance = new THREE.Mesh(new THREE.BoxGeometry(ll, t, W * .45), mat);
-    lance.rotation.z = -a; lance.position.set(x + L * .3, H + Math.sin(a) * ll / 2 + t * .4, 0); out.push(lance);
+    lance.rotation.z = -a; lance.position.set(x + L * at, H + Math.sin(a) * ll / 2 + t * .4, 0); out.push(lance);
     const seam = new THREE.Mesh(new THREE.BoxGeometry(L, .02, Math.max(.02, W * .03)), new THREE.MeshStandardMaterial({ color: 0x3c4147, roughness: .8 }));
     seam.position.set(x + L / 2, H + .005, 0); out.push(seam);
     return out;
@@ -4751,20 +4807,60 @@ const CONN3D = (() => {
       const v = new THREE.Mesh(new THREE.BoxGeometry(q.vest, t, q.cond.W * .5), tin); v.position.set(q.vest / 2, t / 2, 0); add(v); x += q.vest;
     }
     const at = { ins: x };
-    add(uChannel(q.ins.W, q.ins.H, q.ins.L, t, x, tin)); x += q.ins.L;
-    if (q.gap) { add(uChannel(q.cond.W, q.cond.W / 2 + .2, q.gap, t, x, tin)); x += q.gap; }
-    at.cond = x; add(uChannel(q.cond.W, q.cond.H, q.cond.L, t, x, tin)); x += q.cond.L;
+    add(uChannel(q.ins.W, q.ins.H, q.ins.L, t, x, tin, q.ins.splay || 0)); x += q.ins.L;
+    if (q.gap) { add(q.flare ? uLoft(q.ins.W, q.ins.H, q.cond.W, q.cond.H, q.gap, t, x, tin, q.ins.splay || 0, 0) : uChannel(q.cond.W, q.cond.W / 2 + .2, q.gap, t, x, tin)); x += q.gap; }
+    at.cond = x; add(uChannel(q.cond.W, q.cond.H, q.cond.L, t, x, tin));
+    for (let i = 0; i < (q.serr || 0); i++) {                           // grip serrations on the inside floor of the conductor wings
+      const rb = new THREE.Mesh(new THREE.BoxGeometry(.1, .05, q.cond.W - 2 * t - .12), tin); rb.position.set(x + q.cond.L * (i + 1) / (q.serr + 1), t + .02, 0); add(rb);
+    }
+    x += q.cond.L;
     at.mid = x;
     if (q.mid.box) { add(boxShell(q.mid.W, q.mid.H, q.mid.L, t, x, tin)); add(lanceAndSeam(q.mid.W, q.mid.H, q.mid.L, t, x, tin)); }
+    else if (q.mid.W1) add(uLoft(q.mid.W, q.mid.H, q.mid.W1, q.mid.H1, q.mid.L, t, x, tin));
     else add(uChannel(q.mid.W, q.mid.W / 2 + .3, q.mid.L, t, x, tin));
-    x += q.mid.L; at.contact = x;
+    x += q.mid.L;
+    if (q.neck) {                                                       // open window: four thin brass rails and a copper tab reaching back from the box
+      const n = q.neck, rt = .1, brass = new THREE.MeshStandardMaterial({ color: 0xC9A24D, metalness: .6, roughness: .35 });
+      for (const top of [0, 1]) for (const sz of [-1, 1]) {
+        const r = new THREE.Mesh(new THREE.BoxGeometry(n.L, rt, rt), brass); r.position.set(x + n.L / 2, top ? n.H - rt / 2 : rt / 2, sz * (n.W / 2 - rt / 2)); add(r);
+      }
+      if (n.tab) {
+        const tb = new THREE.Mesh(new THREE.BoxGeometry(n.tab.L, t, n.tab.W), new THREE.MeshStandardMaterial({ color: 0xB4644A, metalness: .5, roughness: .4 }));
+        tb.position.set(x + n.L - n.tab.L / 2, n.H / 2, 0); add(tb);
+      }
+      x += n.L;
+    }
+    if (q.barrel) {                                                     // barrel built from sections: closed box, open window with tongue, channel, funnel
+      const x0 = x, dark = DARK();
+      for (const b of q.barrel) {
+        if (b.type === 'channel') add(rectU(b.W, b.H, b.L, t, x, tin));
+        else if (b.type === 'box') { add(boxShell(b.W, b.H, b.L, t, x, tin)); if (b.lance) add(lanceAndSeam(b.W, b.H, b.L, t, x, tin, .5)); }
+        else if (b.type === 'window') {
+          for (const sz of [-1, 1]) { const w = new THREE.Mesh(new THREE.BoxGeometry(b.L, b.H, t), tin); w.position.set(x + b.L / 2, b.H / 2, sz * (b.W / 2 - t / 2)); add(w); }
+          if (b.floor) { const fl = new THREE.Mesh(new THREE.BoxGeometry(b.L, t, b.W - 2 * t), tin); fl.position.set(x + b.L / 2, t / 2, 0); add(fl); }
+          if (b.tongue) { const tg = new THREE.Mesh(new THREE.BoxGeometry(b.tongue.L, t, b.tongue.W), dark); tg.position.set(x + b.tongue.at + b.tongue.L / 2, t / 2 + .15, 0); add(tg); }
+        } else if (b.type === 'cone') add(frustum(b.W, b.H, b.W1, b.L, x, b.H / 2, tin));
+        else if (b.type === 'vfunnel') add(uLoft(b.W, b.H, b.W1, b.H1, b.L, t, x, tin));
+        x += b.L;
+      }
+      const b0 = q.barrel[0];
+      for (const dx of q.barrelDimples || []) { const d = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 8), tin); d.scale.z = .5; d.position.set(x0 + dx, b0.H * .55, b0.W / 2); add(d); }
+    }
+    at.contact = x;
     const c = q.contact;
     if (c.type === 'box') {
-      add(boxShell(c.W, c.H, c.L, t, x, cm)); add(lanceAndSeam(c.W, c.H, c.L, t, x, cm));
+      add(boxShell(c.W, c.H, c.L, t, x, cm)); add(lanceAndSeam(c.W, c.H, c.L, t, x, cm, c.lanceAt));
+      if (c.dimples) for (const dx of [.45, .9]) {                       // two embossed dimples near the front of the box
+        const d = new THREE.Mesh(new THREE.SphereGeometry(.12, 12, 8), cm); d.scale.z = .5; d.position.set(x + c.L - dx, c.H * .6, c.W / 2); add(d);
+      }
       const sp = new THREE.Mesh(new THREE.BoxGeometry(c.L * .75, t * .8, c.W - 2 * t - .06), cm);      // spring tongue inside the box
       sp.rotation.z = .1; sp.position.set(x + c.L * .4, t + (c.H - 2 * t) * .22, 0); add(sp);
-    } else {
-      add(tipPin(c.W, c.H, c.L, c.tip || c.L * .1, x, q.mid.box ? q.mid.H / 2 : c.H / 2 + t, cm));
+    } else if (c.type !== 'none') {
+      add(tipPin(c.W, c.H, c.L, c.tip || c.L * .1, x, q.pinY != null ? q.pinY : q.mid.box ? q.mid.H / 2 : c.H / 2 + t, cm, c.tipR));
+      if (c.seam) {                                                      // rolled pin: seam line along the top
+        const sm = new THREE.Mesh(new THREE.BoxGeometry(c.L - (c.tip || 0), .02, .03), new THREE.MeshStandardMaterial({ color: 0x3c4147, roughness: .8 }));
+        sm.position.set(x + (c.L - (c.tip || 0)) / 2, (q.pinY != null ? q.pinY : 0) + c.H / 2 + .005, 0); add(sm);
+      }
     }
     if (showWire) {
       const inner = w => 2 * (w / 2 - t) - .02, od = Math.min(maxNum(p.ins) || q.ins.H * .7, inner(q.ins.W)), cu = Math.min(q.cu || od * .55, inner(q.cond.W));
