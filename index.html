@@ -1049,7 +1049,7 @@ const EQ = (() => {
   const tone = (n, m) => { const d = dot(n, LIGHT); return d > .75 ? m.l : d > .32 ? m.m : m.d; };
   const lerp = (a, b, t) => a + (b - a) * t;
   const clamp01 = t => Math.max(0, Math.min(1, t));
-  const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const ease = t => .5 - .5 * Math.cos(Math.PI * t);
 
   // Materials: light / mid / dark faces
   const M = {
@@ -1136,7 +1136,13 @@ const EQ = (() => {
   const circle = ([cx, cz], r, n = 16) => Array.from({ length: n }, (_, i) => [cx + r * Math.cos(i / n * 2 * Math.PI), cz + r * Math.sin(i / n * 2 * Math.PI)]);
   const along = (A, B, t) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t)];
 
-  return { P, setView, norm, prism, XZ, XY, box, tube, faceText, plate, shadow, rot, strip, circle, along, M, lerp, clamp01, ease, f, pts };
+  // Camera for a zoom state z (0 = overview, 1 = close-up). Scale is interpolated geometrically (constant zoom rate on screen) and the
+  // point being looked at glides from A (shown at S0) to F (shown at S1), so the move reads as one smooth pan-and-zoom.
+  const camera = (z, s0, A, S0, s1, F, S1) => {
+    const zs = s0 * Math.pow(s1 / s0, z), c = [lerp(A[0], F[0], z), lerp(A[1], F[1], z)], p = [lerp(S0[0], S1[0], z), lerp(S0[1], S1[1], z)];
+    return { zs, T: [p[0] - c[0] * zs, p[1] - c[1] * zs] };
+  };
+  return { camera, P, setView, norm, prism, XZ, XY, box, tube, faceText, plate, shadow, rot, strip, circle, along, M, lerp, clamp01, ease, f, pts };
 })();
 
 /* ---------- Fig. 01: Wire stripper (Engineer PA-06) ---------- */
@@ -1396,7 +1402,7 @@ const PA14 = (() => {
     // camera: whole tool, or a close-up of the holes
     const s0 = .98, T0 = [60 - (-47) * s0, 4 - 57 * s0];
     const s1 = 2.5, F = P([hole.x, 4, 0]), T1 = [20 - F[0] * s1, 20 - F[1] * s1];
-    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
+    const { zs, T } = EQ.camera(st.zoom, s0, [-47, 57], [60, 4], s1, F, [20, 20]);
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const wrap = s => toolOp < .99 ? `<g opacity="${f(toolOp)}">${s}</g>` : s;
     const ghost = st.insp < .5 && st.wireOn > .01 ? `<g opacity=".45">${wire(false)}${slug()}</g>` : '';   // what's behind the jaws, seen through
@@ -1449,7 +1455,7 @@ const PA14 = (() => {
     <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
   return {
-    id: 'pa14', fig: 1, name: 'Wire stripper', sub: 'Stripping holes 0.4–1.45 mm',
+    id: 'pa14', fig: 1, softStart: true, name: 'Wire stripper', sub: 'Stripping holes 0.4–1.45 mm',
     viewBox: [-215, -212, 600, 430], look: 'real', defs,
     holes: HOLES,
     holeLabel: h => `AWG ${h.str} stranded / AWG ${h.sol} solid`,
@@ -1463,10 +1469,10 @@ const PA14 = (() => {
       { title: 'Get to know the wire stripper', dur: 900,
         body: 'A precision stripper with seven holes from 0.4 to 1.45 mm, for AWG 30–18 stranded and AWG 28–16 solid wire. The spring opens the jaws for you, and the tip cuts wire to length.',
         tags: ['holes', 'mm', 'awg', 'cutter', 'screw', 'spring', 'handles'], keys: [] },
-      { title: 'Pick the hole', dur: 1300,
+      { title: 'Pick the hole', dur: 1800,
         body: 'Use the {H} mm hole for AWG {S} stranded or AWG {D} solid wire. The jaws show the hole size in mm above the holes and the solid-wire AWG below; for stranded wire, go by the Wire size box.',
         caution: 'Too small a hole cuts strands; too big leaves insulation behind. If the cut isn\'t clean, try the next size up.',
-        tags: ['hole'], hot: ['hole'], keys: [[.6, { glow: 1, zoom: 1 }]] },
+        tags: ['hole'], hot: ['hole'], keys: [[.7, { glow: 1 }], [.92, { zoom: 1 }]] },
       { title: 'Insert the wire', dur: 1800,
         body: 'Hold the wire and push its end through the hole until it sticks out the far side of the jaws by the strip length you need. For a crimp terminal, that\'s the length on its datasheet.',
         tags: ['wire', 'hole'], hot: ['wire'], keys: [[0, { wireOn: 1 }], [.85, K_INSERT], [1, { glow: 0 }]] },
@@ -1485,7 +1491,7 @@ const PA14 = (() => {
       { title: 'Check the strip', dur: 1800,
         body: 'Look at the end: the strands should be straight and complete, with none nicked or cut, and the insulation cut square at the strip length. Twist stranded wire gently so the strands stay together.',
         caution: 'Cut or nicked strands weaken the crimp. Trim the end and strip again, using the next hole up if it keeps happening.',
-        tags: ['bare', 'edge', 'strands'], keys: [[0, { slugOn: 0 }], [.3, { zoom: 0 }], [1, { toolFade: .04, insp: 1 }]] },
+        tags: ['bare', 'edge', 'strands'], keys: [[0, { slugOn: 0 }], [.7, { zoom: 0 }], [1, { toolFade: .04, insp: 1 }]] },
     ],
   };
 })();
@@ -2020,7 +2026,7 @@ const PAD11 = (() => {
     // overview: whole tool centred; close-up: the dies, leaving room for the magnifier
     const s0 = 1.14, T0 = [85 - 97 * s0, 10 - 46 * s0];
     const s1 = 2.3, F = P([-16, 2, 0]), T1 = [-28 - F[0] * s1, 50 - F[1] * s1];
-    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
+    const { zs, T } = EQ.camera(st.zoom, s0, [97, 46], [85, 10], s1, F, [-28, 50]);
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const [toolBase, toolTop] = tool.split('@@PLATES@@');
     const plates = pr(UP_PLATE, RA, 4, FRONT, DIE, 'url(#pad-die)') + pr(LO_PLATE, RB, 8, FRONT, DIE, 'url(#pad-die)');
@@ -2101,7 +2107,7 @@ const PAD11 = (() => {
     vars: () => ({ C: dieName(SEL.c), I: dieName(SEL.i),
       M: SEL.c === SEL.i ? `Keep it in the ${dieName(SEL.i)} mm die but slide it further in` : `Move the terminal to the ${dieName(SEL.i)} mm die and push it in` }),
     picker: true,
-    id: 'pad11', fig: 2, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
+    id: 'pad11', fig: 2, softStart: true, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
     viewBox: [-215, -212, 600, 430],
     look: 'real', defs,
     base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 24, wY: 26, wOff: 9, slug: 0,
@@ -2122,11 +2128,11 @@ const PAD11 = (() => {
         body: 'Strip just enough for the bare strands to fill the first wing (the conductor barrel), with the insulation starting where the second wing begins. The magnifier shows the strip length against the terminal; the datasheet gives the exact figure, and you can check it against the scale on the head. Keep the strands straight and untwisted.',
         caution: 'Too short and the strands won\'t reach through the first wing; too long and bare wire ends up under the second wing. Nicked or missing strands make a weak crimp too: trim and strip again.',
         tags: ['wire', 'strip', 'scale'], hot: ['strip'],
-        keys: [[.2, { wireOn: 1, zoom: .35 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
-      { title: 'Pick the die', dur: 1100,
+        keys: [[.2, { wireOn: 1 }], [.7, { zoom: .35 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
+      { title: 'Pick the die', dur: 1700,
         body: 'Use the {C} mm die for the conductor barrel. For a terminal that isn\'t set up yet, measure the barrel width with its wings parallel and use the die that matches. If there\'s no exact match, round up: a 1.5 mm barrel goes in the 1.6 mm die.',
         tags: ['die16'], hot: ['die16'],
-        keys: [[0, { inset: 0, insetSide: 0, measure: 0, sideHot: 0 }], [.6, { glowC: 1, zoom: 1 }]] },
+        keys: [[0, { inset: 0, insetSide: 0, measure: 0, sideHot: 0 }], [.7, { glowC: 1 }], [.92, { zoom: 1 }]] },
       { title: 'Place the conductor barrel', dur: 2000,
         body: 'Set the terminal in the {C} mm die with its open wings pointing at the upper die, so the conductor barrel sits inside the die. Line the back edge of the barrel up with the chamfered edge of the upper die, so a small bellmouth forms. Close the handles just enough to hold it.',
         tags: ['terminal', 'die16'], hot: ['terminal'],
@@ -2153,7 +2159,7 @@ const PAD11 = (() => {
         body: 'Take the terminal out and check it: a small bellmouth at the back of the conductor barrel, strand ends just showing past it, and the insulation barrel holding insulation, not bare wire. Give it a firm tug; it shouldn\'t move.',
         caution: 'Strands outside the barrel, wings not closed, or a terminal that pulls off: cut it off and crimp a new one.',
         tags: ['bell', 'brush', 'insul'],
-        keys: [[0, { inset: 0, hotI: 0, dieAlpha: 0 }], [.3, { open: 1, ty: 30, zoom: 0 }], [1, K_INSPECT]] },
+        keys: [[0, { inset: 0, hotI: 0, dieAlpha: 0 }], [.3, { open: 1, ty: 30 }], [.7, { zoom: 0 }], [1, K_INSPECT]] },
       { title: 'Close and lock it', dur: 2200,
         body: 'When you\'re done, squeeze the handles shut and flick the lock switch back up. The tool stays closed, which protects the dies.',
         tags: ['lock'], hot: ['lock'],
@@ -2380,7 +2386,7 @@ const LUG = (() => {
     const shadowSvg = KT.shadow([[GRIP.map(gripA), RA], [GRIP.map(gripB), RB], [armA, RA], [armB, RB]], toolOp);
     const s0 = 1.15, T0 = [70 - 52 * s0, 6 - 30 * s0];
     const s1 = 2.2, F = P([n.x, 4, 0]), T1 = [-40 - F[0] * s1, 30 - F[1] * s1];
-    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
+    const { zs, T } = EQ.camera(st.zoom, s0, [52, 30], [70, 6], s1, F, [-40, 30]);
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const scene = KT.mat(this.viewBox) + shadowSvg + `<g class="eq-pin">${part(false)}</g>` + wrap(tool) + `<g class="eq-pin">${part(true)}</g>`;
     let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
@@ -2416,7 +2422,7 @@ const LUG = (() => {
     this.base.wY = t.s1 + 18;
   }
   return {
-    id: 'lug', fig: 3, name: 'Lug crimper', sub: 'Insulated terminals, 22–10 AWG',
+    id: 'lug', fig: 3, softStart: true, name: 'Lug crimper', sub: 'Insulated terminals, 22–10 AWG',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: FRONT_KIT.defs,
     holes: NESTS, defaultHole: 1, holeLabel: h => `${h.name} terminal: ${h.awg} AWG (${h.mm2} mm²)`,
     holeNote: h => `Uses the ${h.name.toLowerCase()} nest. Match the nest to the terminal's sleeve colour.`,
@@ -2429,9 +2435,9 @@ const LUG = (() => {
       { title: 'Get to know the lug crimper', dur: 1000,
         body: 'A ratcheting crimper for insulated terminals: ring and spade lugs, butt connectors and disconnects. The three nests match the terminal sleeve colours: red for 22–18 AWG, blue for 16–14 AWG and yellow for 12–10 AWG.',
         tags: ['nests', 'jaws', 'ratchet', 'plates', 'handles'], keys: [] },
-      { title: 'Pick the nest', dur: 1200,
+      { title: 'Pick the nest', dur: 1700,
         body: 'Use the nest that matches the colour of the terminal\'s sleeve, here {N} for {A} AWG wire. The colour dots on the jaw mark each nest.',
-        tags: ['nest'], hot: ['nest'], keys: [[.6, { glow: 1, zoom: 1 }]] },
+        tags: ['nest'], hot: ['nest'], keys: [[.7, { glow: 1 }], [.92, { zoom: 1 }]] },
       { title: 'Strip the wire', dur: 1600,
         body: 'Strip the wire to the length of the terminal\'s metal barrel, so the bare strands fill the barrel and the insulation reaches the sleeve. The magnifier shows the strip length against the terminal.',
         caution: 'Too long and bare wire shows past the sleeve; too short and the strands don\'t fill the barrel.',
@@ -2452,7 +2458,7 @@ const LUG = (() => {
       { title: 'Check the crimp', dur: 1900,
         body: 'Take the terminal out. The crimp indent should be in the middle of the barrel, the sleeve undamaged, and no strands outside it. Give the wire a firm tug; it shouldn\'t move.',
         caution: 'Loose wire, a split sleeve or strands showing: cut it off and crimp a new terminal.',
-        tags: ['indent', 'sleeve'], keys: [[0, { inset: 0 }], [.3, { open: 1, zoom: 0, ty: 30 }], [1, { toolFade: .05, insp: 1 }]] },
+        tags: ['indent', 'sleeve'], keys: [[0, { inset: 0 }], [.3, { open: 1, ty: 30 }], [.7, { zoom: 0 }], [1, { toolFade: .05, insp: 1 }]] },
     ],
   };
 })();
@@ -2603,7 +2609,7 @@ const FERRULE = (() => {
     const shadowSvg = KT.shadow([[GRIP.map(gripA), RA], [GRIP.map(gripB), RB], [armA, RA], [armB, RB], [ring, R0], [NECK, R0]], toolOp);
     const s0 = 1.25, T0 = [60 - 40 * s0, 6 - 22 * s0];
     const s1 = 2.4, F = P([HEAD[0], 4, 0]), T1 = [-40 - F[0] * s1, 30 - F[1] * s1];
-    const zs = lerp(s0, s1, st.zoom), T = [lerp(T0[0], T1[0], st.zoom), lerp(T0[1], T1[1], st.zoom)];
+    const { zs, T } = EQ.camera(st.zoom, s0, [40, 22], [60, 6], s1, F, [-40, 30]);
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const scene = KT.mat(this.viewBox) + shadowSvg + `<g class="eq-pin">${part(false)}</g>` + wrap(tool) + `<g class="eq-pin">${part(true)}</g>`;
     let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
@@ -2638,7 +2644,7 @@ const FERRULE = (() => {
     this.base.wY = fe.c1 + 16;
   }
   return {
-    id: 'ferrule', fig: 4, name: 'Ferrule crimper', sub: 'Self-adjusting, 0.25–6 mm²',
+    id: 'ferrule', fig: 4, softStart: true, name: 'Ferrule crimper', sub: 'Self-adjusting, 0.25–6 mm²',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: FRONT_KIT.defs,
     holes: SIZES, defaultHole: 3, holeLabel: h => `${h.mm2} mm² ferrule (about AWG ${h.awg})`,
     holeNote: h => `Collar colour shown per DIN 46228-4; colour codes vary by brand, so check the box. The tool adjusts itself to the ferrule.`,
@@ -2662,7 +2668,7 @@ const FERRULE = (() => {
       { title: 'Put the ferrule in the jaw', dur: 1800,
         body: 'With the tool open, put the ferrule\'s metal tube into the crimp opening from the front, with the collar just outside the jaws.',
         tags: ['opening', 'ferrule'], hot: ['opening'],
-        keys: [[0, { inset: 0, side: 0 }], [.25, { glow: 1, zoom: 1 }], [.75, K_PLACE], [1, { glow: 0 }]] },
+        keys: [[0, { inset: 0, side: 0 }], [.25, { glow: 1 }], [.55, { zoom: 1 }], [.75, K_PLACE], [1, { glow: 0 }]] },
       { title: 'Press the handle', dur: 2600,
         body: 'Squeeze the handles all the way. The four jaws close evenly and square the tube onto the strands; the ratchet clicks and releases itself when the crimp is complete.',
         tags: ['handles', 'ratchet'], hot: ['handles'],
@@ -2671,7 +2677,7 @@ const FERRULE = (() => {
       { title: 'Check the crimp', dur: 1900,
         body: 'Take the ferrule out. The tube should be crimped square along its length, the strands flush with the end, and the collar sitting on the insulation.',
         caution: 'Strands sticking out past the tube can short to the next terminal. Trim them flush or crimp a new ferrule.',
-        tags: ['square', 'ends', 'collar'], keys: [[0, { inset: 0 }], [.3, { open: 1, zoom: 0, ty: 30 }], [1, { toolFade: .05, insp: 1 }]] },
+        tags: ['square', 'ends', 'collar'], keys: [[0, { inset: 0 }], [.3, { open: 1, ty: 30 }], [.7, { zoom: 0 }], [1, { toolFade: .05, insp: 1 }]] },
       { title: 'Tension test', dur: 1500,
         body: 'Hold the ferrule and pull the wire firmly. It shouldn\'t move or pull out. If it does, cut it off and crimp a new ferrule.',
         tags: ['collar'], keys: [[.3, { ix: -14 }], [.6, { ix: -6 }], [1, { ix: -10 }]], flashes: [[.35, 'Pull'], [.7, 'Pull']] },
@@ -5183,9 +5189,10 @@ function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) 
     const props = new Set(keys.flatMap(([, o]) => Object.keys(o)));
     for (const p of props) {
       let t0 = 0, v0 = prev[p], val = v0;
-      for (const [kt, o] of keys) {
-        if (!(p in o)) continue;
-        const v1 = o[p];
+      const list = keys.filter(([, o]) => p in o).map(([kt, o]) => [kt, o[p]]);
+      if (tool.softStart && list.length && list[0][0] === 0 && typeof list[0][1] === 'number' && typeof prev[p] === 'number' && list[0][1] !== prev[p])
+        list[0] = [Math.min(.18, (list[1] ? list[1][0] : 1) * .5), list[0][1]];    // a jump at t = 0 becomes a quick fade
+      for (const [kt, v1] of list) {
         if (tt >= kt) { t0 = kt; v0 = v1; val = v1; continue; }
         const u = EQ.clamp01((tt - t0) / ((kt - t0) || 1));
         val = typeof v1 === 'number' ? v0 + (v1 - v0) * EQ.ease(u) : v0;
