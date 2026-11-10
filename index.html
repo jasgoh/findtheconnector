@@ -4572,21 +4572,21 @@ const CONN_PARTS = [
     { g: 'Male', mpn: '201447-1400', lcsc: 'C724083', awg: '24–26', ins: '1.30 mm max', plating: 'Copper alloy, tin',
       // 15.2 overall, 0.64 pin and ~4.2 crimp end are from Molex sales drawing 2014471000. The section split, the open window with its tongue,
       // the see-through gap, the funnel, the dimples and the barrel width (about 1.75) were measured off photos of the real terminal.
-      proc: { t: .12, cu: .5, vest: .3, serr: 3, src: 'Molex 2014471000 drawing (15.2 overall, 0.64 pin) + photos of the real part',
+      proc: { ref: 'nanoM', t: .12, cu: .5, vest: .3, serr: 3, src: 'Molex 2014471000 drawing (15.2 overall, 0.64 pin) + reference photos',
         ins: { L: 1.2, W: 2.1, H: 1.9, splay: .3 }, gap: .9, flare: true, cond: { L: 2.2, W: 1.3, H: 1.4 }, mid: { L: .6, W: 1.3 },
         barrel: [ { type: 'channel', L: 1.8, W: 1.75, H: 1.6 }, { type: 'window', L: 2.3, W: 1.75, H: 1.6, tongue: { L: 1.5, W: .9, at: .7 } },
                   { type: 'box', L: .7, W: 1.75, H: 1.6 }, { type: 'cone', L: 1.0, W: 1.75, H: 1.6, W1: .64 } ],
         barrelDimples: [.2, 3.2, 4.0], pinY: .8,
         contact: { type: 'pin', L: 4.2, W: .64, H: .64, tip: 1.1, tipR: .3 } },
-      look: 'A short pointed 0.64 mm pin, a funnel, then a long 1.75 mm barrel with an open window showing a tongue and a see-through gap, dimples on the side, a serrated crimp and a wide insulation grip. 15.2 mm long.' },
+      look: 'A 0.64 mm pin with a rounded tip, a shoulder, then a long 1.75 mm box: closed top plate at the rear, a window with a retention lance and a raised tab at the front, a small hole low on the wall; then small ribbed conductor wings and tall flared insulation wings. 15.2 mm long.' },
     { g: 'Female', mpn: '105300-1100', lcsc: 'C177226', awg: '24–26', ins: '1.30 mm max', plating: 'Copper alloy, tin',
       // 12.63 overall and ~4.2 crimp end are from Molex sales drawing 2004570710. The split between sections, the open window with brass rails,
       // the copper tab, the bell-mouths, the serrations, the dimples and the lance position were measured off photos of the real terminal.
-      proc: { t: .12, cu: .5, vest: .27, serr: 3, src: 'Molex 2004570710 drawing (12.63 overall) + photos of the real part',
-        ins: { L: 1.75, W: 2.1, H: 2.1, splay: .3 }, gap: .9, flare: true, cond: { L: 1.56, W: 1.15, H: 1.3 },
+      proc: { ref: 'nanoF', t: .12, cu: .5, vest: .27, serr: 3, src: 'Molex 2004570710 drawing (12.63 overall) + reference photo',
+        ins: { L: 1.75, W: 2.1, H: 2.0, splay: .3 }, gap: .9, flare: true, cond: { L: 1.56, W: 1.15, H: 1.3 },
         mid: { L: 1.65, W: 1.0, H: 1.15, W1: 1.2, H1: 1.3 }, neck: { L: 2.0, W: 1.1, H: 1.2, tab: { L: 1.0, W: .6 } },
         contact: { type: 'box', L: 4.5, W: 1.1, H: 1.2, lanceAt: .8, dimples: true } },
-      look: 'A long thin box about 1.1 mm wide with two small dimples, an open window crossed by thin brass rails, then a serrated conductor crimp and a wide, round insulation grip. 12.6 mm long.' } ] },
+      look: 'A long open channel about 1.1 mm wide with a notched tip, two small holes in each wall and a spring lance inside, two small ears, upright ribbed conductor wings and tall flared flat insulation wings. 12.6 mm long.' } ] },
   { fam: 'Dupont (2.54 mm)', maker: 'Generic', pitch: 2.54, parts: [
     { g: 'Male', mpn: 'Dupont male pin', lcsc: '', awg: '22–28 (typ.)', ins: '≈1.6 mm max', plating: 'Tin (typical; generic part)',
       // Generic part with no manufacturer drawing: every size is measured off photos of the real pin, scaled so the pin is the standard 0.64 mm.
@@ -4797,7 +4797,115 @@ const CONN3D = (() => {
     seam.position.set(x + L / 2, H + .005, 0); out.push(seam);
     return out;
   }
+  // ----- Nano-Fit male, modelled on the reference photos of the real terminal -----
+  // From the wire end: carrier stub, tall flared insulation wings, web, conductor wings, short neck, a long box (closed rear half with a top plate,
+  // front half with a window, a raised tab, a small hole and a retention lance), a shoulder, then the pin with a rounded tip.
+  function buildNanoM(p) {
+    const q = p.proc, t = q.t, grp = new THREE.Group(), tin = MET(), dark = DARK();
+    tin.side = dark.side = THREE.DoubleSide;
+    const add = m => (Array.isArray(m) ? m : [m]).forEach(o => grp.add(o));
+    const bx = (L, h, w, x, y, z, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(L, h, w), mat || tin); m.position.set(x + L / 2, y, z); return m; };
+    const wings = (Wf, H, L, x, sp) => {
+      const out = [bx(L, t, Wf, x, t / 2, 0)], th = Math.atan2(sp, H), hw = Math.hypot(sp, H);
+      for (const s of [-1, 1]) {
+        const m = bx(L, hw, t, x, 0, 0); m.rotation.x = s * th;
+        m.position.set(x + L / 2, t / 2 + Math.cos(th) * hw / 2, s * (Wf / 2 + Math.sin(th) * hw / 2)); out.push(m);
+      }
+      return out;
+    };
+    const at = {}; let x = 0;
+    if (q.vest) { add(bx(q.vest, t, q.cond.W * .5, 0, t / 2, 0)); x += q.vest; }
+    at.ins = x; add(wings(1.4, q.ins.H, q.ins.L, x, .38)); x += q.ins.L;
+    add(wings(1.15, .45, q.gap, x, .06)); x += q.gap;
+    at.cond = x; add(wings(1.15, q.cond.H, q.cond.L, x, .06));
+    for (let i = 0; i < (q.serr || 0); i++) add(bx(.1, .05, 1.15 - 2 * t - .12, x + q.cond.L * (i + 1) / (q.serr + 1) - .05, t + .02, 0));
+    x += q.cond.L;
+    add(wings(1.15, .55, q.mid.L, x, .04)); x += q.mid.L;                          // short neck into the box
+    const bw = q.barrel[0].W, H = q.barrel[0].H, Lb = q.barrel.reduce((a, b) => a + b.L, 0) - q.barrel[q.barrel.length - 1].L, wz = bw / 2 - t / 2;
+    const w0 = 2.7, w1 = 4.3;                                                      // window runs from w0 to w1 along the box
+    const prof = [[0, 0], [0, H], [w0 - .4, H], [w0 - .4, H + .45], [w0, H + .45], [w0, H], [Lb, H], [Lb, 0]];
+    for (const s of [-1, 1]) {                                                     // side walls with the rectangular window and a small lower hole
+      const sh = new THREE.Shape(); prof.forEach(([a, b], i) => i ? sh.lineTo(a, b) : sh.moveTo(a, b));
+      const win = new THREE.Path(); win.moveTo(w0 + .1, .5); win.lineTo(w1, .5); win.lineTo(w1, H - .2); win.lineTo(w0 + .1, H - .2); win.lineTo(w0 + .1, .5); sh.holes.push(win);
+      const hole = new THREE.Path(); hole.absarc((w0 + w1) / 2, .25, .09, 0, Math.PI * 2, true); sh.holes.push(hole);
+      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false, curveSegments: 12 }), tin);
+      m.position.set(x, 0, s * wz - t / 2); add(m);
+    }
+    add(bx(Lb, t, bw, x, t / 2, 0));                                               // floor
+    add(bx(w0 - .05, t, bw, x, H - t / 2, 0));                                     // top plate over the closed rear half
+    add(bx(Lb - w1, t, bw, x + w1, H - t / 2, 0));                                 // and a strip over the front edge
+    const lance = bx(1.3, t, bw * .5, 0, 0, 0, dark); lance.rotation.z = .3; lance.position.set(x + w0 + .1 + .65, .75, 0); add(lance);   // retention lance seen through the window
+    const seam = bx(w0, .02, .03, x, H + .005, 0, new THREE.MeshStandardMaterial({ color: 0x3c4147, roughness: .8 })); add(seam);
+    x += Lb;
+    const fl = q.barrel[q.barrel.length - 1]; add(frustum(bw, H, fl.W1, fl.L, x, H / 2, tin)); x += fl.L;   // shoulder down to the pin
+    at.contact = x; const c = q.contact;
+    add(tipPin(c.W, c.H, c.L, c.tip, x, q.pinY, tin, c.tipR));
+    if (showWire) {
+      const inner = w => 2 * (w / 2 - t) - .02, od = Math.min(maxNum(p.ins) || q.ins.H * .7, inner(1.4)), cu = Math.min(q.cu || od * .55, inner(1.15));
+      const ie = at.ins + q.ins.L, ce = at.cond + q.cond.L + .25;
+      const im = new THREE.Mesh(new THREE.CylinderGeometry(od / 2, od / 2, 14, 24), new THREE.MeshStandardMaterial({ color: 0xc9362a, roughness: .6 }));
+      im.rotation.z = Math.PI / 2; im.position.set(ie - 7, t + od / 2 + .02, 0); grp.add(im);
+      const cw = new THREE.Mesh(new THREE.CylinderGeometry(cu / 2, cu / 2, ce - ie, 16), new THREE.MeshStandardMaterial({ color: 0xd98a4e, metalness: .6, roughness: .35 }));
+      cw.rotation.z = Math.PI / 2; cw.position.set((ie + ce) / 2, t + cu / 2 + .02, 0); grp.add(cw);
+    }
+    const bb = new THREE.Box3().setFromObject(grp), ctr = bb.getCenter(new THREE.Vector3());
+    grp.children.forEach(ch => ch.position.sub(ctr));
+    return grp;
+  }
+  // ----- Nano-Fit female, modelled on the reference photo of the real terminal -----
+  // From the wire end: carrier stub, tall flared insulation wings (flat plates in a V), a low rolled web, upright conductor wings with a
+  // ribbed outer face, two small ears and a notch, then a long open channel with a notched tip, two holes per wall, a floor block and a spring lance.
+  function buildNanoF(p) {
+    const q = p.proc, t = q.t, grp = new THREE.Group(), tin = MET(), dark = DARK();
+    tin.side = dark.side = THREE.DoubleSide;
+    const add = m => (Array.isArray(m) ? m : [m]).forEach(o => grp.add(o));
+    const bx = (L, h, w, x, y, z, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(L, h, w), mat || tin); m.position.set(x + L / 2, y, z); return m; };
+    // flat floor plus two flat wings leaning outwards by sp at the tips (a V, not a round U)
+    const wings = (Wf, H, L, x, sp) => {
+      const out = [bx(L, t, Wf, x, t / 2, 0)], th = Math.atan2(sp, H), hw = Math.hypot(sp, H);
+      for (const s of [-1, 1]) {
+        const m = bx(L, hw, t, x, 0, 0); m.rotation.x = s * th;
+        m.position.set(x + L / 2, t / 2 + Math.cos(th) * hw / 2, s * (Wf / 2 + Math.sin(th) * hw / 2)); out.push(m);
+      }
+      return out;
+    };
+    const at = {}; let x = 0;
+    if (q.vest) { add(bx(q.vest, t, q.cond.W * .5, 0, t / 2, 0)); x += q.vest; }
+    at.ins = x; add(wings(1.4, q.ins.H, q.ins.L, x, .38)); x += q.ins.L;          // insulation wings: tall, flat-topped, flared
+    add(wings(1.15, .45, q.gap, x, .06)); x += q.gap;                              // low web joining the two crimp sections
+    at.cond = x; add(wings(1.15, q.cond.H, q.cond.L, x, .06));                     // conductor wings: upright flat plates
+    for (let i = 0; i < (q.serr || 0); i++) add(bx(.1, .05, 1.15 - 2 * t - .12, x + q.cond.L * (i + 1) / (q.serr + 1) - .05, t + .02, 0));
+    for (let i = 0; i < 4; i++) for (const s of [-1, 1]) {                         // slanted ribs embossed on the outside of the conductor wings
+      const r = bx(.1, .6, .05, x + .22 + i * .3, t + .42, s * (1.15 / 2 + .09), tin); r.rotation.z = -.35; add(r);
+    }
+    x += q.cond.L;
+    at.mid = x; const W = q.contact.W, H = q.contact.H, Lw = q.mid.L + q.neck.L + q.contact.L, wz = W / 2 - t / 2;
+    const prof = [[0, 0], [0, .55], [.1, .55], [.1, H + .15], [.45, H + .15], [.45, .55], [.95, .55], [.95, H + .2], [1.3, H + .2], [1.65, H], [Lw - .55, H], [Lw, H - .45], [Lw, 0]];
+    for (const s of [-1, 1]) {                                                     // side walls: stepped rear with two ears, chamfered tip, two holes
+      const sh = new THREE.Shape(); prof.forEach(([a, b], i) => i ? sh.lineTo(a, b) : sh.moveTo(a, b));
+      for (const hx of [Lw - 1.3, Lw - .8]) { const h = new THREE.Path(); h.absarc(hx, .62, .1, 0, Math.PI * 2, true); sh.holes.push(h); }
+      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false, curveSegments: 12 }), tin);
+      m.position.set(x, 0, s * wz - t / 2); add(m);
+    }
+    add(bx(Lw - .45, t, W, x, t / 2, 0));                                          // channel floor, stopping short of the tip
+    add(bx(.3, .35, .35, x + Lw - .3, .175, 0));                                   // small block at the very front
+    const lance = bx(1.9, t, W * .5, 0, 0, 0, dark); lance.rotation.z = -.25;      // spring lance: free end at the rear, hinged near the front
+    lance.position.set(x + Lw - 3.3 + .95, t + .3, 0); add(lance);
+    if (showWire) {
+      const inner = w => 2 * (w / 2 - t) - .02, od = Math.min(maxNum(p.ins) || q.ins.H * .7, inner(1.4)), cu = Math.min(q.cu || od * .55, inner(1.15));
+      const ie = at.ins + q.ins.L, ce = at.cond + q.cond.L + .25;
+      const im = new THREE.Mesh(new THREE.CylinderGeometry(od / 2, od / 2, 14, 24), new THREE.MeshStandardMaterial({ color: 0xc9362a, roughness: .6 }));
+      im.rotation.z = Math.PI / 2; im.position.set(ie - 7, t + od / 2 + .02, 0); grp.add(im);
+      const cw = new THREE.Mesh(new THREE.CylinderGeometry(cu / 2, cu / 2, ce - ie, 16), new THREE.MeshStandardMaterial({ color: 0xd98a4e, metalness: .6, roughness: .35 }));
+      cw.rotation.z = Math.PI / 2; cw.position.set((ie + ce) / 2, t + cu / 2 + .02, 0); grp.add(cw);
+    }
+    const bb = new THREE.Box3().setFromObject(grp), ctr = bb.getCenter(new THREE.Vector3());
+    grp.children.forEach(ch => ch.position.sub(ctr));
+    return grp;
+  }
   function buildProc(p) {
+    if (p.proc.ref === 'nanoF') return buildNanoF(p);
+    if (p.proc.ref === 'nanoM') return buildNanoM(p);
     const q = p.proc, t = q.t, grp = new THREE.Group();
     const tin = q.matte ? MATT() : MET(), cm = q.plate === 'gold' ? GOLD() : tin;
     tin.side = cm.side = THREE.DoubleSide;
