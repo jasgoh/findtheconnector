@@ -146,3 +146,4 @@ Series, wire range, insulation OD and plating come from the LCSC listings. The M
 terminal is that real mesh reshaped section by section (insulation wings, conductor wings, transition/barrel,
 contact) to its family's size (`sec` in `CONN_PARTS`); those sizes are approximate and the manufacturer's sales
 drawing is the reference. The RCY/SM female keeps the real rear half with a modelled slit tube socket.
+The JST PH female (SPH-002T-P0.5S) is a real STEP model, tessellated from the manufacturer file and embedded as `MF_MESH.ph` (`real: 'ph'` in `CONN_PARTS`).
