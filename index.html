@@ -1045,6 +1045,7 @@ const EQ = (() => {
   let LIGHT = norm([0.2, 0.55, 1]);
   function setView(v) { PROJ = v.P; VIEW = v.view; LIGHT = norm(v.light); }
   const f = n => Math.round(n * 10) / 10;
+  const fc = n => Math.round(n * 10000) / 10000;     // camera transforms need fine precision: rounding the scale to 0.1 made zooms step in visible jumps
   const pts = arr => arr.map(p => { const [a, b] = P(p); return f(a) + ',' + f(b); }).join(' ');
   const tone = (n, m) => { const d = dot(n, LIGHT); return d > .75 ? m.l : d > .32 ? m.m : m.d; };
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -1142,7 +1143,7 @@ const EQ = (() => {
     const zs = s0 * Math.pow(s1 / s0, z), c = [lerp(A[0], F[0], z), lerp(A[1], F[1], z)], p = [lerp(S0[0], S1[0], z), lerp(S0[1], S1[1], z)];
     return { zs, T: [p[0] - c[0] * zs, p[1] - c[1] * zs] };
   };
-  return { camera, P, setView, norm, prism, XZ, XY, box, tube, faceText, plate, shadow, rot, strip, circle, along, M, lerp, clamp01, ease, f, pts };
+  return { camera, P, setView, norm, prism, XZ, XY, box, tube, faceText, plate, shadow, rot, strip, circle, along, M, lerp, clamp01, ease, f, fc, pts };
 })();
 
 /* ---------- Fig. 01: Wire stripper (Engineer PA-06) ---------- */
@@ -1417,7 +1418,7 @@ const PA14 = (() => {
       scene += `<g class="eq-noink" opacity="${f(Math.min(1, st.turnArrow * 2))}"><polyline points="${ptsA.map(p => p.map(f).join(',')).join(' ')}" fill="none" stroke="var(--mat)" stroke-width="3.2" stroke-linecap="round"/>`
         + `<polygon points="${head.map(p => p.map(f).join(',')).join(' ')}" fill="var(--mat)"/></g>`;
     }
-    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
+    let svg = `<g transform="translate(${EQ.fc(T[0])} ${EQ.fc(T[1])}) scale(${EQ.fc(zs)})">${scene}</g>`;
 
     const IC = [278, -122], IR = 76;
     if (st.inset > .02) {
@@ -2035,7 +2036,7 @@ const PAD11 = (() => {
     let scene = mat + shadowSvg + wrap(toolBase) + `<g class="eq-pin">${assembly(false)}</g>`;
     scene += wrap(`<g style="opacity:${f(seeThru)}">${plates}</g>` + toolTop);
     scene += `<g class="eq-pin">${assembly(true)}</g>`;
-    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
+    let svg = `<g transform="translate(${EQ.fc(T[0])} ${EQ.fc(T[1])}) scale(${EQ.fc(zs)})">${scene}</g>`;
 
     // magnifier, with a dashed line to the die it shows
     const IC = [278, -122], IR = 76;
@@ -2128,7 +2129,7 @@ const PAD11 = (() => {
         body: 'Strip just enough for the bare strands to fill the first wing (the conductor barrel), with the insulation starting where the second wing begins. The magnifier shows the strip length against the terminal; the datasheet gives the exact figure, and you can check it against the scale on the head. Keep the strands straight and untwisted.',
         caution: 'Too short and the strands won\'t reach through the first wing; too long and bare wire ends up under the second wing. Nicked or missing strands make a weak crimp too: trim and strip again.',
         tags: ['wire', 'strip', 'scale'], hot: ['strip'],
-        keys: [[.2, { wireOn: 1 }], [.7, { zoom: .35 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
+        keys: [[.2, { wireOn: 1 }], [.3, { inset: 1, insetSide: 1, measure: 1, sideHot: 1 }], [1, { slug: 1 }]] },
       { title: 'Pick the die', dur: 1700,
         body: 'Use the {C} mm die for the conductor barrel. For a terminal that isn\'t set up yet, measure the barrel width with its wings parallel and use the die that matches. If there\'s no exact match, round up: a 1.5 mm barrel goes in the 1.6 mm die.',
         tags: ['die16'], hot: ['die16'],
@@ -2389,7 +2390,7 @@ const LUG = (() => {
     const { zs, T } = EQ.camera(st.zoom, s0, [52, 30], [70, 6], s1, F, [-40, 30]);
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const scene = KT.mat(this.viewBox) + shadowSvg + `<g class="eq-pin">${part(false)}</g>` + wrap(tool) + `<g class="eq-pin">${part(true)}</g>`;
-    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
+    let svg = `<g transform="translate(${EQ.fc(T[0])} ${EQ.fc(T[1])}) scale(${EQ.fc(zs)})">${scene}</g>`;
     const IC = [278, -122], IR = 76;
     if (st.inset > .02) {
       if (st.side < .5) { const [dx, dy] = cam(P([nest[0], FRONT, nest[1]])); svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`; }
@@ -2612,7 +2613,7 @@ const FERRULE = (() => {
     const { zs, T } = EQ.camera(st.zoom, s0, [40, 22], [60, 6], s1, F, [-40, 30]);
     const cam = ([x, y]) => [x * zs + T[0], y * zs + T[1]];
     const scene = KT.mat(this.viewBox) + shadowSvg + `<g class="eq-pin">${part(false)}</g>` + wrap(tool) + `<g class="eq-pin">${part(true)}</g>`;
-    let svg = `<g transform="translate(${f(T[0])} ${f(T[1])}) scale(${f(zs)})">${scene}</g>`;
+    let svg = `<g transform="translate(${EQ.fc(T[0])} ${EQ.fc(T[1])}) scale(${EQ.fc(zs)})">${scene}</g>`;
     const IC = [278, -122], IR = 76;
     if (st.inset > .02) {
       if (st.side < .5) { const [dx, dy] = cam(P([HEAD[0], FRONT, HEAD[1]])); svg += `<line class="eq-inset-link" opacity="${f(st.inset)}" x1="${f(dx)}" y1="${f(dy)}" x2="${f(IC[0] - IR * .85)}" y2="${f(IC[1] + IR * .5)}"/>`; }
@@ -2776,7 +2777,7 @@ const SOLDER = (() => {
     // camera: zoom about a focus point
     const s = lerp(1, st.zs || 1.8, st.zoom || 0), fx = st.fx || 0, fy = st.fy || 0;
     const tx = 85 - fx * s + (fx - 85) * (1 - (st.zoom || 0)) * 0, ty = 3 - fy * s;
-    const T = (st.zoom || 0) > .001 ? `translate(${f(lerp(0, 85 - fx * s, st.zoom))} ${f(lerp(0, 3 - fy * s, st.zoom))}) scale(${f(s)})` : '';
+    const T = (st.zoom || 0) > .001 ? `translate(${EQ.fc(lerp(0, 85 - fx * s, st.zoom))} ${EQ.fc(lerp(0, 3 - fy * s, st.zoom))}) scale(${EQ.fc(s)})` : '';
     return `<g transform="${T}">${body}</g>`;
   }
   function mat(vb) {
@@ -3195,7 +3196,7 @@ const MK = (() => {
   }
   // camera: zoom about a focus point (fx, fy) onto the middle of the view
   const camT = st => { const z = st.zoom || 0, s = lerp(1, st.zs || 2, z); return { s, tx: lerp(0, 85 - (st.fx || 0) * s, z), ty: lerp(0, 3 - (st.fy || 0) * s, z) }; };
-  const scene = (st, body) => { const c = camT(st); return `<g transform="translate(${f(c.tx)} ${f(c.ty)}) scale(${f(c.s)})">${body}</g>`; };
+  const scene = (st, body) => { const c = camT(st); return `<g transform="translate(${EQ.fc(c.tx)} ${EQ.fc(c.ty)}) scale(${EQ.fc(c.s)})">${body}</g>`; };
   const pt = (st, x, y) => { const c = camT(st); return [x * c.s + c.tx, y * c.s + c.ty]; };
   function inset(cx, cy, R, inner, label, id, op) {
     if (op < .02) return '';
