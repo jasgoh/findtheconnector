@@ -87,7 +87,7 @@ The tab has an Electrical / Mechanical switch; every tool sets `cat` ('electrica
 Mechanical:
 - Fig. 01, Power drill (Makita cordless drill, from the supplied CAD model): tasks for the battery, fitting a drill bit, and torque and speed.
   The drill is drawn from the CAD model at the same angle as the manual's picture. The parts that move (battery, release button, trigger, reversing
-  lever, speed lever, chuck sleeve, adjusting ring) are separate layers cut from the model, so the steps animate the real parts. The ring numbers
+  lever, speed lever, chuck sleeve, the three jaws, adjusting ring) are separate layers cut from the model, so the steps animate the real parts. The ring numbers
   (1 2 4 6 ... 18 and a dash), the logo, the red indicator, the check lamps and the drill bit are drawn over it. The text follows Makita's instruction manual.
 - Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
 - Fig. 03, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
