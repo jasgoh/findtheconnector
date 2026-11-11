@@ -3261,17 +3261,17 @@ const DRILL = (() => {
   const PANEL = poly([[690, 498], [708, 472], [1005, 474], [1032, 502], [1032, 537], [1008, 568], [712, 568], [692, 540]]);   // the long hexagonal recess on the side of the housing
   const REAR = poly([[1030, 386], [1061, 411], [1086, 446], [1098, 482], [1095, 522], [1086, 556], [1070, 585], [1050, 607], [1032, 619], [1028, 520]]);
   const GRIP = poly([[610, 850], [736, 812], [742, 1066], [626, 1066], [606, 905]]);
+  const LOWER = poly([[480, 742], [520, 772], [570, 792], [640, 800], [700, 796], [745, 786], [745, 1040], [800, 1040], [800, 1240], [420, 1240]]);
   const HEX = poly([[612, 752], [645, 735], [700, 742], [723, 785], [708, 806], [655, 830], [620, 812], [608, 775]]);
 
   // static part of the housing: everything that never moves, clipped to the outline
   const BODY_DETAIL = `<clipPath id="drBody"><path d="${BODY}"/></clipPath><g clip-path="url(#drBody)">`
     + `<path d="${REAR}" fill="url(#mk-black)" opacity=".92"/>`
-    + `<path d="${GRIP}" fill="url(#mk-rubber)"/>`
+    + `<path d="${LOWER}" fill="url(#mk-black)"/>`
     + [640, 668, 700].map(x => line(x, 860, x + 4, 1060, 'stroke="rgba(255,255,255,.13)" stroke-width="1.4"')).join('')
     + line(748, 800, 745, 1056, 'stroke="rgba(0,0,0,.45)" stroke-width="1.6"') + line(762, 800, 759, 1050, 'stroke="rgba(0,0,0,.35)" stroke-width="1.2"')
-    + `<path d="${HEX}" fill="url(#mk-rubber)" stroke="rgba(255,255,255,.12)"/>`
     + `<path d="${PANEL}" fill="url(#mk-black)" stroke="rgba(0,0,0,.8)"/>`
-    + text(820, 534, 'makita', 'mk-logo', 'text-anchor="middle" style="font-size:16px"')
+    + text(820, 534, 'Makita', 'mk-logo', 'text-anchor="middle" style="font-size:16px"')
     + [0, 1, 2, 3, 4].map(i => rect(966, 497 + i * 15, 1012, 504 + i * 15, 3, 'fill="#1a1c20" stroke="#4a4f56" stroke-width=".6"')).join('')
     + rect(800, 452, 850, 466, 6, 'fill="#0b0c0e"') + rect(785, 585, 835, 598, 6, 'fill="#0b0c0e"')
     + rect(962, 438, 1010, 452, 6, 'fill="#0b0c0e"') + rect(962, 460, 1010, 474, 6, 'fill="#0b0c0e"') + rect(950, 584, 992, 594, 5, 'fill="#0b0c0e"')
@@ -3287,17 +3287,17 @@ const DRILL = (() => {
     let s = '';
     const bx = -st.batt * 125, by = st.batt * 12, bp = st.bpress || 0, trig = st.trig || 0;
     // ----- battery cartridge (slides off the front of the foot)
-    s += `<g transform="translate(${fc(bx)} ${fc(by)})"><path d="${PACK}" fill="url(#mk-black)" ${OUT}/>`;
-    s += `<path d="${poly([[470, 1229], [787, 1229], [788, 1241], [470, 1241]])}" fill="url(#mk-teal)" opacity=".92"/>`;
-    s += rect(480, 1274, 650, 1326, 26, 'fill="#2d3035" stroke="rgba(0,0,0,.55)"');
-    s += text(565, 1305, 'makita', 'mk-logo-s', 'text-anchor="middle" style="font-size:9.5px"');
-    s += text(565, 1263, '12V max Li-ion', 'mk-cap', 'text-anchor="middle" style="font-size:5px;fill:#E8EAED"');
+    s += `<g transform="translate(${fc(bx)} ${fc(by)})"><path d="${PACK}" fill="url(#mk-black)"/><clipPath id="drPack"><path d="${PACK}"/></clipPath>`;
+    s += `<path d="${poly([[300, 1140], [800, 1140], [800, 1234], [640, 1242], [470, 1266], [300, 1282]])}" fill="url(#df-teal)" clip-path="url(#drPack)"/><path d="${PACK}" fill="none" ${OUT}/>`;
+    s += rect(528, 1290, 628, 1334, 14, 'fill="url(#mk-teal)" stroke="rgba(0,0,0,.45)"');
+    s += text(578, 1308, '12V max', 'mk-logo-s', 'text-anchor="middle" style="font-size:6.4px"') + text(578, 1327, '2.0Ah', 'mk-logo-s', 'text-anchor="middle" style="font-size:7.4px"');
+    s += text(450, 1322, 'Makita', 'mk-logo-s', 'text-anchor="middle" style="font-size:9.5px"');
     // check button and the four indicator lamps (as in the manual's capacity figure)
     s += rect(378, 1236, 440, 1300, 10, 'fill="#3a3e44" stroke="rgba(0,0,0,.6)"') + rect(386, 1243, 432, 1262, 4, 'fill="#15171a"');
     for (let i = 0; i < 4; i++) s += rect(389 + i * 11, 1246, 397 + i * 11, 1259, 1.5, `fill="${(st.lamps || 0) > i + .35 ? '#46D17A' : '#2b2e33'}"`);
     s += circ(409, 1282, 11, 'fill="#C9CED3" stroke="rgba(0,0,0,.6)"') + rect(402, 1278, 416, 1287, 1.5, 'fill="none" stroke="#3a3e44" stroke-width="1.4"');
     // release button on the nose, with the red indicator above it: it shows only while the cartridge isn't locked
-    s += `<g transform="translate(0 ${fc(bp * 4.4)})">` + rect(334, 1162, 440, 1226, 12, 'fill="url(#mk-button)" stroke="rgba(0,0,0,.55)"')
+    s += `<g transform="translate(0 ${fc(bp * 4.4)})">` + rect(334, 1162, 440, 1226, 12, 'fill="#E9ECEE" stroke="rgba(0,0,0,.55)"')
       + [1178, 1192, 1206].map(y => line(352, y, 422, y, 'stroke="rgba(0,0,0,.22)" stroke-width="1.6"')).join('') + `</g>`;
     if (st.red > .02) s += rect(342, 1147, 432, 1161, 3, `fill="#E0473A" opacity="${f(st.red)}"`);
     s += `</g>`;
@@ -3320,23 +3320,24 @@ const DRILL = (() => {
     s += text(694, 328, '2', 'mk-num mk-onmat') + text(826, 328, '1', 'mk-num mk-onmat');
     // ----- chuck: smooth tapered front collar, ribbed sleeve with long grip slots
     s += `<clipPath id="drSleeve"><path d="${poly([[300, 372], [497, 372], [497, 573], [300, 573]])}"/></clipPath>`;
-    s += `<path d="${poly([[248, 414], [300, 372], [300, 572], [248, 530]])}" fill="url(#mk-black)" ${OUT}/>` + line(262, 428, 262, 516, 'stroke="rgba(255,255,255,.12)" stroke-width="2"');
+    s += `<path d="${poly([[248, 414], [300, 372], [300, 572], [248, 530]])}" fill="url(#mk-chrome)" ${OUT}/>` + line(262, 428, 262, 516, 'stroke="rgba(0,0,0,.18)" stroke-width="2"');
     s += rect(300, 372, 497, 573, 10, `fill="url(#mk-black)" ${OUT}`) + `<g clip-path="url(#drSleeve)">`;
     const cs = (st.chuckSpin || 0) * 32;
     for (let i = 0; i < 6; i++) { const y = 388 + ((i * 32 + cs) % 192); s += rect(336, y, 482, y + 15, 7, 'fill="#0b0c0e" stroke="#4a4f56" stroke-width=".7"'); }
     s += `</g>` + rect(294, 372, 304, 573, 3, 'fill="url(#mk-chrome)" stroke="rgba(0,0,0,.5)"');
-    // ----- adjusting ring: scalloped rear edge, graduations that turn, arrow on the housing
+    // ----- adjusting ring: black, graduated 1 2 4 6 ... 18 and a dash. The figures run round the ring, so from the side they read upward along it
     s += rect(497, 359, 580, 588, 14, `fill="url(#mk-black)" ${OUT}`) + `<clipPath id="drRing"><path d="${poly([[497, 362], [580, 362], [580, 585], [497, 585]])}"/></clipPath><g clip-path="url(#drRing)">`;
-    for (let i = 0; i < 4; i++) s += rect(552, 392 + i * 50, 582, 424 + i * 50, 4, 'fill="#16181b" stroke="#4a4f56" stroke-width=".6"');
-    const v = st.torqueVal || 0, i0 = Math.floor(v), fr = v - i0;
-    for (let k = -1; k <= 6; k++) {
-      const idx = i0 + k, y = 395 + (k - fr) * 36;
-      if (idx < 0 || idx > 18 || y < 372 || y > 575) continue;
-      const on = Math.abs(k - fr) < .5;
-      if (POS[idx] === 'drill') s += drillGlyph(X(524), Y(y), .62, on ? '#fff' : '#9aa1a8');
-      else s += text(524, y + 7, POS[idx], 'mk-tq', `text-anchor="middle" style="font-size:${on ? 8.4 : 7}px;fill:${on ? '#fff' : '#9aa1a8'}"`);
+    for (let i = 0; i < 7; i++) s += rect(497, 372 + i * 34, 520, 388 + i * 34, 3, 'fill="#16181b" stroke="#4a4f56" stroke-width=".6"');
+    const v = st.torqueVal || 0;
+    for (let idx = 0; idx <= 18; idx++) {
+      const y = 470 - (idx - v) * 34, n = idx + 1;
+      if (y < 372 || y > 576) continue;
+      const on = Math.abs(idx - v) < .5, col = on ? '#fff' : '#aeb4ba';
+      if (idx === 18) s += line(545, y - 11, 545, y + 11, `stroke="${col}" stroke-width="${on ? 3 : 2.2}"`);
+      else if (n === 1 || n % 2 === 0) s += `<text transform="translate(${f(X(550))} ${f(Y(y))}) rotate(-90)" class="mk-tq" text-anchor="middle" style="font-size:${on ? 8.6 : 7.2}px;fill:${col}">${n}</text>`;
+      else s += line(532, y, 556, y, `stroke="${col}" stroke-width="1.6"`);
     }
-    s += `</g>` + `<path d="${poly([[538, 358], [562, 358], [550, 338]])}" fill="var(--ink)"/>`;
+    s += `</g><path d="${poly([[583, 470], [602, 459], [602, 481]])}" fill="#F4F6F7" stroke="#0b0c0e" stroke-width=".8"/>`;
     // ----- jaw tips at the front of the chuck
     const jh = 21 + 6 * (st.jaw || 0);
     s += `<path d="${poly([[216, AXY - jh + 6], [232, AXY - jh], [252, AXY - jh], [252, AXY + jh], [232, AXY + jh], [216, AXY + jh - 6]])}" fill="url(#mk-chrome)" ${OUT}/>`;
@@ -3355,21 +3356,36 @@ const DRILL = (() => {
   // magnifier for the adjusting ring and for the battery's check button
   function ringInset(st, cx, cy, R) {
     if (st.view === 'torque') {
+      // looks down on the chuck like the manual's figure: sleeve on top, graduated ring, arrow on the housing
       const v = st.torqueVal || 0;
-      let w = `<rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" fill="#0D9CB0"/>`;
-      w += `<rect x="${f(cx - 62)}" y="${f(cy - R - 4)}" width="124" height="38" rx="8" fill="#1d1f22"/>`;
-      for (let i = -2; i <= 2; i++) w += `<rect x="${f(cx + i * 22 - 6)}" y="${f(cy - R - 4)}" width="12" height="30" rx="5" fill="#0b0c0e" stroke="#4a4f56" stroke-width=".8"/>`;      // the ribs of the chuck sleeve
-      w += `<rect x="${f(cx - R)}" y="${f(cy - 38)}" width="${f(2 * R)}" height="16" fill="#3a3e44"/>`;
-      for (let i = -4; i <= 4; i++) w += `<rect x="${f(cx + i * 20 - 6)}" y="${f(cy - 38)}" width="12" height="9" fill="#16181b"/>`;                                                     // scallops
-      w += `<rect x="${f(cx - R)}" y="${f(cy - 22)}" width="${f(2 * R)}" height="34" fill="#2d3035"/>`;
-      for (let i = Math.floor(v) - 3; i <= Math.ceil(v) + 3; i++) {
-        if (i < 0 || i > 18) continue;
-        const x = cx + (i - v) * 28, on = Math.abs(i - v) < .5;
-        if (POS[i] === 'drill') w += drillGlyph(x, cy - 5, on ? 1.5 : 1.1, on ? '#fff' : '#8a9097');
-        else w += `<text x="${f(x)}" y="${f(cy - 5 + (on ? 8 : 6))}" text-anchor="middle" class="mk-ring${on ? ' on' : ''}">${POS[i]}</text>`;
+      let w = `<rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" fill="#F2F4F6"/>`;
+      w += `<rect x="${f(cx - 62)}" y="${f(cy - R - 4)}" width="124" height="52" rx="8" fill="#2d3035"/>`;
+      for (let i = -3; i <= 3; i++) w += `<rect x="${f(cx + i * 19 - 6)}" y="${f(cy - R - 4)}" width="12" height="44" rx="5" fill="#0b0c0e" stroke="#4a4f56" stroke-width=".8"/>`;
+      w += `<rect x="${f(cx - R)}" y="${f(cy - 24)}" width="${f(2 * R)}" height="44" fill="#5a6068"/>`;
+      for (let i = -4; i <= 4; i++) w += `<rect x="${f(cx + i * 28 + 14 - (v % 1) * 0 - 7)}" y="${f(cy - 24)}" width="14" height="14" fill="#16181b"/>`;
+      for (let i = 0; i <= 18; i++) {
+        const x = cx + (i - v) * 28, n = i + 1, on = Math.abs(i - v) < .5;
+        if (x < cx - R || x > cx + R) continue;
+        if (i === 18) w += `<rect x="${f(x - 11)}" y="${f(cy - 1)}" width="22" height="3.4" fill="#fff"/>`;
+        else if (n === 1 || n % 2 === 0) w += `<text x="${f(x)}" y="${f(cy + 8 + (on ? 3 : 0))}" text-anchor="middle" class="mk-ring${on ? ' on' : ''}">${n}</text>`;
+        else w += `<rect x="${f(x - 1)}" y="${f(cy - 4)}" width="2" height="12" fill="#aeb4ba"/>`;
       }
-      w += `<path d="M${f(cx)} ${f(cy + 18)} l -9 15 h 18Z" fill="#F4F6F7" stroke="#0b0c0e" stroke-width=".8"/>`;
-      return MK.inset(cx, cy, R, w, 'Ring: 1 low to 18, drill mark', 'drTorque', st.inset);
+      w += `<rect x="${f(cx - R)}" y="${f(cy + 20)}" width="${f(2 * R)}" height="${f(R)}" fill="#0D9CB0"/><path d="M${f(cx)} ${f(cy + 25)} l -9 15 h 18Z" fill="#F4F6F7" stroke="#0b0c0e" stroke-width=".8"/>`;
+      return MK.inset(cx, cy, R, w, 'Ring: 1 low to 18, then the dash', 'drTorque', st.inset);
+    }
+    if (st.view === 'chuckOpen' || st.view === 'chuckClose') {
+      // the chuck as the manual shows it: bit on top, sleeve below, an arrow each way
+      const open = st.view === 'chuckOpen', sp = st.chuckSpin || 0;
+      let w = `<rect x="${f(cx - R)}" y="${f(cy - R)}" width="${f(2 * R)}" height="${f(2 * R)}" fill="#F2F4F6"/>`;
+      w += `<rect x="${f(cx - 5)}" y="${f(cy - 70)}" width="10" height="26" fill="url(#mk-steel)" stroke="#0b0c0e" stroke-width=".8"/><path d="M${f(cx - 8)} ${f(cy - 70)} h16 l -2 -6 h-12Z" fill="#8E959B"/>`;
+      w += `<path d="M${f(cx - 22)} ${f(cy - 44)} h44 l 8 24 h-60Z" fill="url(#mk-chrome)" stroke="#0b0c0e" stroke-width="1"/>`;
+      w += `<clipPath id="drChk"><rect x="${f(cx - 48)}" y="${f(cy - 20)}" width="96" height="70" rx="6"/></clipPath><rect x="${f(cx - 48)}" y="${f(cy - 20)}" width="96" height="70" rx="6" fill="#4a4f56" stroke="#0b0c0e" stroke-width="1"/><g clip-path="url(#drChk)">`;
+      for (let i = -1; i < 7; i++) w += `<rect x="${f(cx - 48 + ((i * 16 + sp * 16 + 96) % 112) - 8)}" y="${f(cy - 20)}" width="9" height="70" fill="#202328" stroke="#7a828a" stroke-width=".6"/>`;
+      w += `</g>`;
+      const hi = '#E8A317', lo = '#8a9097';
+      w += `<path d="M${f(cx + 30)} ${f(cy + 14)} H${f(cx - 36)}" stroke="${open ? lo : hi}" stroke-width="5" fill="none"/><path d="M${f(cx - 36)} ${f(cy + 5)} l -12 9 l 12 9Z" fill="${open ? lo : hi}"/>`;
+      w += `<path d="M${f(cx + 52)} ${f(cy + 40)} A 30 30 0 0 0 ${f(cx + 52)} ${f(cy - 4)}" stroke="${open ? hi : lo}" stroke-width="5" fill="none"/><path d="M${f(cx + 44)} ${f(cy - 6)} l 14 -2 l -5 14Z" fill="${open ? hi : lo}"/>`;
+      return MK.inset(cx, cy, R, w, open ? 'Open: counterclockwise' : 'Close: clockwise', 'drChuck', st.inset);
     }
     if (st.view === 'charge') {
       const n = st.lamps || 0;
@@ -3397,8 +3413,8 @@ const DRILL = (() => {
       jaws:    { xy: MK.pt(st, X(232), Y(AXY)), dx: -40, dy: -80, text: 'Jaws' },
       bit:     { xy: MK.pt(st, XF - 88 - (1 - st.bitIn) * 90 + 30, AX), dx: -20, dy: 70, text: 'Drill bit' },
       speed:   { xy: MK.pt(st, X(lerp(782, 738, st.speed)), Y(334)), dx: 40, dy: -60, text: 'Speed change lever: 1 low, 2 high' },
-      torque:  { xy: MK.pt(st, X(524), Y(392)), dx: -50, dy: -70, text: 'Adjusting ring (1–18, drill mark)' },
-      arrow:   { xy: MK.pt(st, X(550), Y(342)), dx: 60, dy: -60, text: 'Arrow' },
+      torque:  { xy: MK.pt(st, X(545), Y(430)), dx: -50, dy: -70, text: 'Adjusting ring (1–18, then the dash)' },
+      arrow:   { xy: MK.pt(st, X(592), Y(470)), dx: 50, dy: -70, text: 'Arrow' },
     };
   };
 
@@ -3437,17 +3453,17 @@ const DRILL = (() => {
         tags: ['rev'], hot: ['rev'], keys: [[.55, { zs: 2.2, fx: -8, fy: 14, rev: 1 }], [.95, { rev: .5 }]] },
       { title: 'Open the chuck', dur: 3000,
         body: 'Hold the tool and turn the sleeve counterclockwise to open the jaws until the opening is a little wider than the bit.',
-        tags: ['chuck', 'jaws'], hot: ['chuck'], keys: [[.45, { zs: 2.4, fx: -86, fy: -32 }], [.5, { chuckSpin: 0, jaw: 0 }], [1, { chuckSpin: 1, jaw: 1 }]] },
+        tags: ['chuck', 'jaws'], hot: ['chuck'], keys: [[0, { view: 'chuckOpen' }], [.3, { inset: 1 }], [.45, { zs: 2.4, fx: -86, fy: -32 }], [.5, { chuckSpin: 0, jaw: 0 }], [1, { chuckSpin: 1, jaw: 1 }]] },
       { title: 'Insert the bit', dur: 2600,
         body: 'Put the bit into the chuck as far as it will go. The jaws should grip the smooth shank, not the fluted cutting part.',
-        tags: ['bit'], hot: ['bit'], keys: [[.2, { bitOn: 1 }], [.35, { bitIn: 0 }], [.9, { bitIn: 1 }]] },
+        tags: ['bit'], hot: ['bit'], keys: [[.1, { inset: 0 }], [.2, { bitOn: 1 }], [.35, { bitIn: 0 }], [.9, { bitIn: 1 }]] },
       { title: 'Tighten the chuck', dur: 3000,
         body: 'Turn the sleeve clockwise to tighten the chuck, until the jaws grip the shank and the sleeve won\'t turn any further by hand.',
-        tags: ['chuck'], hot: ['chuck'], keys: [[.4, { chuckSpin: 1, jaw: 1 }], [1, { chuckSpin: 0, jaw: 0 }]] },
+        tags: ['chuck'], hot: ['chuck'], keys: [[0, { view: 'chuckClose' }], [.15, { inset: 1 }], [.4, { chuckSpin: 1, jaw: 1 }], [1, { chuckSpin: 0, jaw: 0 }]] },
       { title: 'Check it runs true', dur: 3000,
         body: 'Push the reversing lever back to forward (clockwise) and give the trigger a short squeeze. The bit should spin without wobbling; if it wobbles, open the chuck and seat the bit again.',
         caution: 'To remove the bit, switch off first, then turn the sleeve counterclockwise.',
-        tags: ['bit', 'rev'], keys: [[.35, { zs: OVER.zs, fx: OVER.fx, fy: OVER.fy, rev: 1 }], [.45, { trig: 0 }], [.65, { trig: 1 }], [.9, { trig: 0 }]] },
+        tags: ['bit', 'rev'], keys: [[.1, { inset: 0 }], [.35, { zs: OVER.zs, fx: OVER.fx, fy: OVER.fy, rev: 1 }], [.45, { trig: 0 }], [.65, { trig: 1 }], [.9, { trig: 0 }]] },
     ],
   };
   const TORQUE = {
@@ -3462,8 +3478,8 @@ const DRILL = (() => {
         caution: 'Always set the lever fully to 1 or 2. Halfway between the two, the tool may be damaged.',
         tags: ['speed'], hot: ['speed'], keys: [[.45, { zs: 2.1, fx: 20, fy: -52 }], [.5, { speed: 0 }], [.9, { speed: 1 }]], flashes: [[.92, 'Speed 2']] },
       { title: 'Set the torque', dur: 3600,
-        body: 'Turn the adjusting ring until the number you want lines up with the arrow on the housing. There are 19 levels: 1 is the lowest torque, 18 the highest, and the drill mark gives the highest setting with no clutch. Try a scrap piece first.',
-        caution: 'For drilling, set the ring to the drill mark. For driving screws, release the trigger as soon as the clutch cuts in.',
+        body: 'Turn the adjusting ring until the number you want lines up with the arrow on the housing. There are 19 levels: 1 is the lowest torque, 18 the highest, and the dash after 18 is the highest setting with no clutch. Try a scrap piece first.',
+        caution: 'For drilling, set the ring to the dash. For driving screws, release the trigger as soon as the clutch cuts in.',
         tags: ['torque', 'arrow'], hot: ['torque'], keys: [[0, { view: 'torque' }], [.45, { zs: 1.9, fx: 4, fy: -24, inset: 1 }], [.5, { torqueVal: 0 }], [.95, { torqueVal: 9 }]], flashes: [[.97, 'Torque 10']] },
       { title: 'Set the direction', dur: 3200,
         body: 'Press the reversing lever through the housing from the A side for clockwise rotation, or from the B side for counterclockwise. In the centre position the trigger can\'t be pulled. Change direction only after the tool has stopped completely.',

@@ -86,7 +86,7 @@ The tab has an Electrical / Mechanical switch; every tool sets `cat` ('electrica
 
 Mechanical:
 - Fig. 01, Power drill (Makita DF331D): tasks for the battery, fitting a drill bit, and torque and speed
-  (speed lever 1/2, 19-level torque ring with the drill mark, reversing lever, trigger, lamp, battery button, red indicator and charge-check lamps), from Makita's instruction manual.
+  (speed lever 1/2, 19-level torque ring (1 2 4 … 18 and a dash), manual-style close-ups of the ring and chuck sleeve, reversing lever, trigger, lamp, battery button, red indicator and charge-check lamps), from Makita's instruction manual.
 - Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
 - Fig. 03, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
 - Fig. 04, Tap and die: tapping a hole and threading a rod, M3–M8 (tap drill ≈ diameter − pitch).
