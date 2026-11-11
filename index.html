@@ -3335,9 +3335,13 @@ const DRILL = (() => {
       s += `<g opacity="${fc(Math.min(1, bk * 3))}"><path d="M${sh(a[0], a[1] + 10)}L${sh(b2[0] + 12, b2[1] + 10)}" stroke="var(--ink)" stroke-width="2.6"/><path d="M${sh(b2[0], b2[1] + 10)}l12 -7l0 14Z" fill="var(--ink)"/></g>`; }
     // ----- drill bit, coming out of the jaws along the chuck axis
     if ((st.bitOn || 0) > .02) {
-      const sft = (1 - (st.bitIn == null ? 1 : st.bitIn)) * 85, rear = -50 - sft, x1 = rear - 82, xb = Math.min(-63, rear);   // the bit goes in through the nose, so only the part in front of it shows
+      const sft = (1 - (st.bitIn == null ? 1 : st.bitIn)) * 85, rear = -50 - sft, x1 = rear - 82, xb = rear;
       const A = P3(xb, 0, AXZ(xb)), B = P3(x1, 0, AXZ(x1)), dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L, r = 3.2 * 1.38 * .9;
-      s += `<g opacity="${fc(st.bitOn)}"><path d="M${sh(A[0] + nx * r, A[1] + ny * r)}L${sh(B[0] - dx / L * 7 + nx * r, B[1] - dy / L * 7 + ny * r)}L${sh(B[0], B[1])}L${sh(B[0] - dx / L * 7 - nx * r, B[1] - dy / L * 7 - ny * r)}L${sh(A[0] - nx * r, A[1] - ny * r)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.65)" stroke-width=".7"/>`;
+      const C = P3(-63, 0, AXZ(-63)); let ell = '';
+      for (let k = 0; k < 20; k++) { const an = k / 20 * 2 * Math.PI, q = P3(-63, 5.4 * Math.sin(an), AXZ(-63) + 5.4 * Math.cos(an)); ell += (k ? 'L' : 'M') + sh(q[0], q[1]); }
+      // in front of the nose the bit shows in full; behind its face it only shows through the opening
+      s += `<clipPath id="drBitClip"><rect x="-900" y="-900" width="${fc(C[0] + 900)}" height="1800"/><path d="${ell}Z"/></clipPath>`;
+      s += `<g opacity="${fc(st.bitOn)}" clip-path="url(#drBitClip)"><path d="M${sh(A[0] + nx * r, A[1] + ny * r)}L${sh(B[0] - dx / L * 7 + nx * r, B[1] - dy / L * 7 + ny * r)}L${sh(B[0], B[1])}L${sh(B[0] - dx / L * 7 - nx * r, B[1] - dy / L * 7 - ny * r)}L${sh(A[0] - nx * r, A[1] - ny * r)}Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.65)" stroke-width=".7"/>`;
       const ph = ((st.spin || 0) % 1 + 1) % 1 * .095;
       for (let i = 0; i < 9; i++) { const t0 = .06 + ((i * .095 + ph) % .86), cx = A[0] + dx * t0, cy = A[1] + dy * t0; s += `<path d="M${sh(cx + nx * r, cy + ny * r)}L${sh(cx + dx / L * 5 - nx * r, cy + dy / L * 5 - ny * r)}" stroke="#6b737a" stroke-width="1.3"/>`; }
       s += `</g>`;
@@ -3391,6 +3395,7 @@ const DRILL = (() => {
     }
     return '';
   }
+
 
 
 
