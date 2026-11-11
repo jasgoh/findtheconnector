@@ -85,8 +85,10 @@ People who have asked their device to reduce motion see each step's end position
 The tab has an Electrical / Mechanical switch; every tool sets `cat` ('electrical' if left out).
 
 Mechanical:
-- Fig. 01, Power drill (Makita DF331D): tasks for the battery, fitting a drill bit, and torque and speed
-  (speed lever 1/2, 19-level torque ring (1 2 4 … 18 and a dash), manual-style close-ups of the ring and chuck sleeve, reversing lever, trigger, lamp, battery button, red indicator and charge-check lamps), from Makita's instruction manual.
+- Fig. 01, Power drill (Makita cordless drill, from the supplied CAD model): tasks for the battery, fitting a drill bit, and torque and speed.
+  The drill is drawn from the CAD model at the same angle as the manual's picture. The parts that move (battery, release button, trigger, reversing
+  lever, speed lever, chuck sleeve, adjusting ring) are separate layers cut from the model, so the steps animate the real parts. The ring numbers
+  (1 2 4 6 ... 18 and a dash), the logo, the red indicator, the check lamps and the drill bit are drawn over it. The text follows Makita's instruction manual.
 - Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
 - Fig. 03, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
 - Fig. 04, Tap and die: tapping a hole and threading a rod, M3–M8 (tap drill ≈ diameter − pitch).
