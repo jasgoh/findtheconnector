@@ -3288,6 +3288,8 @@ const DRILL = (() => {
     // ----- the three jaws: opening backs them into the chuck and spreads them; closing brings them onto the bit (3.2 mm radius) or together
     { const jo = st.jaw || 0, jr = 2.4 * (st.bitOn || 0) + 2.8 * jo, ja = 3 * jo, JD = [[0, -1], [-.74, .67], [.74, .67]];
       s += spr('nose');
+      { let hp = ''; for (let k = 0; k < 24; k++) { const an = k / 24 * 2 * Math.PI, q = P3(-62.5, 4.3 * Math.sin(an), AXZ(-62.5) + 4.3 * Math.cos(an)); hp += (k ? 'L' : 'M') + sh(q[0], q[1]); }
+        s += `<path d="${hp}Z" fill="#14171c" opacity="${fc(.9 * (st.bitOn || 0))}"/>`; }
       for (const i of [2, 0, 1]) s += spr('jaw' + i, ...D3(ja, JD[i][0] * jr, JD[i][1] * jr)); }
     // ----- the numbers on the ring: they run round it, so each one is laid on the cylinder and foreshortened with it
     for (let i = 0; i <= 18; i++) {
@@ -3395,6 +3397,7 @@ const DRILL = (() => {
     }
     return '';
   }
+
 
 
 
