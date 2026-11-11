@@ -85,8 +85,8 @@ People who have asked their device to reduce motion see each step's end position
 The tab has an Electrical / Mechanical switch; every tool sets `cat` ('electrical' if left out).
 
 Mechanical:
-- Fig. 01, Power drill (Makita DHP482): tasks for the battery, fitting a drill bit, and torque and speed
-  (speed lever 1/2, action mode ring, 21-step torque ring, trigger), from Makita's instruction manual.
+- Fig. 01, Power drill (Makita DF331D): tasks for the battery, fitting a drill bit, and torque and speed
+  (speed lever 1/2, 19-level torque ring with the drill mark, reversing lever, trigger, lamp, battery button, red indicator and charge-check lamps), from Makita's instruction manual.
 - Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
 - Fig. 03, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
 - Fig. 04, Tap and die: tapping a hole and threading a rod, M3–M8 (tap drill ≈ diameter − pitch).
