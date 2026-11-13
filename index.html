@@ -5576,7 +5576,7 @@ const CHAINS = (() => {
   const SITES = [[.17, .27, .5], [.5, .25, -.35], [.83, .3, .3], [.2, .74, -.25], [.52, .74, .4], [.84, .72, -.5]];
   const sm = (a, b, x) => { const t = cl((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   return function (x, y, w, h, c, mob, pull, t) {
-    let s = '';
+    let s = '', tg = '', lam = '', msk = '';
     const stretch = 1 + pull * .3 * (1 - c * .8), W = w * stretch;
     const ideal = c > .97;
     // amorphous tangle (hidden under crystals)
@@ -5584,9 +5584,9 @@ const CHAINS = (() => {
     if (!ideal) ch.forEach((p, j) => {
       const q = p.map(o => { const j1 = mob * .012; return [x + cl(o.x + Math.sin(t * 3 + o.ph) * j1, 0, 1) * W, y + cl(.5 + (o.y - .5) * wob + Math.cos(t * 2.3 + o.ph * 1.7) * j1 * 1.4, 0, 1) * h]; });
       let d = `M${f(q[0][0])} ${f(q[0][1])}`; for (let i = 1; i < q.length - 1; i++) d += `Q${f(q[i][0])} ${f(q[i][1])} ${f((q[i][0] + q[i + 1][0]) / 2)} ${f((q[i][1] + q[i + 1][1]) / 2)}`;
-      s += `<path d="${d}" fill="none" stroke="#E8C27A" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>`;
+      tg += `<path d="${d}" fill="none" stroke="#E8C27A" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>`;
     });
-    if (ideal) { const rows = 11; for (let j = 0; j < rows; j++) { const yy = y + (j + .5) / rows * h; s += `<path d="M${f(x + 4)} ${f(yy)} L${f(x + W - 4)} ${f(yy)}" stroke="${j === 4 ? '#5aa0f0' : '#E8C27A'}" stroke-width="${j === 4 ? 3 : 2.2}" stroke-linecap="round"/>`; } return s; }
+    if (ideal) { s = ''; const rows = 11; for (let j = 0; j < rows; j++) { const yy = y + (j + .5) / rows * h; s += `<path d="M${f(x + 4)} ${f(yy)} L${f(x + W - 4)} ${f(yy)}" stroke="${j === 4 ? '#5aa0f0' : '#E8C27A'}" stroke-width="${j === 4 ? 3 : 2.2}" stroke-linecap="round"/>`; } return s; }
     // crystalline lamellae: folded chains in a clear patch
     const ends = [];
     SITES.forEach(([ux, uy, ang], i) => {
@@ -5594,9 +5594,11 @@ const CHAINS = (() => {
       const sx = w / 6 * k * 1.05, sy = h / 4 * k, cx = x + ux * W, cy = y + uy * h, a = ang * (1 - c * .9), sp = 5.2, m = Math.max(2, Math.floor(2 * sy / sp));
       let d = ''; const x0 = -sx, x1 = sx, y0 = -sp * (m - 1) / 2;
       for (let r = 0; r < m; r++) { const yy = y0 + r * sp; d += (r === 0 ? `M${f(x0)} ${f(yy)}` : '') + `L${f(r % 2 ? x0 : x1)} ${f(yy)}`; if (r < m - 1) d += `A${sp / 2} ${sp / 2} 0 0 ${r % 2 ? 0 : 1} ${f(r % 2 ? x0 : x1)} ${f(yy + sp)}`; }
-      s += `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${f(a * 57.3)})"><ellipse cx="0" cy="0" rx="${f(sx + 9)}" ry="${f(Math.abs(y0) + 9)}" fill="#1f252c" stroke="#8a94a0" stroke-width="1.2"/><path d="${d}" fill="none" stroke="#E8C27A" stroke-width="2" stroke-linecap="round"/><line x1="${f(x0)}" y1="${f(y0 + sp * Math.floor(m / 2))}" x2="${f(x1)}" y2="${f(y0 + sp * Math.floor(m / 2))}" stroke="#5aa0f0" stroke-width="2.8" stroke-linecap="round"/></g>`;
+      lam += `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${f(a * 57.3)})"><path d="${d}" fill="none" stroke="#E8C27A" stroke-width="2" stroke-linecap="round"/><line x1="${f(x0)}" y1="${f(y0 + sp * Math.floor(m / 2))}" x2="${f(x1)}" y2="${f(y0 + sp * Math.floor(m / 2))}" stroke="#5aa0f0" stroke-width="2.8" stroke-linecap="round"/></g>`;
+      msk += `<ellipse transform="translate(${f(cx)} ${f(cy)}) rotate(${f(a * 57.3)})" cx="0" cy="0" rx="${f(sx + 9)}" ry="${f(Math.abs(y0) + 9)}" fill="#000"/>`;
       const ca = Math.cos(a), sa = Math.sin(a); ends.push([[cx - ca * (sx + 9), cy - sa * (sx + 9)], [cx + ca * (sx + 9), cy + sa * (sx + 9)]]);
     });
+    s += `<defs><mask id="chMask" maskUnits="userSpaceOnUse" x="${f(x - 20)}" y="${f(y - 20)}" width="${f(W + 40)}" height="${f(h + 40)}"><rect x="${f(x - 20)}" y="${f(y - 20)}" width="${f(W + 40)}" height="${f(h + 40)}" fill="#fff"/>${msk}</mask></defs><g mask="url(#chMask)">${tg}</g>${lam}`;
     // tie molecules: the highlighted noodle leaves one crystal and enters the next
     for (let i = 0; i < ends.length - 1; i++) { if (i === 2) continue; const A = ends[i][1], Bp = ends[i + 1][0], mx = (A[0] + Bp[0]) / 2, my = (A[1] + Bp[1]) / 2 + (i % 2 ? -14 : 14) + Math.sin(t * 2 + i) * mob * 2; s += `<path d="M${f(A[0])} ${f(A[1])} Q${f(mx)} ${f(my)} ${f(Bp[0])} ${f(Bp[1])}" fill="none" stroke="#5aa0f0" stroke-width="2.4" stroke-linecap="round"/>`; }
     return s;
