@@ -5585,7 +5585,7 @@ const CHAINS = (() => {
         const amp = (1 - wt) * mob * .012, jx = Math.sin(t * 3 + q.ph) * amp, jy = Math.cos(t * 2.3 + q.ph * 1.7) * amp * 1.6;
         const stretch = pull * (.3 * (1 - c * .8));
         const wob = 1 - pull * .7 * (1 - wt);
-        let X = (u * (1 - wt) + tx * wt * 0 + (1 - wt) * q.ox * .05 + jx), Y = row + (1 - wt) * q.oy * .16 * wob + jy;
+        let X = (u + (1 - wt) * q.ox * .05 + jx), Y = row + (1 - wt) * q.oy * .16 * wob + jy;
         X = IX.clamp(X, -.02, 1.02) * (1 + stretch);
         pts.push(`${f(x + X * w)},${f(y + IX.clamp(Y, .02, .98) * h)}`);
       });
@@ -5600,7 +5600,7 @@ const CHAINS = (() => {
 /* ---------- Machines 01: 3D printer (FDM) ---------- */
 const B_FDM = (() => {
   const { f } = EQ, clamp = IX.clamp;
-  const PR = [['str', 'Strength', 'MPa', 30, 70], ['stiff', 'Stiffness', 'GPa', 1.5, 5.5], ['elong', 'Stretch', '% at break', 0, 24], ['imp', 'Impact', 'kJ/m²', 0, 18], ['hdt', 'Heat', '°C (HDT)', 40, 110], ['ease', 'Ease', '1 hard – 5 easy', .5, 5.5], ['uv', 'UV', '1 poor – 5 great', .5, 5.5]];
+  const PR = [['str', 'Strength', 'MPa', 10, 70], ['stiff', 'Stiffness', 'GPa', 0, 5.5], ['elong', 'Stretch', '% at break (capped 40)', 0, 40], ['imp', 'Impact', 'kJ/m²', 0, 18], ['hdt', 'Heat', '°C (HDT)', 40, 110], ['ease', 'Ease', '1 hard – 5 easy', .5, 5.5], ['uv', 'UV', '1 poor – 5 great', .5, 5.5]];
   const MAT = [
     { n: 'PLA', s: 'PLA', c: '#4a8ad0', v: [55, 3.5, 4, 3, 55, 5, 2], use: 'Prototypes, display models, jigs used at room temperature. Easiest to print, stiff, but brittle and it softens near 55 °C: a hot car will warp it.' },
     { n: 'PETG', s: 'PETG', c: '#2E9E7B', v: [48, 2.1, 20, 8, 70, 4, 3], use: 'Tough functional parts, brackets, covers, anything near water. A little flexible, good layer bonding. Strings a bit, so tune retraction.' },
@@ -5608,6 +5608,10 @@ const B_FDM = (() => {
     { n: 'ASA', s: 'ASA', c: '#D4A73C', v: [42, 2.1, 12, 12, 95, 2, 5], use: 'Outdoor parts. Like ABS but UV stable, so it will not yellow or crack in the sun. Same enclosure and ventilation rules as ABS.' },
     { n: 'PLA Tough', s: 'PLA+', c: '#8E5BC0', v: [42, 2.3, 20, 12, 55, 4, 2], use: 'Snap-fits, clips, living hinges and gears: PLA-easy printing with far better impact. Still softens near 55 °C.' },
     { n: 'CF-filled', s: 'CF', c: '#7d8791', v: [62, 5, 3, 4, 80, 3, 3], use: 'Stiff, light jigs, drone frames, brackets. Brittle and very abrasive: use a hardened nozzle. Hides layer lines. (Values: CF-PETG.)' },
+    { n: 'PA6', s: 'PA6', c: '#E58AB0', v: [55, 2, 30, 10, 75, 2, 2], use: 'Nylon 6: gears, bushings, wear parts and hinges. Tough and slippery, but it soaks up moisture (dry it before and after printing), warps, and needs a hot nozzle and enclosure.' },
+    { n: 'PA12', s: 'PA12', c: '#2aa7c9', v: [45, 1.4, 25, 12, 60, 3, 3], use: 'Nylon 12: like PA6 but absorbs far less water and warps less, so it is the easier nylon. Durable snap-fits, hinges, housings and tough functional parts.' },
+    { n: 'TPU', s: 'TPU', c: '#8bc34a', v: [30, .03, 40, 18, 60, 3, 3], use: 'Flexible, rubbery parts: gaskets, grips, bumpers, vibration feet. Stretches over 400 % (chart capped at 40 %) and does not break in impact. Print slowly, ideally with a direct-drive extruder.' },
+    { n: 'PP', s: 'PP', c: '#b07a4f', v: [30, 1.4, 25, 6, 60, 1, 1.5], use: 'Light, waterproof and chemical-resistant: containers, living hinges, lab parts. Very hard to print: it warps and will not stick to most beds, so use PP tape or sheet.' },
   ];
   const norm = (i, v) => clamp((v - PR[i][3]) / (PR[i][4] - PR[i][3]), 0, 1);
   const RAD = [['Strength', m => norm(0, m.v[0])], ['Stiffness', m => norm(1, m.v[1])], ['Tough', m => (norm(2, m.v[2]) + norm(3, m.v[3])) / 2], ['Heat', m => norm(4, m.v[4])], ['Ease', m => norm(5, m.v[5])], ['UV', m => norm(6, m.v[6])]];
@@ -5671,7 +5675,7 @@ const B_FDM = (() => {
   }
   /* ---- mode 3: heating ---- */
   const c2 = mkCtl();
-  const TG = [['PLA', 60, 170, .25, 3.5], ['PETG', 80, null, 0, 2.1], ['ABS', 105, null, 0, 2.2], ['ASA', 100, null, 0, 2.1], ['PLA Tough', 60, 165, .15, 2.3], ['CF-PETG', 80, null, 0, 5]];
+  const TG = [['PLA', 60, 170, .25, 3.5], ['PETG', 80, null, 0, 2.1], ['ABS', 105, null, 0, 2.2], ['ASA', 100, null, 0, 2.1], ['PLA Tough', 60, 165, .15, 2.3], ['CF-PETG', 80, null, 0, 5], ['PA6', 50, 220, .35, 2], ['PA12', 45, 178, .35, 1.4], ['TPU', -30, 190, .5, .03], ['PP', -10, 165, .45, 1.4]];
   const Emod = (m, T) => { const [, Tg, Tm, cf, E0] = m; let e = E0 * (cf + (1 - cf) * Math.pow(10, -3 * sgm(T, Tg + 6, 5))); e *= Tm ? Math.pow(10, -3.5 * sgm(T, Tm, 3)) : Math.pow(10, -2 * sgm(T, Tg + 55, 14)); return Math.max(e * 1000, .004); };
   function drawHeat(st) {
     const g = c2.begin(st), mi = Math.round(g('m')), T = clamp(g('T'), 20, 260), t = nowS(), m = TG[mi], [name, Tg, Tm, cf] = m;
@@ -5681,7 +5685,7 @@ const B_FDM = (() => {
     const ln = (mm, col, w, dash) => { const p = []; for (let x = 20; x <= 260; x += 4) p.push(`${f(pb.px(x))},${f(pb.py(Emod(mm, x)))}`); return `<polyline points="${p.join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" ${dash ? 'stroke-dasharray="4 3"' : ''}/>`; };
     TG.forEach((mm, i) => { if (i !== mi) s += ln(mm, 'var(--muted)', 1, true); });
     s += ln(m, 'var(--mat)', 3);
-    s += `<line x1="${f(pb.px(Tg))}" y1="-165" x2="${f(pb.px(Tg))}" y2="-25" stroke="#4a8ad0" stroke-dasharray="4 3"/><text x="${f(pb.px(Tg) + 3)}" y="-153" class="bx-small" fill="#4a8ad0">Tg ${Tg}°</text>`;
+    if (Tg >= 20) s += `<line x1="${f(pb.px(Tg))}" y1="-165" x2="${f(pb.px(Tg))}" y2="-25" stroke="#4a8ad0" stroke-dasharray="4 3"/><text x="${f(pb.px(Tg) + 3)}" y="-153" class="bx-small" fill="#4a8ad0">Tg ${Tg}°</text>`; else s += `<text x="-150" y="-153" class="bx-small" fill="#4a8ad0">Tg ${Tg}° (off the left edge)</text>`;
     if (Tm) s += `<line x1="${f(pb.px(Tm))}" y1="-165" x2="${f(pb.px(Tm))}" y2="-25" stroke="#D4503A" stroke-dasharray="4 3"/><text x="${f(pb.px(Tm) - 3)}" y="-153" text-anchor="end" class="bx-small" fill="#D4503A">Tm ${Tm}°</text>`;
     s += `<line x1="${f(pb.px(T))}" y1="-165" x2="${f(pb.px(T))}" y2="-25" stroke="#E8822A" stroke-width="1.5"/><circle cx="${f(pb.px(T))}" cy="${f(pb.py(Emod(m, T)))}" r="6" fill="#E8822A" stroke="var(--ink)" stroke-width="1.5"/>`;
     // chain jiggle box
@@ -5692,7 +5696,7 @@ const B_FDM = (() => {
     s += IX.slider('T', -155, 20, 260, 'temperature', T, 20, 260, v => v.toFixed(0) + ' °C');
     s += IX.chips('m', TG.map((x, i) => [i, x[0]]), -185, 54, mi, 4);
     s += `<text x="-185" y="96" class="bx-tiny">jump to</text>` + IX.chips('T', [[25, 'room 25°'], [70, 'hot car 70°'], [100, 'boiling 100°'], [210, 'nozzle 210°'], [250, 'ABS nozzle 250°']], -140, 83, -1, 4);
-    const ex = Tm ? `${name} has crystals. Above Tg the tangled part goes rubbery but the crystals hold it up, so it stays partly stiff until Tm, where the crystals melt.` : `${name} is all tangle. Above Tg (the "glass transition") it turns rubbery, then slowly flows. There is no sharp melting point, only a gradual soften: that is why it prints smoothly.`;
+    const ex = Tg < 20 ? `${name} has a Tg below room temperature, so its tangled part is already rubbery at 25 °C. Crystals (or hard blocks) hold the shape until Tm, where they melt.` : Tm ? `${name} has crystals. Above Tg the tangled part goes rubbery but the crystals hold it up, so it stays partly stiff until Tm, where the crystals melt.` : `${name} is all tangle. Above Tg (the "glass transition") it turns rubbery, then slowly flows. There is no sharp melting point, only a gradual soften: that is why it prints smoothly.`;
     s += para(-185, 124, ex + ` Rule of thumb: keep parts well below Tg in use (PLA ${TG[0][1]}°, PETG ${TG[1][1]}°, ABS ${TG[2][1]}°).`, 86, 'bx-small', 13);
     return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
   }
@@ -5763,7 +5767,7 @@ const B_FDM = (() => {
         ['Cooked spaghetti', 'Now cook it: the same noodles, but tangled and sliding. No order at all: this is amorphous plastic. Compare the stretch and cloudiness bars with the crystal. The orange noodle is the same strand in both pictures.', { c: 0, pull: 0 }],
         ['Semi-crystalline: a bit of both', 'Most real plastics have patches of dry spaghetti inside a bowl of cooked. The neat patches are crystals; the tangle between them is amorphous. Drag crystallinity to grow and shrink the patches.', { c: 35, pull: 0 }],
         ['Pull on it', 'Pull the cooked noodles and the tangle straightens and slides: lots of stretch, no sudden snap. Pull dry spaghetti and it resists strongly then snaps with no warning. Try both and watch the dot on the force curve.', { c: 0, pull: .75 }],
-        ['Which filament is which?', 'PETG, ABS and ASA are amorphous: cooked spaghetti. PLA is semi-crystalline, but it cools so quickly out of the nozzle that it mostly stays tangled (PLA printed). Anneal it in an oven and crystals grow: stiffer and heat resistant, but it shrinks a little.', { c: 15, pull: 0 }],
+        ['Which filament is which?', 'PETG, ABS and ASA are amorphous: cooked spaghetti. Nylons (PA6, PA12) and PP are semi-crystalline: patches of dry spaghetti, which is why they are tough and slippery but warp as they crystallise and shrink. PLA is semi-crystalline, but it cools so quickly out of the nozzle that it mostly stays tangled (PLA printed). Anneal it in an oven and crystals grow: stiffer and heat resistant, but it shrinks a little.', { c: 15, pull: 0 }],
         ['Why see-through or cloudy?', 'Light passes through an even tangle, so amorphous plastics (clear PETG, acrylic) can be transparent. Crystal bundles bend and scatter light, so crystalline plastics look cloudy or white. Slide crystallinity and watch the cloudiness bar.', { c: 60, pull: 0 }],
       ]) },
     { label: 'Heating up', base: { sid: '', m: 0, T: 25 }, ctl: c2, draw: drawHeat, live: true,
@@ -6153,15 +6157,16 @@ const B_LASER = (() => {
   /* ---- mode 2: power, energy, time ---- */
   const c1 = mkCtl(), D0 = .1;
   const classOf = E => E < .02 ? 0 : E < .06 ? 1 : E < .15 ? 2 : E < .5 ? 3 : E < 1.6 ? 4 : 5, CNAME = ['no mark', 'light', 'good', 'dark', 'charred', 'cut through'], CCOL = ['#C9A06A', '#b98b55', '#8a5a2b', '#4f3018', '#1d1209', 'rgba(0,0,0,0)'];
+  const PM = [['Cardboard', .5, '#b8946a'], ['Wood', 1, '#C9A06A'], ['Leather', .8, '#8a5a3a'], ['Black acrylic', 1.7, '#262626'], ['Clear acrylic', 99, 'rgba(190,225,255,.5)'], ['Anodised Al', 2.6, '#4d5560']];
   function drawPower(st) {
-    const g = c1.begin(st), P = clamp(g('P'), 1, 40), v = clamp(g('v'), 5, 500), t = nowS();
-    const td = D0 / v, Ep = P * td, Eline = P / v, flu = Eline / D0, cl = classOf(Eline);
+    const g = c1.begin(st), P = clamp(g('P'), 1, 40), v = clamp(g('v'), 5, 500), pm = Math.round(g('pm')), t = nowS(), [mname, K, mbase] = PM[pm];
+    const td = D0 / v, Ep = P * td, Eline = P / v, flu = Eline / D0, cl = classOf(Eline / K), dark = pm === 3 || pm === 5, tc = k => dark ? ['#444', '#777', '#aaa', '#ddd', '#fff', '#000'][k] : CCOL[k];
     let s = MK.mat(this.viewBox);
     // scene
-    s += `<rect x="-200" y="-95" width="270" height="40" rx="3" fill="#C9A06A" stroke="var(--ink)"/><rect x="-200" y="-165" width="270" height="62" rx="4" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/>`;
+    s += `<rect x="-200" y="-95" width="270" height="40" rx="3" fill="${mbase}" stroke="var(--ink)"/><rect x="-200" y="-165" width="270" height="62" rx="4" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/>`;
     const ph = (t * (.1 + v / 500)) % 1, bx = -190 + ph * 250;
-    s += `<rect x="-190" y="-80" width="${f(bx + 190)}" height="8" fill="${CCOL[cl] === 'rgba(0,0,0,0)' ? '#111' : CCOL[cl]}"/><polygon points="${f(bx - 6)},-150 ${f(bx + 6)},-150 ${f(bx)},-95" fill="#ff5a3c" fill-opacity=".45"/><rect x="${f(bx - 14)}" y="-162" width="28" height="14" rx="3" fill="#3a3f47" stroke="var(--ink)"/><circle cx="${f(bx)}" cy="-92" r="${f(3 + 1.5 * Math.sin(t * 20))}" fill="#fff3a0"/>`;
-    s += `<text x="-196" y="-170" class="bx-tiny">laser head moving at ${v.toFixed(0)} mm/s over wood: ${CNAME[cl]}</text>`;
+    s += `<rect x="-190" y="-80" width="${f(bx + 190)}" height="8" fill="${cl === 0 ? 'none' : tc(cl) === 'rgba(0,0,0,0)' ? '#111' : tc(cl)}"/><polygon points="${f(bx - 6)},-150 ${f(bx + 6)},-150 ${f(bx)},-95" fill="#ff5a3c" fill-opacity=".45"/><rect x="${f(bx - 14)}" y="-162" width="28" height="14" rx="3" fill="#3a3f47" stroke="var(--ink)"/><circle cx="${f(bx)}" cy="-92" r="${f(3 + 1.5 * Math.sin(t * 20))}" fill="#fff3a0"/>`;
+    s += `<text x="-196" y="-170" class="bx-tiny">laser head moving at ${v.toFixed(0)} mm/s over ${mname.toLowerCase()}: ${CNAME[cl]}</text>`;
     // bucket
     const bf = (t * .5) % 1, lvl = clamp(Ep / .0015, 0, 1) * bf;
     s += `<path d="M95 -110 L105 -40 L155 -40 L165 -110Z" fill="rgba(127,127,127,.12)" stroke="var(--ink)" stroke-width="1.5"/><path d="M${f(97.5 + lvl * 2.5 * 0)} ${f(-40 - 70 * lvl)} L${f(95 + 10 * (1 - lvl * 1) * 0 + (lvl * 70) * 0.142)} ${f(-40 - 70 * lvl)}" stroke="none"/>`;
@@ -6173,8 +6178,9 @@ const B_LASER = (() => {
     s += `<circle cx="${f(pb.px(v))}" cy="${f(pb.py(Eline))}" r="6" fill="#E8822A" stroke="var(--ink)" stroke-width="1.5"/>`;
     s += IX.slider('P', -200, -20, 130, 'laser power', P, 1, 40, q => q.toFixed(0) + ' W') + IX.slider('v', -45, -20, 115, 'speed', v, 5, 500, q => q.toFixed(0) + ' mm/s', true);
     s += `<text x="-200" y="42" class="bx-small">Power = Energy / time   →   E = P · t</text><text x="-200" y="60" class="bx-small">dwell on one spot t = d / v = ${(D0).toFixed(1)} mm / ${v.toFixed(0)} = <tspan class="hot">${(td * 1000).toFixed(2)} ms</tspan></text><text x="-200" y="78" class="bx-small">energy dropped on that spot E = ${P.toFixed(0)} W × ${(td * 1000).toFixed(2)} ms = <tspan class="hot">${(Ep * 1000).toFixed(1)} mJ</tspan></text><text x="-200" y="96" class="bx-small">energy per mm of line = P / v = <tspan class="hot">${Eline.toFixed(3)} J/mm</tspan></text><text x="-200" y="114" class="bx-small">fluence (per area) = P/(v·d) = <tspan class="hot">${flu.toFixed(1)} J/mm²</tspan></text>`;
-    s += para(-200, 140, `Result on wood: ${CNAME[cl]}.` + (cl === 0 ? ' Not enough energy to get the wood hot enough.' : cl === 5 ? ' Enough energy to burn clean through a 3 mm sheet.' : cl >= 3 ? ' Too much energy: the wood chars and burns past the mark.' : ' Heated just enough to darken the surface.'), 82, 'bx-small hot', 13);
-    s += para(-200, 172, 'Same energy per mm can come from low power and slow speed or high power and high speed. High power at high speed is crisper (less heat spreads sideways); low power slow is soaked in heat.', 82, 'bx-tiny', 11);
+    s += para(-200, 132, `Result on ${mname.toLowerCase()}: ${CNAME[cl]}.` + (cl === 0 ? (K > 50 ? ' This material hardly absorbs blue light, so no setting will mark it.' : ' Not enough energy to get it hot enough.') : cl === 5 ? ' Enough energy to burn clean through.' : cl >= 3 ? ' Too much energy: it chars and burns past the mark.' : ' Heated just enough to mark the surface.'), 82, 'bx-small hot', 13);
+    s += `<text x="-200" y="160" class="bx-tiny">same power and speed on every material (click one):</text>`;
+    PM.forEach(([nm, kk, bc], i) => { const k2 = classOf(Eline / kk), x = -200 + i * 66, d2 = i === 3 || i === 5, c2_ = k2 === 0 ? 'none' : d2 ? ['#444', '#777', '#aaa', '#ddd', '#fff', '#000'][k2] : CCOL[k2]; s += `<rect x="${x}" y="166" width="62" height="24" rx="4" fill="${bc}" stroke="${i === pm ? 'var(--mat)' : 'rgba(0,0,0,.4)'}" stroke-width="${i === pm ? 3 : 1}"/><line x1="${x + 6}" y1="178" x2="${x + 56}" y2="178" stroke="${c2_ === 'rgba(0,0,0,0)' ? '#111' : c2_}" stroke-width="6" stroke-linecap="round"/><text x="${x + 31}" y="202" text-anchor="middle" class="bx-tiny"${i === pm ? ' style="fill:var(--mat)"' : ''}>${nm.replace('Black acrylic','Black acr.').replace('Clear acrylic','Clear acr.').replace('Anodised Al','Anod. Al')}</text><text x="${x + 31}" y="213" text-anchor="middle" class="bx-tiny">${CNAME[k2]}</text>`; IX.area('pm', i, x, 166, 62, 50); });
     return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
   }
   /* ---- mode 3: settings explorer ---- */
@@ -6219,7 +6225,7 @@ const B_LASER = (() => {
         ['Focus is everything', 'The lens focuses the beam to a waist: the smallest, hottest spot. Move the focus offset away from the surface and the spot grows, so power density collapses (fall in the readout). Always focus before engraving.', { li: 0, mi: 0, foc: 0 }, [[.9, { foc: 2.5 }]]],
         ['Metals need fibre', 'Bare metal reflects visible and CO₂ light. A fibre laser at 1064 nm is absorbed well enough to mark steel. Try fibre on steel, then diode on steel.', { li: 2, mi: 4, foc: 0 }],
       ]) },
-    { label: 'Power, energy, time', base: { sid: '', P: 10, v: 100 }, ctl: c1, draw: drawPower, live: true,
+    { label: 'Power, energy, time', base: { sid: '', P: 10, v: 100, pm: 1 }, ctl: c1, draw: drawPower, live: true,
       steps: mkSteps('lp', [
         ['Power is how fast energy arrives', 'Power (watts) means joules per second: P = E / t. Think of a tap: the power is how fast water flows, the energy is how much ends up in the bucket, and time is how long you leave the tap running.', { P: 10, v: 100 }],
         ['Dwell time: how long the beam sits on a spot', 'The beam has a width d. Moving at speed v, any one spot sits under it for t = d/v. Slower means longer in the beam. Double the speed and every spot gets half the energy.', { P: 10, v: 100 }, [[.9, { v: 40 }]]],
