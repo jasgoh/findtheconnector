@@ -4600,13 +4600,185 @@ const B_SOLDER = (() => {
       return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
     },
     steps: FLUXES.map((fl, i) => ({ title: fl.name, dur: 800, body: fl.note, tags: [], keys: [[0, { hl: i }]] })) };
-  const MODES = [ALLOY, FLUX];
+  /* ---- Materials science: the elements, and the Sn–Pb phase diagram ---- */
+  const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  const EL = [
+    { s: 'Sn', n: 'Tin', z: 50, mp: 232, r: 14, c: '#B9C6D2', role: 'Base metal' },
+    { s: 'Pb', n: 'Lead', z: 82, mp: 327, r: 17.5, c: '#59616B', role: 'Melting-point cutter' },
+    { s: 'Sb', n: 'Antimony', z: 51, mp: 631, r: 14.5, c: '#8FA6B8', role: 'Hardener' },
+  ];
+  const ELEM = { label: 'Lead, tin, antimony', base: { hl: -1, imc: 0, mix: 0, slip: 0 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      s += BX.txt(85, -186, 'Three metals, three jobs', 'bx-title');
+      EL.forEach((e, i) => {
+        const x = -150 + i * 235, on = st.hl === i, dim = st.hl >= 0 && !on;
+        s += `<g opacity="${dim ? .35 : 1}"><rect x="${x - 62}" y="-168" width="124" height="112" rx="10" fill="var(--panel, rgba(127,127,127,.08))" stroke="${on ? 'var(--mat)' : 'var(--muted)'}" stroke-width="${on ? 2.5 : 1}"/>
+          <text x="${x - 50}" y="-148" class="bx-tiny">${e.z}</text><text x="${x}" y="-112" text-anchor="middle" class="bx-big">${e.s}</text>
+          <text x="${x}" y="-92" text-anchor="middle" class="bx-small">${e.n}</text><circle cx="${x}" cy="-68" r="${e.r * .55}" fill="${e.c}" stroke="rgba(0,0,0,.4)"/>
+</g>
+          <text x="${x}" y="-40" text-anchor="middle" class="bx-small${on ? ' hot' : ''}">melts ${e.mp} °C</text>`;
+      });
+      // lower panel, one picture per step
+      const Y0 = 26;
+      if (st.hl === 0) {
+        // tin on copper: the intermetallic layer grows
+        s += `<rect x="-120" y="${Y0 + 80}" width="410" height="60" fill="#B87333" stroke="rgba(0,0,0,.4)"/><text x="85" y="${Y0 + 130}" text-anchor="middle" class="bx-small" fill="#fff">Copper pad</text>`;
+        s += `<rect x="-120" y="${Y0 + 80 - 22 * st.imc}" width="410" height="${22 * st.imc}" fill="#8A6BB0" opacity=".9"/>`;
+        s += `<rect x="-120" y="${Y0 - 20}" width="410" height="${100 - 22 * st.imc}" fill="${EL[0].c}" opacity=".85"/>`;
+        for (let k = 0; k < 44; k++) { const px = -110 + (k % 11) * 38 + (k % 2) * 12, py = Y0 - 6 + Math.floor(k / 11) * 20, dn = Math.min(1, st.imc * 1.4) * (k % 7) * 4; s += `<circle cx="${px}" cy="${py + dn * (py > Y0 + 30 ? 1 : 0)}" r="7" fill="${EL[0].c}" stroke="rgba(0,0,0,.35)"/>`; }
+        s += `<text x="85" y="${Y0 + 112}" text-anchor="middle" class="bx-small" fill="#fff" opacity="${st.imc}">↑ purple: Cu₆Sn₅ layer (1–2 µm), the actual bond</text>`;
+        s += `<text x="85" y="${Y0 - 30}" text-anchor="middle" class="bx-cap">Molten tin reacts with the copper</text>`;
+      } else if (st.hl === 1) {
+        // melting points: the mix is lower than either metal
+        const bars = [['Sn', 232, EL[0].c], ['Pb', 327, EL[1].c], ['Sn63 / Pb37', 183, '#D4A73C']], X0 = -60, sc = .44;
+        s += `<line x1="-130" y1="${Y0 + 130}" x2="300" y2="${Y0 + 130}" stroke="var(--muted)"/>`;
+        bars.forEach(([nm, t, c], i) => {
+          const h = t * sc * (i === 2 ? st.mix : 1), x = X0 + i * 120;
+          s += `<rect x="${x - 34}" y="${Y0 + 130 - h}" width="68" height="${h}" fill="${c}" stroke="rgba(0,0,0,.4)"/><text x="${x}" y="${Y0 + 146}" text-anchor="middle" class="bx-small">${nm}</text>`;
+          if (i < 2 || st.mix > .9) s += `<text x="${x}" y="${Y0 + 124 - h}" text-anchor="middle" class="bx-small${i === 2 ? ' hot' : ''}">${t} °C</text>`;
+        });
+        s += `<text x="${X0 + 262}" y="${Y0 + 130 - 183 * sc - 34}" text-anchor="middle" class="bx-cap" opacity="${st.mix}">below both metals</text>`;
+      } else if (st.hl === 2) {
+        // antimony in a tin lattice blocks slip
+        const rows = 5, cols = 9, sp = 34;
+        for (let r = 0; r < rows; r++) {
+          const shift = r === 2 ? st.slip * 18 : 0;
+          for (let c = 0; c < cols; c++) {
+            const x = -90 + c * sp + (r % 2) * 17 + shift, y = Y0 + 10 + r * 28, sb = (r === 1 || r === 3) && (c === 3 || c === 5), pb = r === 2 && c === 4 && false;
+            s += `<circle cx="${x}" cy="${y}" r="${sb ? 10 : 12}" fill="${sb ? EL[2].c : EL[0].c}" stroke="${sb ? 'var(--mat)' : 'rgba(0,0,0,.35)'}" stroke-width="${sb ? 2 : 1}"/>`;
+          }
+        }
+        s += `<path d="M-120 ${Y0 + 66} h28 l-8 -7 m8 7 l-8 7" stroke="var(--mat)" stroke-width="2.5" fill="none"/><text x="-106" y="${Y0 + 90}" text-anchor="middle" class="bx-tiny">push</text>`;
+        s += `<text x="85" y="${Y0 - 14}" text-anchor="middle" class="bx-cap">Sb atoms (outlined) jam the layers so they slide less easily</text>`;
+        s += `<text x="85" y="${Y0 + 150}" text-anchor="middle" class="bx-small">harder, stronger, creeps less; melts a little higher</text>`;
+      } else {
+        s += `<text x="85" y="${Y0 + 50}" text-anchor="middle" class="bx-cap">Pick a step to see what each metal does</text>`;
+      }
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'Tin (Sn): the base', dur: 1800, body: 'Most solder is mostly tin. Tin melts at 232 °C, and it is the metal that does the joining: molten tin reacts with the copper of the pad or wire and forms a very thin layer of a copper-tin compound (Cu₆Sn₅, about 1–2 µm). That layer, not the bulk solder, is the real bond, and it only forms if the copper is clean and hot enough. That is why flux and heat matter.', tags: [], keys: [[0, { hl: 0, imc: 0 }], [.9, { imc: 1 }]] },
+      { title: 'Lead (Pb): the melting-point cutter', dur: 1800, body: 'Lead on its own melts at 327 °C, higher than tin. Mixed with tin it does something unexpected: the alloy melts at only 183 °C, lower than either metal. Lead also lets the molten solder spread more easily and stops tin growing whiskers and crumbling in the cold. The cost is that lead is toxic, which is why it is restricted (RoHS).', caution: 'Lead is toxic: wash your hands after soldering, no food or drink at the bench, and use fume extraction.', tags: [], keys: [[0, { hl: 1, mix: 0 }], [.8, { mix: 1 }]] },
+      { title: 'Antimony (Sb): the hardener', dur: 1800, body: 'Antimony melts at 631 °C, far above any soldering temperature, so it is never melted on its own. A few percent dissolves in the tin and its atoms get in the way of the layers sliding past each other, which makes the solder harder and stronger. Sn95/Sb5 is a lead-free plumbing and heat-exchanger solder that melts at 232–240 °C. In electronics solder it appears mainly as a trace (under 0.5 %).', tags: [], keys: [[0, { hl: 2, slip: 1 }], [.9, { slip: .15 }]] },
+      { title: 'The surprise', dur: 1200, body: 'You would expect a mix of a 232 °C metal and a 327 °C metal to melt somewhere in between. It does not, and that is the key idea of the next mode: why the alloy melts lower than its ingredients, and why one particular mix (the eutectic) melts and freezes at a single temperature.', tags: [], keys: [[0, { hl: -1 }]] },
+    ] };
+
+  // Sn–Pb phase diagram (simplified): composition in wt % Sn, temperature in °C
+  const LIQ_L = [[0, 327.5], [10, 299], [20, 279], [30, 257], [40, 238], [50, 215], [61.9, 183]];
+  const LIQ_R = [[61.9, 183], [70, 193], [80, 205], [90, 218], [95, 225], [100, 231.9]];
+  const interp = (A, x) => { for (let i = 1; i < A.length; i++) if (x <= A[i][0]) { const [x0, y0] = A[i - 1], [x1, y1] = A[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); } return A[A.length - 1][1]; };
+  const liquidus = x => x <= 61.9 ? interp(LIQ_L, x) : interp(LIQ_R, x);
+  const solidus = x => x <= 19.2 ? 327.5 - 144.5 * Math.pow(x / 19.2, .85) : x >= 97.5 ? 183 + (x - 97.5) / 2.5 * 49 : 183;
+  const atomPct = x => 100 * (x / 118.7) / (x / 118.7 + (100 - x) / 207.2);
+  const PLOT = { x0: -150, w: 270 };
+  let userX = 63, lastFree = false, ui = null;
+  // atoms for the little "microscope" box: site positions, seeded once
+  const COLS = 11, ROWS = 6, NA = COLS * ROWS;
+  const SITES = Array.from({ length: NA }, (_, i) => ({ c: i % COLS, r: Math.floor(i / COLS), q: rnd(), ph: rnd() * 6.28, sp: .6 + rnd() * .8, sy: rnd() }));
+  // crystals grow outward from two seeds; freeze order = distance rank
+  { const seeds = [[2, 1], [8, 4]]; SITES.forEach(a => { a.d = Math.min(...seeds.map(([c, r]) => Math.hypot(a.c - c, (a.r - r) * 1.1))); }); const o = [...SITES].sort((a, b) => a.d - b.d); o.forEach((a, i) => { a.rank = i / (NA - 1); }); }
+  const PH = { label: 'Why it melts at 183 °C', base: { X: 63, T: 260, hl: '', free: 0, pick: 0 },
+    draw(st) {
+      let s = MK.mat(this.viewBox);
+      const free = st.free > .5; lastFree = free; if (ui) ui.svg.style.touchAction = free ? 'none' : '';
+      const X = free ? userX : st.X, T = st.T;
+      const PX0 = PLOT.x0, PW = PLOT.w, PY0 = -170, PH_ = 300, TMIN = 150, TMAX = 350;
+      const px = x => PX0 + x / 100 * PW, py = t => PY0 + (TMAX - t) / (TMAX - TMIN) * PH_;
+      // regions
+      const pl = [...LIQ_L.map(([x, t]) => [x, t]), ...LIQ_R.slice(1)];
+      const polyTop = pl.map(([x, t]) => `${f(px(x))},${f(py(t))}`).join(' ');
+      s += `<polygon points="${f(px(0))},${f(py(TMAX))} ${f(px(100))},${f(py(TMAX))} ${polyTop.split(' ').reverse().join(' ')}" fill="#E8B04A" opacity=".18"/>`;
+      s += `<polygon points="${polyTop} ${f(px(100))},${f(py(183))} ${f(px(0))},${f(py(183))}" fill="#7f8c99" opacity=".16"/>`;
+      s += `<rect x="${f(PX0)}" y="${f(py(183))}" width="${PW}" height="${f(py(TMIN) - py(183))}" fill="#4a6a8a" opacity=".22"/>`;
+      // axes
+      for (let t = 150; t <= 350; t += 50) s += `<line x1="${PX0 - 4}" y1="${f(py(t))}" x2="${PX0 + PW}" y2="${f(py(t))}" stroke="var(--muted)" stroke-width=".5" stroke-dasharray="3 4" opacity=".6"/><text x="${PX0 - 8}" y="${f(py(t) + 3)}" text-anchor="end" class="bx-tiny">${t}</text>`;
+      for (let x = 0; x <= 100; x += 20) s += `<text x="${f(px(x))}" y="${f(py(TMIN) + 14)}" text-anchor="middle" class="bx-tiny">${x}</text>`;
+      s += `<text x="${f(PX0 + PW / 2)}" y="${f(py(TMIN) + 30)}" text-anchor="middle" class="bx-small">wt % Sn   (pure Pb ← → pure Sn)</text><text x="${PX0 - 30}" y="${f(PY0 - 8)}" class="bx-tiny">°C</text>`;
+      // curves
+      const sol = Array.from({ length: 21 }, (_, i) => { const x = i * 19.2 / 20; return `${f(px(x))},${f(py(solidus(x)))}`; }).join(' ');
+      s += `<polyline points="${polyTop}" fill="none" stroke="#D4A73C" stroke-width="2.6"/><polyline points="${sol} ${f(px(97.5))},${f(py(183))} ${f(px(100))},${f(py(231.9))}" fill="none" stroke="var(--ink)" stroke-width="1.6"/><line x1="${f(px(19.2))}" y1="${f(py(183))}" x2="${f(px(97.5))}" y2="${f(py(183))}" stroke="var(--ink)" stroke-width="1.6"/>`;
+      // labels in regions
+      s += `<text x="${f(px(78))}" y="${f(py(300))}" text-anchor="middle" class="bx-cap">Liquid</text><text x="${f(px(22))}" y="${f(py(246))}" text-anchor="middle" class="bx-tiny" transform="rotate(-38 ${f(px(22))} ${f(py(246))})">liquid + α (Pb-rich)</text><text x="${f(px(88))}" y="${f(py(199))}" text-anchor="middle" class="bx-tiny">L + β</text><text x="${f(px(30))}" y="${f(py(163))}" text-anchor="middle" class="bx-small">solid: α + β</text>`;
+      // eutectic point
+      const eh = st.hl === 'eu';
+      s += `<circle cx="${f(px(61.9))}" cy="${f(py(183))}" r="${eh ? 7 : 4.5}" fill="${eh ? 'var(--mat)' : '#D4A73C'}" stroke="var(--ink)"/>`;
+      s += `<text x="${f(px(61.9))}" y="${f(py(183) + 15)}" text-anchor="middle" class="bx-small${eh ? ' hot' : ''}">eutectic 183 °C</text>`;
+      // composition line + handle
+      const lq = liquidus(X), so = solidus(X), x = px(X);
+      s += `<line x1="${f(x)}" y1="${f(py(TMAX))}" x2="${f(x)}" y2="${f(py(TMIN))}" stroke="var(--mat)" stroke-width="1.6" stroke-dasharray="${free ? '0' : '5 4'}"/>`;
+      s += `<path d="M${f(x - 7)} ${f(py(TMAX) - 12)} h14 l-7 11z" fill="var(--mat)"/><text x="${f(x)}" y="${f(py(TMAX) - 16)}" text-anchor="middle" class="bx-small hot">${X.toFixed(0)}% Sn</text>`;
+      // cooling dot
+      const dotC = T > lq + .5 ? '#D4503A' : T > so + .5 ? '#E8822A' : '#4a8ad0';
+      s += `<circle cx="${f(x)}" cy="${f(py(Math.max(TMIN, Math.min(TMAX, T))))}" r="6" fill="${dotC}" stroke="var(--ink)" stroke-width="1.5"/>`;
+      // thermometer
+      const th = x0 => `<rect x="${x0}" y="-168" width="14" height="190" rx="7" fill="none" stroke="var(--ink)"/><rect x="${x0 + 3}" y="${f(-168 + 190 * (1 - (Math.max(TMIN, Math.min(TMAX, T)) - TMIN) / (TMAX - TMIN)))}" width="8" height="${f(190 * (Math.max(TMIN, Math.min(TMAX, T)) - TMIN) / (TMAX - TMIN))}" fill="${dotC}"/><text x="${x0 + 7}" y="36" text-anchor="middle" class="bx-small hot">${Math.round(T)}°</text>`;
+      s += th(150);
+      // microscope box
+      const BX0 = 178, BY0 = -150, BW = 204, BH = 128, state = T > lq + .5 ? 'liquid' : T > so + .5 ? 'pasty' : 'solid';
+      const frac = state === 'liquid' ? 0 : state === 'solid' ? 1 : Math.min(1, (lq - T) / Math.max(lq - so, 3));
+      const ap = atomPct(X), nSn = Math.round(NA * ap / 100), now = performance.now() / 1000;
+      s += `<rect x="${BX0}" y="${BY0}" width="${BW}" height="${BH}" rx="6" fill="rgba(0,0,0,.18)" stroke="var(--muted)"/>`;
+      // lamellae behind frozen eutectic
+      const lam = frac >= .999 && Math.abs(X - 61.9) < 6;
+      if (lam) for (let k = 0; k < 8; k++) s += `<rect x="${BX0 + k * BW / 8}" y="${BY0}" width="${BW / 16 * (k % 2 ? 1 : 1)}" height="${BH}" fill="${k % 2 ? '#7f8c99' : '#b9c6d2'}" opacity=".22"/>`;
+      SITES.forEach(a => {
+        const sx = BX0 + 14 + a.c * 17.6 + (a.r % 2) * 8, sy = BY0 + 14 + a.r * 20.5, isSn = a.q < ap / 100;
+        const solid = a.rank < frac;
+        const jig = solid ? 0.8 : 6.5, wx = Math.sin(now * 2.2 * a.sp + a.ph) * jig + Math.sin(now * 3.1 + a.sy * 9) * jig * .5, wy = Math.cos(now * 1.9 * a.sp + a.ph * 1.3) * jig;
+        const cx = Math.max(BX0 + 7, Math.min(BX0 + BW - 7, sx + wx)), cy = Math.max(BY0 + 7, Math.min(BY0 + BH - 7, sy + wy));
+        s += `<circle cx="${f(cx)}" cy="${f(cy)}" r="${isSn ? 5.2 : 6.6}" fill="${isSn ? EL[0].c : EL[1].c}" stroke="${solid ? 'var(--mat)' : 'rgba(0,0,0,.4)'}" stroke-width="${solid ? 1.4 : .6}"/>`;
+      });
+      s += `<text x="${BX0 + BW / 2}" y="${BY0 + BH + 14}" text-anchor="middle" class="bx-small${state === 'solid' ? ' hot' : ''}">${state === 'liquid' ? 'all liquid: atoms free to move' : state === 'pasty' ? 'pasty: crystals + liquid' : 'solid: atoms locked in place'}</text>`;
+      s += `<text x="${BX0 + BW / 2}" y="${BY0 - 16}" text-anchor="middle" class="bx-tiny">light = Sn atoms · dark = Pb atoms</text><text x="${BX0 + BW / 2}" y="${BY0 - 5}" text-anchor="middle" class="bx-tiny">${ap.toFixed(0)} % Sn by atom count, ${X.toFixed(0)} % by weight</text>`;
+      // readout
+      const ro = [['Fully liquid at', `${lq.toFixed(0)} °C`], ['Starts melting', `${so.toFixed(0)} °C`], ['Pasty range', Math.abs(lq - so) < 1.5 ? 'none' : `${(lq - so).toFixed(0)} °C`], ['Iron tip about', `${Math.round((lq + 140) / 10) * 10} °C`]];
+      ro.forEach(([k, v], i) => { s += `<text x="${BX0}" y="${38 + i * 24}" class="bx-tiny">${k}</text><text x="${BX0 + BW}" y="${38 + i * 24}" text-anchor="end" class="bx-small${i === 2 && Math.abs(lq - so) < 1.5 ? ' hot' : ''}">${v}</text>`; });
+      if (free) s += `<text x="${BX0 + BW / 2}" y="160" text-anchor="middle" class="bx-small hot">drag the diagram or use ← →</text>`;
+      return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+    },
+    steps: [
+      { title: 'The map', dur: 1400, body: 'This is the tin–lead phase diagram: composition across (percent tin by weight), temperature up. The orange line is the liquidus: above it everything is liquid. The black lines are the solidus: below them everything is solid. In between, the alloy is a slush of crystals and liquid. Notice that the two lines do not just run between 232 °C (tin) and 327 °C (lead): they dip down and meet.', tags: [], keys: [[0, { X: 63, T: 330, hl: '' }]] },
+      { title: 'The dip: the eutectic point', dur: 1600, body: 'Adding lead to tin pulls the melting point down, and adding tin to lead does the same, until the two lines meet at 61.9 % tin and 183 °C. This is the eutectic point (Greek for "easily melted"). It is the lowest temperature at which any Sn–Pb mixture is fully liquid, which is why Sn63/Pb37 is the classic electronics solder.', tags: [], keys: [[0, { hl: 'eu', X: 62, T: 183 }]] },
+      { title: 'Cool a 60/40 alloy', dur: 4200, body: 'Watch Sn60/Pb40 cool. Above 190 °C every atom is free to move. At 190 °C the first crystals form and the alloy turns pasty, a slush of crystals in liquid, and only at 183 °C is the last liquid gone. Between those two temperatures the joint looks solid but is not. Move it then and you get a rough, disturbed (cold) joint.', tags: [], keys: [[0, { hl: '', X: 60, T: 230 }], [1, { T: 160 }]] },
+      { title: 'Cool the eutectic (63/37)', dur: 3600, body: 'Now the eutectic mix. It stays fully liquid until exactly 183 °C and then freezes completely at once, with no pasty stage. It freezes into very fine alternating layers of a lead-rich and a tin-rich crystal (the grey stripes), which gives a strong, smooth, shiny joint, and the joint cannot be spoilt by a bump halfway through freezing.', tags: [], keys: [[0, { hl: '', X: 62, T: 215 }], [1, { T: 160 }]] },
+      { title: 'Cool 40/60: a wide slush', dur: 4200, body: 'Move away from the eutectic and the pasty range gets wider: a 40 % tin alloy starts to freeze at 238 °C but is not fully solid until 183 °C, a 55 °C slush. That is a nightmare for hand soldering (the joint needs to be held still for a long time), and it is why plumbers, who want time to wipe a joint, use exactly such alloys.', tags: [], keys: [[0, { hl: '', X: 40, T: 280 }], [1, { T: 160 }]] },
+      { title: 'So how hot is the iron?', dur: 1400, body: 'The melting point sets the iron temperature. The joint has to get above the liquidus, and heat flows into the pad, leads and board as fast as the iron supplies it, so the tip is set well above it: about 330–350 °C for leaded solder (liquidus 183 °C) and 350–380 °C for lead-free (SAC305, whose eutectic-like composition melts at 217–220 °C). A higher melting point means a hotter iron, faster oxidation and more heat into the parts.', tags: [], keys: [[0, { hl: '', X: 62, T: 183 }]] },
+      { title: 'Your turn', dur: 900, body: 'Drag the orange marker across the diagram (or press ← →) to choose a composition, then read off the melting temperature, pasty range and iron setting. Find the composition where the pasty range disappears. Try 20 % Sn, 50 % Sn, 63 % Sn and 96 % Sn. Do real solder wires exist at each?', tags: [], keys: [[0, { hl: '', free: 1, X: 63, T: 160 }]] },
+    ] };
+  const MODES = [ALLOY, FLUX, ELEM, PH];
   let mode = 0;
+  // pointer / keyboard control of the composition marker, and a gentle idle redraw so the atoms keep jiggling
+  function detach() { if (!ui) return; ui.off.forEach(fn => fn()); cancelAnimationFrame(ui.raf); ui = null; }
+  function attach(stage) {
+    detach();
+    const svg = stage.querySelector('svg'); if (!svg) return;
+    let drag = false;
+    const toX = e => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const m = svg.getScreenCTM(); if (!m) return null; return Math.max(0, Math.min(100, (pt.matrixTransform(m.inverse()).x - PLOT.x0) / PLOT.w * 100)); };
+    const active = () => MODES[mode] === PH && lastFree;
+    const set = e => { const x = toX(e); if (x == null) return; userX = Math.round(x * 2) / 2; bsUI.rerender(); };
+    const down = e => { if (!active()) return; drag = true; svg.setPointerCapture(e.pointerId); set(e); };
+    const move = e => { if (drag) set(e); };
+    const up = () => { drag = false; };
+    const key = e => { if (!active() || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return; e.preventDefault(); e.stopImmediatePropagation(); userX = Math.max(0, Math.min(100, userX + (e.key === 'ArrowRight' ? 1 : -1))); bsUI.rerender(); };
+    svg.addEventListener('pointerdown', down); svg.addEventListener('pointermove', move); svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+    stage.addEventListener('keydown', key, true);
+    ui = { svg, raf: 0, off: [() => svg.removeEventListener('pointerdown', down), () => svg.removeEventListener('pointermove', move), () => svg.removeEventListener('pointerup', up), () => svg.removeEventListener('pointercancel', up), () => stage.removeEventListener('keydown', key, true)] };
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)'); let last = 0;
+    const tick = ts => {
+      if (!ui) return; ui.raf = requestAnimationFrame(tick);
+      if (document.hidden || reduce.matches || ts - last < 40 || MODES[mode] !== PH || !svg.isConnected || !svg.getClientRects().length) return;
+      last = ts; bsUI.rerender();
+    };
+    ui.raf = requestAnimationFrame(tick);
+  }
+
   return {
-    id: 'solder-basics', fig: 3, name: 'Solder', sub: 'Leaded vs lead-free, flux', cat: 'electrical',
+    id: 'solder-basics', fig: 3, name: 'Solder', sub: 'Leaded vs lead-free, flux, the science of melting', cat: 'electrical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs + SOLDER.defs,
     modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
     get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
+    onShow(stage) { attach(stage); }, onHide() { detach(); },
     draw(st) { return MODES[mode].draw.call(this, st); },
   };
 })();
