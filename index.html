@@ -4638,7 +4638,7 @@ const B_RES = (() => {
     return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
   }
   return {
-    id: 'resistors', fig: 3, name: 'Resistor colour codes', sub: 'Reading 4- and 5-band resistors', cat: 'electrical',
+    id: 'resistors', fig: 4, name: 'Resistor colour codes', sub: 'Reading 4- and 5-band resistors', cat: 'electrical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
     base: { ex: 0, hl: 'all' },
     steps: [
@@ -5264,7 +5264,7 @@ const B_CONN = (() => {
       body: 'Turn on Actual size, calibrate once with a bank card, then hold your crimp against the screen. It should match the outline and length (about {L} mm). Body dimensions here are approximate; the official drawing is the reference.', tags: [], keys: [[0, { view: 'side' }]] },
   ];
   return {
-    id: 'connectors', fig: 4, name: 'Connectors', sub: 'Compare crimp terminals in 3D', cat: 'electrical',
+    id: 'connectors', fig: 3, name: 'Connectors', sub: 'Compare crimp terminals in 3D', cat: 'electrical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: '',
     modes: CONN_PARTS.map(f => f.fam), get mode() { return fam; }, setMode(i) { fam = i; gi = Math.min(gi, CONN_PARTS[i].parts.length - 1); },
     get sizes() { return CONN_PARTS[fam].parts.map(p => p.g); }, get size() { return Math.min(gi, CONN_PARTS[fam].parts.length - 1); },
@@ -5280,7 +5280,7 @@ const B_CONN = (() => {
   };
 })();
 
-const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_SOLDER, B_RES, B_CONN];
+const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_SOLDER, B_CONN, B_RES];
 
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
