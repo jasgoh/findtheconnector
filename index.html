@@ -4612,7 +4612,7 @@ const B_SOLDER = (() => {
       let s = MK.mat(this.viewBox);
       s += BX.txt(85, -186, 'Three metals, three jobs', 'bx-title');
       EL.forEach((e, i) => {
-        const x = -150 + i * 235, sel = st.hl === 3 ? [0, 1] : st.hl === 4 ? [0] : [st.hl], on = sel.includes(i), dim = st.hl >= 0 && !on;
+        const x = -150 + i * 235, sel = st.hl === 3 ? [0, 1] : st.hl >= 4 ? [0] : [st.hl], on = sel.includes(i), dim = st.hl >= 0 && !on;
         s += `<g opacity="${dim ? .35 : 1}"><rect x="${x - 62}" y="-168" width="124" height="112" rx="10" fill="var(--panel, rgba(127,127,127,.08))" stroke="${on ? 'var(--mat)' : 'var(--muted)'}" stroke-width="${on ? 2.5 : 1}"/>
           <text x="${x - 50}" y="-148" class="bx-tiny">${e.z}</text><text x="${x}" y="-112" text-anchor="middle" class="bx-big">${e.s}</text>
           <text x="${x}" y="-92" text-anchor="middle" class="bx-small">${e.n}</text><circle cx="${x}" cy="-68" r="${e.r * .55}" fill="${e.c}" stroke="rgba(0,0,0,.4)"/>
@@ -4672,6 +4672,15 @@ const B_SOLDER = (() => {
           s += `<g transform="translate(${f(x)} ${f(y)}) rotate(${ang})"><rect x="${f(-sz)}" y="${f(-sz * .45)}" width="${f(sz * 2)}" height="${f(sz * .9)}" rx="1.5" fill="${cu ? '#8A6BB0' : '#3b4450'}" stroke="rgba(0,0,0,.5)"/></g>`;
         }
         s += `<rect x="-110" y="${Y0 + 152}" width="12" height="9" fill="#3b4450"/><text x="-92" y="${Y0 + 160}" class="bx-tiny">Ag₃Sn (silver + tin)</text><rect x="40" y="${Y0 + 152}" width="12" height="9" fill="#8A6BB0"/><text x="58" y="${Y0 + 160}" class="bx-tiny">Cu₆Sn₅ (copper + tin)</text><text x="200" y="${Y0 + 160}" class="bx-tiny">pale = soft tin</text>`;
+      } else if (st.hl === 5) {
+        // eutectic temperatures of leaded and lead-free families
+        const X = t => -50 + (t - 170) * 4.2, rows = [['Sn–Pb (leaded)', 183, 183, '#7f8c99'], ['Sn–Ag–Cu', 217, 217, '#D4A73C'], ['Sn–Ag', 221, 221, '#D4A73C'], ['Sn–Cu', 227, 227, '#D4A73C'], ['SAC305 (a bit off)', 217, 220, '#D4A73C']];
+        for (let t = 170; t <= 240; t += 10) s += `<line x1="${X(t)}" y1="${Y0}" x2="${X(t)}" y2="${Y0 + 140}" stroke="var(--muted)" stroke-width=".6" stroke-dasharray="3 4"/><text x="${X(t)}" y="${Y0 + 154}" text-anchor="middle" class="bx-tiny">${t}</text>`;
+        rows.forEach(([nm, lo, hi, c], i) => {
+          const y = Y0 + 8 + i * 27, w = Math.max(11, X(hi) - X(lo)) * Math.min(1, st.gr * 1.3 - i * .12 > 0 ? Math.min(1, (st.gr * 1.3 - i * .12)) : 0);
+          s += `<text x="-200" y="${y + 13}" class="bx-small${i === 0 ? ' hot' : ''}">${nm}</text><rect x="${f(X(lo) - 5.5)}" y="${y}" width="${f(w)}" height="18" rx="9" fill="${c}" stroke="${i === 0 ? 'var(--mat)' : 'rgba(0,0,0,.4)'}" stroke-width="${i === 0 ? 2.5 : 1}"/>`;
+          if (w > 8) s += `<text x="${f(X(hi) + 12)}" y="${y + 13}" class="bx-tiny">${lo === hi ? lo : lo + '–' + hi} °C</text>`;
+        });
       } else {
         s += `<text x="85" y="${Y0 + 50}" text-anchor="middle" class="bx-cap">Pick a step to see what each metal does</text>`;
       }
@@ -4683,6 +4692,7 @@ const B_SOLDER = (() => {
       { title: 'Why does mixing help? Marbles!', dur: 2200, body: 'Think of a solid as marbles stacked in neat rows. Marbles that are all the same size (pure tin) lock together tightly, and you need a lot of heat-shaking to break them apart. Now swap in some big lead marbles among the small tin ones. They don\'t fit the neat rows, so the stack gets gaps and wobbles. A messy stack is easy to shake loose, so it melts at a lower temperature. (Real atoms: tin and lead have different sizes and stack in different patterns.)', tags: [], keys: [[0, { hl: 3, mess: 0 }], [.9, { mess: 1 }]] },
       { title: 'Antimony (Sb): the toughener', dur: 1800, body: 'Antimony melts way up at 631 °C, so we never melt it on its own. Mix a few of its atoms into tin and they act like little pegs: when you push on the metal, its layers try to slide, but the pegs jam them. That makes the solder harder and stronger. Plumbing solder Sn95/Sb5 uses it (melts at 232–240 °C). In electronics solder you only find a trace (under 0.5 %).', tags: [], keys: [[0, { hl: 2, slip: 1 }], [.9, { slip: .15 }]] },
       { title: 'Lead-free: gravel in soft tin', dur: 2200, body: 'Lead-free solder like SAC305 is 96.5 % tin, 3 % silver and 0.5 % copper. Silver and copper lower tin\'s melting point a little, from 232 °C to about 217–220 °C. They also grow tiny hard crystals (Ag₃Sn and Cu₆Sn₅) inside the soft tin, like gravel mixed into clay, which makes the solder strong. Those crystals are why lead-free joints look duller and a bit grainy. That is normal, not a bad joint. (The perfect lead-free mix is closer to SAC387, but SAC305 is cheaper and close enough, with just a 3 °C slush stage.)', tags: [], keys: [[0, { hl: 4, gr: 0 }], [.9, { gr: 1 }]] },
+      { title: 'Lead-free has a eutectic too', dur: 2000, body: 'Good question, but lead-free solders do have eutectic points. A eutectic is just the lowest-melting mix of any set of metals, and every alloy family has one. The difference is where it sits. Tin–lead\'s is at 183 °C. Lead-free mixes are almost all tin, which melts at 232 °C, so their eutectics sit higher: Sn–Cu at 227 °C, Sn–Ag at 221 °C and Sn–Ag–Cu at about 217 °C. SAC305 is slightly off the perfect Sn–Ag–Cu mix, so it has a small 3 °C slush stage (217–220 °C). That is why a leaded joint is easier to make: a lower melting point, and no slush at all.', tags: [], keys: [[0, { hl: 5, gr: 0 }], [.9, { gr: 1 }]] },
     ] };
 
   // Sn–Pb phase diagram (simplified): composition in wt % Sn, temperature in °C
