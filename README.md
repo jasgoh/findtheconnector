@@ -142,10 +142,27 @@ Basics → Electrical → Connectors shows each crimp terminal as an interactive
 cdnjs only when the topic opens). Drag to rotate, scroll or pinch to zoom; buttons for 3D / Side / Top / Mating end
 views, a Wire overlay, and Actual size (1:1 on screen after a one-time bank-card calibration, saved in
 localStorage as `cn-pxmm`). Families: Micro-Fit 3.0, Nano-Fit, Dupont 2.54 mm, JST GH, JST PH (the linked C111515
-is SPH-002T-P0.5S, a PH terminal), JST RCY/SM and Mega-Fit, male and female where both were linked.
+is SPH-002T-P0.5S, a PH terminal), Hirose DF11 (DF11-2428SCF), JST RCY/SM and Mega-Fit, male and female where both were linked.
 Series, wire range, insulation OD and plating come from the LCSC listings. The Micro-Fit male (43031) and female
 (43030-0007) are the real Molex STEP models, triangulated and embedded (`MF_MESH`, quantised). Every other
 terminal is that real mesh reshaped section by section (insulation wings, conductor wings, transition/barrel,
 contact) to its family's size (`sec` in `CONN_PARTS`); those sizes are approximate and the manufacturer's sales
 drawing is the reference. The RCY/SM female keeps the real rear half with a modelled slit tube socket.
 The JST PH female (SPH-002T-P0.5S) is a real STEP model, tessellated from the manufacturer file and embedded as `MF_MESH.ph` (`real: 'ph'` in `CONN_PARTS`).
+The Hirose DF11-2428SCF female is likewise a real STEP model (6.2 mm overall, about 9k triangles), embedded as `MF_MESH.df11` (`real: 'df11'`).
+The Mega-Fit male (105417-0334) and female (76823-0321) are real STEP models too, embedded as `MF_MESH.mgm` and `MF_MESH.mgf`; the female file's five logo parts are left out.
+A real model can set `wt` (sheet thickness) and `fy` (floor height) so the demo wire sits on the floor of the crimp wings.
+
+### Solder: materials science
+Basics → Electrical → Solder has two extra modes. "Lead, tin, antimony" shows what each metal does (tin bonds to copper through a Cu₆Sn₅ layer, lead lowers the melting point below both metals, antimony hardens). "Why it melts at 183 °C" is a simplified Sn–Pb phase diagram with a cooling animation and an atom view; in its last step the composition marker can be dragged (or moved with the arrow keys) to read off the liquidus, solidus, pasty range and a suggested iron temperature (liquidus + about 140 °C, in line with the 330–350 °C leaded and 350–380 °C lead-free settings in the soldering guides). The curve values are rounded textbook figures, so treat them as teaching values, not a datasheet.
+
+## Basics → Machines (new tab)
+
+Four interactive guides, all in the same step-through format as the rest of Basics. Each has several modes (chips above the steps); drag the sliders, click the chips and bubbles, or click the figure itself. Moving to another step resets your changes to that step's setup.
+
+- **3D printer (FDM)**: *Which filament?* (interactive Ashby-style chart of PLA, PETG, ABS, ASA, PLA Tough and CF-filled with selectable axes, radar and best use), *Spaghetti chains* (amorphous / semi-crystalline / crystalline with a pull test), *Heating up* (stiffness vs temperature, Tg and Tm), *Layers & fibre* (layer bonding vs nozzle temperature and fan; carbon-fibre directional strength).
+- **SLA / DLP resin**: *How it prints* (SLA vs DLP vs LCD cycle and layer-time comparison), *How resin cures* (monomers, photoinitiator, Cd = Dp·ln(E/Ec), under/over exposure), *Peel & post-cure*.
+- **CNC milling**: *Cutting basics* (rpm, feed, flutes, chip load, surface speed, material), *Toolpaths* (pocket stepover, profile offset, ball-end scallops, climb vs conventional), *How it moves* (axes, lead screw, steps per mm).
+- **Laser engraver**: *How it works* (wavelength absorption, focus), *Power, energy, time* (P = E/t, dwell, J/mm), *Settings explorer* (speed × power test grid, passes, focus, line interval).
+
+Material numbers are typical, rounded datasheet-style values meant for teaching, not for design. Code lives in the `Machines` block before `const BASICS`; the shared slider/chip layer is `IX`, and each tool is built with `machineTool(meta, modes)`.
