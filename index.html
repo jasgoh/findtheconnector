@@ -5663,9 +5663,9 @@ const B_FDM = (() => {
     s += `<rect x="${FX - 6}" y="${FY - 6}" width="${FW + 12}" height="${FH + 12}" rx="8" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/>`;
     s += CHAINS(FX, FY, FW, FH, c, .8, pull, t);
     const lab = c < .2 ? 'Cooked spaghetti: amorphous' : c < .8 ? 'Mixed spaghetti: semi-crystalline' : 'Uncooked spaghetti: crystalline';
-    s += `<text x="${FX}" y="-184" class="bx-cap hot">${lab}</text><text x="${FX}" y="-4" class="bx-tiny">blue = one chain, linking crystals (tie molecule)</text>`;
+    s += `<text x="${FX}" y="-184" class="bx-cap hot">${lab}</text>${c > .05 && c < .97 ? `<text x="${FX}" y="-4" class="bx-tiny">blue = one chain, linking crystals (tie molecule)</text>` : ""}`;
     // stress-strain
-    const ss = SS(c), pb = plotBox(180, -165, 195, 95, 0, 1, 0, 1.1, { xt: [0, .5, 1], yt: [], xl: 'stretch →', yl: 'pull force' });
+    const ss = SS(c), pb = plotBox(180, -165, 195, 95, 0, 1, 0, 1.1, { xt: [0, .5, 1], yt: [], xl: 'strain (stretch) →', yl: 'stress (force)' });
     s += pb.svg;
     const pts = []; for (let e = 0; e <= ss.eb + 1e-6; e += ss.eb / 30) pts.push(`${f(pb.px(e))},${f(pb.py(ss.at(e)))}`);
     s += `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--mat)" stroke-width="2.5"/><text x="${f(pb.px(ss.eb) + 4)}" y="${f(pb.py(ss.at(ss.eb)) - 5)}" class="bx-tiny" fill="#D4503A">✕ break</text>`;
