@@ -5663,7 +5663,7 @@ const B_FDM = (() => {
     s += `<rect x="${FX - 6}" y="${FY - 6}" width="${FW + 12}" height="${FH + 12}" rx="8" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/>`;
     s += CHAINS(FX, FY, FW, FH, c, .8, pull, t);
     const lab = c < .2 ? 'Cooked spaghetti: amorphous' : c < .8 ? 'Mixed spaghetti: semi-crystalline' : 'Uncooked spaghetti: crystalline';
-    s += `<text x="${FX}" y="-184" class="bx-cap hot">${lab}</text>${c > .05 && c < .97 ? `<text x="${FX}" y="-4" class="bx-tiny">blue = one chain, linking crystals (tie molecule)</text>` : ""}`;
+    s += `<text x="${FX}" y="-184" class="bx-cap hot">${lab}</text>${c > .05 && c < .97 ? `<text x="${FX}" y="7" class="bx-tiny">blue = one chain, linking crystals (tie molecule)</text>` : ""}`;
     // stress-strain
     const ss = SS(c), pb = plotBox(180, -165, 195, 95, 0, 1, 0, 1.1, { xt: [0, .5, 1], yt: [], xl: 'strain (stretch) →', yl: 'stress (force)' });
     s += pb.svg;
@@ -5675,11 +5675,11 @@ const B_FDM = (() => {
     const bar = (y, l, v) => `<text x="150" y="${y}" class="bx-tiny">${l}</text><rect x="260" y="${y - 8}" width="115" height="8" rx="4" fill="rgba(127,127,127,.18)"/><rect x="260" y="${y - 8}" width="${f(115 * v)}" height="8" rx="4" fill="var(--mat)"/>`;
     s += bar(-8, 'stiffness (trend)', (ss.E - 1) / 7) + bar(8, 'stretch (trend)', ss.eb / .9) + bar(24, 'cloudiness (trend)', c);
     s += `<text x="150" y="40" class="bx-tiny">Trends only: chemistry, temperature,</text><text x="150" y="51" class="bx-tiny">weight and processing matter too.</text>`;
-    s += IX.slider('c', -200, 24, 230, 'crystallinity (% crystal)', c * 100, 0, 100, v => v.toFixed(0) + ' %');
-    s += IX.slider('pull', -200, 56, 230, 'pull the part', pull, 0, 1, v => (v * 100).toFixed(0) + ' %');
-    s += IX.chips('c', [[0, 'PETG / ABS / ASA'], [15, 'PLA printed'], [45, 'PLA annealed'], [100, 'ideal crystal']], -200, 88, Math.round(c * 100), 4);
+    s += IX.slider('c', -200, 32, 230, 'crystallinity (% crystal)', c * 100, 0, 100, v => v.toFixed(0) + ' %');
+    s += IX.slider('pull', -200, 64, 230, 'pull the part', pull, 0, 1, v => (v * 100).toFixed(0) + ' %');
+    s += IX.chips('c', [[0, 'PETG / ABS / ASA'], [15, 'PLA printed'], [45, 'PLA annealed'], [100, 'ideal crystal']], -200, 94, Math.round(c * 100), 4);
     const exp = c < .2 ? 'Imagine cooked spaghetti: bent, tangled and randomly arranged. This is an amorphous polymer, where the chains have no regular long-range arrangement. Chain segments can move more freely once warm, so it softens gradually and tends to be see-through.' : c < .8 ? 'Imagine a bundle holding both neat and tangled spaghetti. Sections of the same chains line up and fold into ordered crystals; the rest stays disordered. Some chains (tie molecules) link crystals through the tangle. It generally balances stiffness and toughness.' : 'Imagine uncooked spaghetti: every strand straight and neatly packed beside the others. This is a crystalline structure, an organised, repeating pattern. More crystal generally means more stiffness, density and resistance to deformation, and often more cloudiness. (Real polymers are never 100 % crystal.)';
-    s += para(-200, 135, exp, 80, 'bx-small', 13);
+    s += para(-200, 141, exp, 80, 'bx-small', 13);
     return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
   }
   /* ---- mode 3: heating ---- */
