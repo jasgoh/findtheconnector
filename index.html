@@ -447,9 +447,10 @@ label.btn { cursor: pointer; }
 .eq-tool-name { font-weight: 700; font-size: 1.02rem; line-height: 1.25; }
 .eq-tool[aria-pressed="true"] .eq-tool-name { color: var(--mat); }
 .eq-tool-sub { font-size: .85rem; color: var(--muted); }
-.eq-grp { margin: .7rem .8rem .1rem; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.eq-grp:first-child, .eq-grp[hidden] + .eq-grp:first-of-type { margin-top: .1rem; }
-.eq-grp[hidden] { display: none; }
+.eq-grpsw { display: flex; gap: .25rem; padding: .2rem; margin: 0 0 .3rem; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; }
+.eq-grpsw button { appearance: none; flex: 1; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .8rem; font-weight: 700; padding: .4rem .5rem; border-radius: 999px; cursor: pointer; line-height: 1.2; }
+.eq-grpsw button[aria-checked="true"] { background: var(--mat); color: var(--on-accent, #fff); }
+.eq-grpsw[hidden] { display: none; }
 .eq-more { font-size: .85rem; color: var(--muted); margin: .35rem .8rem 0; }
 
 .eq-stage {
@@ -636,7 +637,7 @@ label.btn { cursor: pointer; }
   .eq-tools { flex-direction: row; flex-wrap: wrap; align-items: center; position: static; }
   .eq-tool { border-color: var(--line); background: var(--surface); }
   .eq-more { margin: 0 0 0 .5rem; }
-  .eq-grp { flex-basis: 100%; margin: .2rem .1rem 0; }
+  .eq-grpsw { flex-basis: 100%; }
 }
 @media (max-width: 820px) {
   .eq-main { grid-template-columns: 1fr; gap: 1.1rem; }
@@ -644,7 +645,7 @@ label.btn { cursor: pointer; }
   .eq-step { min-height: 0; }
   .eq-tools { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .2rem; }
   .eq-tool { flex: none; }
-  .eq-grp { flex: none; margin: 0 .2rem 0 .4rem; }
+  .eq-grpsw { flex: none; }
   .eq-more { display: none; }
 }
 @media (max-width: 480px) {
@@ -7546,15 +7547,11 @@ function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) 
     if (TOOLS.some(x => x.grp)) {                // hand tools first, then power tools; the figures are numbered again within each category
       const rank = { hand: 0, power: 1 }, n = {};
       TOOLS.sort((a, b) => (rank[a.grp] ?? 0) - (rank[b.grp] ?? 0));
-      TOOLS.forEach(x => { n[x.cat] = (n[x.cat] || 0) + 1; x.fig = n[x.cat]; });
+      TOOLS.forEach(x => { const k = x.cat + x.grp; n[k] = (n[k] || 0) + 1; x.fig = n[k]; });
     }
-    const GL = { electrical: { hand: 'Hand tools', power: 'Powered & test tools' }, mechanical: { hand: 'Hand tools', power: 'Power tools' } };
-    let lastG = '';
-    el('Tools').innerHTML = TOOLS.map(x => {
-      const gk = x.grp ? x.cat + x.grp : '', head = gk && gk !== lastG ? `<p class="eq-grp" data-cat="${x.cat}">${(GL[x.cat] || {})[x.grp] || ''}</p>` : '';
-      lastG = gk;
-      return head + `<button type="button" class="eq-tool" data-tool="${x.id}" aria-pressed="false"><span class="eq-fig">Fig. ${String(x.fig).padStart(2, '0')}</span><span class="eq-tool-name">${esc(x.name)}</span><span class="eq-tool-sub">${esc(x.sub)}</span></button>`;
-    }).join('')
+    const hasGrp = TOOLS.some(x => x.grp);
+    el('Tools').innerHTML = (hasGrp ? `<div class="eq-grpsw" role="radiogroup" aria-label="Tool type"><button type="button" role="radio" data-grp="hand"></button><button type="button" role="radio" data-grp="power"></button></div>` : '')
+      + TOOLS.map(x => `<button type="button" class="eq-tool" data-tool="${x.id}" aria-pressed="false"><span class="eq-fig">Fig. ${String(x.fig).padStart(2, '0')}</span><span class="eq-tool-name">${esc(x.name)}</span><span class="eq-tool-sub">${esc(x.sub)}</span></button>`).join('')
       + `<p class="eq-more">${esc(more)}</p>`;
     el('Tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) selectTool(b.dataset.tool); });
     el('List').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) { setPlaying(false); go(+b.dataset.step); } });
@@ -7573,13 +7570,16 @@ function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) 
   // Called when the tool's settings change (e.g. a different terminal): recompute every step and redraw
   function refresh() { memo.clear(); renderText(); cancelAnimationFrame(raf); t = 1; render(); }
   // category switch: show only that category's tools
-  let cat = defaultCat;
+  let cat = defaultCat, grp = 'hand';
+  el('Tools').addEventListener('click', e => { const b = e.target.closest('[data-grp]'); if (b) { grp = b.dataset.grp; showCat(cat); } });
   function showCat(c) {
     cat = c;
     root.querySelectorAll('.eq-cat').forEach(b => b.setAttribute('aria-checked', b.dataset.cat === c));
-    const list = TOOLS.filter(t => t.cat === c);
+    const GLAB = { electrical: ['Hand tools', 'Powered & test tools'], mechanical: ['Hand tools', 'Power tools'] };
+    const hasG = TOOLS.some(t => t.grp);
+    el('Tools').querySelectorAll('[data-grp]').forEach(b => { b.textContent = (GLAB[c] || GLAB.mechanical)[b.dataset.grp === 'power' ? 1 : 0]; b.setAttribute('aria-checked', b.dataset.grp === grp); });
+    const list = TOOLS.filter(t => t.cat === c && (!t.grp || t.grp === grp));
     el('Tools').querySelectorAll('[data-tool]').forEach(b => { b.hidden = !list.some(t => t.id === b.dataset.tool); });
-    el('Tools').querySelectorAll('.eq-grp').forEach(p => { p.hidden = p.dataset.cat !== c; });
     el('Empty').hidden = list.length > 0;
     el('Body').hidden = list.length === 0;
     if (list.length && !list.includes(tool)) selectTool(list[0].id);

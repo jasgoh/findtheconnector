@@ -82,7 +82,7 @@ a tool can set its own camera (`EQ.setView`), shading (`look: 'real'` plus gradi
 People who have asked their device to reduce motion see each step's end position without the animation.
 
 ## Equipment guides
-The tab has an Electrical / Mechanical switch, and each category is split into **Hand tools** and **Powered & test tools** (electrical) or **Power tools** (mechanical). Every tool sets `cat` ('electrical' if left out) and `grp` ('hand' or 'power'). On start-up the list is sorted by group and the Fig. numbers are renumbered within each category, so to move a tool between groups change its `grp` only. The group names are in `GL` inside `makeGuideUI.init()`.
+The tab has an Electrical / Mechanical switch, and each category has a **Hand tools / Powered & test tools** (electrical) or **Hand tools / Power tools** (mechanical) toggle above the tool list. Every tool sets `cat` ('electrical' if left out) and `grp` ('hand' or 'power'). On start-up the Fig. numbers are renumbered within each group, so to move a tool between groups change its `grp` only. The toggle labels are in `GLAB` inside `showCat()`.
 
 Mechanical hand tools:
 - Fig. 01, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
