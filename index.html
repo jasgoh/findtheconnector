@@ -5569,30 +5569,36 @@ function plotBox(x0, y0, w, h, xa, xb, ya, yb, o = {}) {
 }
 const smooth = (a, b, x) => { const t = IX.clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const sgm = (x, c, w) => 1 / (1 + Math.exp(-(x - c) / w));
-// polymer chain field: c = crystallinity 0..1, mob = jiggle 0..1, pull 0..1
+// polymer chain field: c = crystalline fraction 0..1, mob = jiggle, pull 0..1. Crystals are folded-chain lamellae made from sections of chains; tie molecules link them through the tangle.
 const CHAINS = (() => {
-  const cache = {};
-  const build = (n, N) => { const k = n + 'x' + N; if (cache[k]) return cache[k]; const r = seeded(7 + n * 31 + N), ch = []; for (let j = 0; j < n; j++) { const p = []; let ox = 0, oy = 0; for (let i = 0; i < N; i++) { ox = .55 * ox + (r() - .5) * 1.2; oy = .72 * oy + (r() - .5) * 1.9; p.push({ ox, oy, ph: r() * 6.28 }); } ch.push(p); } return cache[k] = ch; };
-  const CEN = [[.18, .3], [.72, .62], [.45, .88], [.86, .18], [.35, .12]];
-  return function (x, y, w, h, c, mob, pull, t, hiN = 4, n = 11, N = 28) {
-    const f = EQ.f, ch = build(n, N); let s = '';
-    ch.forEach((p, j) => {
-      const row = (j + .5) / n, pts = [];
-      p.forEach((q, i) => {
-        const u = i / (N - 1), tx = u + q.ox * .05, ty = row + q.oy * .16;
-        let d = 9; for (const [cx, cy] of CEN) d = Math.min(d, Math.hypot((tx - cx) * 1.6, ty - cy));
-        const wt = smooth(0, .2, c * 1.15 - d);
-        const amp = (1 - wt) * mob * .012, jx = Math.sin(t * 3 + q.ph) * amp, jy = Math.cos(t * 2.3 + q.ph * 1.7) * amp * 1.6;
-        const stretch = pull * (.3 * (1 - c * .8));
-        const wob = 1 - pull * .7 * (1 - wt);
-        let X = (u + (1 - wt) * q.ox * .05 + jx), Y = row + (1 - wt) * q.oy * .16 * wob + jy;
-        X = IX.clamp(X, -.02, 1.02) * (1 + stretch);
-        pts.push(`${f(x + X * w)},${f(y + IX.clamp(Y, .02, .98) * h)}`);
-      });
-      const hi = j === hiN, q = pts.map(a => a.split(',').map(Number));
-      let d = `M${q[0][0]} ${q[0][1]}`; for (let i = 1; i < q.length - 1; i++) d += `Q${q[i][0]} ${q[i][1]} ${f((q[i][0] + q[i + 1][0]) / 2)} ${f((q[i][1] + q[i + 1][1]) / 2)}`; d += `L${q[q.length - 1][0]} ${q[q.length - 1][1]}`;
-      s += `<path d="${d}" fill="none" stroke="${hi ? '#5aa0f0' : '#E8C27A'}" stroke-width="${hi ? 3 : 2.2}" stroke-linejoin="round" stroke-linecap="round" opacity="${hi ? 1 : .8}"/>`;
+  const f = EQ.f, cl = IX.clamp, B = {};
+  const tang = (n, N) => { const k = n + 'x' + N; if (B[k]) return B[k]; const r = seeded(21 + n * 7 + N), ch = []; for (let j = 0; j < n; j++) { let x = r(), y = r(), a = r() * 6.28; const p = []; for (let i = 0; i < N; i++) { a += (r() - .5) * 2.4; x += Math.cos(a) * .07; y += Math.sin(a) * .11; if (x < 0 || x > 1) { x = cl(x, 0, 1); a = Math.PI - a; } if (y < 0 || y > 1) { y = cl(y, 0, 1); a = -a; } p.push({ x, y, ph: r() * 6.28 }); } ch.push(p); } return B[k] = ch; };
+  const SITES = [[.17, .27, .5], [.5, .25, -.35], [.83, .3, .3], [.2, .74, -.25], [.52, .74, .4], [.84, .72, -.5]];
+  const sm = (a, b, x) => { const t = cl((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  return function (x, y, w, h, c, mob, pull, t) {
+    let s = '';
+    const stretch = 1 + pull * .3 * (1 - c * .8), W = w * stretch;
+    const ideal = c > .97;
+    // amorphous tangle (hidden under crystals)
+    const n = Math.round(9 + 8 * (1 - c * .6)), ch = tang(n, 26), wob = 1 - pull * .6;
+    if (!ideal) ch.forEach((p, j) => {
+      const q = p.map(o => { const j1 = mob * .012; return [x + cl(o.x + Math.sin(t * 3 + o.ph) * j1, 0, 1) * W, y + cl(.5 + (o.y - .5) * wob + Math.cos(t * 2.3 + o.ph * 1.7) * j1 * 1.4, 0, 1) * h]; });
+      let d = `M${f(q[0][0])} ${f(q[0][1])}`; for (let i = 1; i < q.length - 1; i++) d += `Q${f(q[i][0])} ${f(q[i][1])} ${f((q[i][0] + q[i + 1][0]) / 2)} ${f((q[i][1] + q[i + 1][1]) / 2)}`;
+      s += `<path d="${d}" fill="none" stroke="#E8C27A" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>`;
     });
+    if (ideal) { const rows = 11; for (let j = 0; j < rows; j++) { const yy = y + (j + .5) / rows * h; s += `<path d="M${f(x + 4)} ${f(yy)} L${f(x + W - 4)} ${f(yy)}" stroke="${j === 4 ? '#5aa0f0' : '#E8C27A'}" stroke-width="${j === 4 ? 3 : 2.2}" stroke-linecap="round"/>`; } return s; }
+    // crystalline lamellae: folded chains in a clear patch
+    const ends = [];
+    SITES.forEach(([ux, uy, ang], i) => {
+      const k = Math.sqrt(c) * .72 + c * .3; if (k < .12) return;
+      const sx = w / 6 * k * 1.05, sy = h / 4 * k, cx = x + ux * W, cy = y + uy * h, a = ang * (1 - c * .9), sp = 5.2, m = Math.max(2, Math.floor(2 * sy / sp));
+      let d = ''; const x0 = -sx, x1 = sx, y0 = -sp * (m - 1) / 2;
+      for (let r = 0; r < m; r++) { const yy = y0 + r * sp; d += (r === 0 ? `M${f(x0)} ${f(yy)}` : '') + `L${f(r % 2 ? x0 : x1)} ${f(yy)}`; if (r < m - 1) d += `A${sp / 2} ${sp / 2} 0 0 ${r % 2 ? 0 : 1} ${f(r % 2 ? x0 : x1)} ${f(yy + sp)}`; }
+      s += `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${f(a * 57.3)})"><ellipse cx="0" cy="0" rx="${f(sx + 9)}" ry="${f(Math.abs(y0) + 9)}" fill="#1f252c" stroke="#8a94a0" stroke-width="1.2"/><path d="${d}" fill="none" stroke="#E8C27A" stroke-width="2" stroke-linecap="round"/><line x1="${f(x0)}" y1="${f(y0 + sp * Math.floor(m / 2))}" x2="${f(x1)}" y2="${f(y0 + sp * Math.floor(m / 2))}" stroke="#5aa0f0" stroke-width="2.8" stroke-linecap="round"/></g>`;
+      const ca = Math.cos(a), sa = Math.sin(a); ends.push([[cx - ca * (sx + 9), cy - sa * (sx + 9)], [cx + ca * (sx + 9), cy + sa * (sx + 9)]]);
+    });
+    // tie molecules: the highlighted noodle leaves one crystal and enters the next
+    for (let i = 0; i < ends.length - 1; i++) { if (i === 2) continue; const A = ends[i][1], Bp = ends[i + 1][0], mx = (A[0] + Bp[0]) / 2, my = (A[1] + Bp[1]) / 2 + (i % 2 ? -14 : 14) + Math.sin(t * 2 + i) * mob * 2; s += `<path d="M${f(A[0])} ${f(A[1])} Q${f(mx)} ${f(my)} ${f(Bp[0])} ${f(Bp[1])}" fill="none" stroke="#5aa0f0" stroke-width="2.4" stroke-linecap="round"/>`; }
     return s;
   };
 })();
@@ -5654,22 +5660,23 @@ const B_FDM = (() => {
     const FX = -200, FY = -165, FW = 310, FH = 150;
     s += `<rect x="${FX - 6}" y="${FY - 6}" width="${FW + 12}" height="${FH + 12}" rx="8" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/>`;
     s += CHAINS(FX, FY, FW, FH, c, .8, pull, t);
-    const lab = c < .2 ? 'Cooked spaghetti: amorphous' : c < .7 ? 'Some of each: semi-crystalline' : 'Uncooked spaghetti: crystalline';
-    s += `<text x="${FX}" y="-184" class="bx-cap hot">${lab}</text>`;
+    const lab = c < .2 ? 'Cooked spaghetti: amorphous' : c < .8 ? 'Mixed spaghetti: semi-crystalline' : 'Uncooked spaghetti: crystalline';
+    s += `<text x="${FX}" y="-184" class="bx-cap hot">${lab}</text><text x="${FX}" y="-4" class="bx-tiny">blue = one chain, linking crystals (tie molecule)</text>`;
     // stress-strain
     const ss = SS(c), pb = plotBox(180, -165, 195, 95, 0, 1, 0, 1.1, { xt: [0, .5, 1], yt: [], xl: 'stretch →', yl: 'pull force' });
     s += pb.svg;
     const pts = []; for (let e = 0; e <= ss.eb + 1e-6; e += ss.eb / 30) pts.push(`${f(pb.px(e))},${f(pb.py(ss.at(e)))}`);
-    s += `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--mat)" stroke-width="2.5"/><text x="${f(pb.px(ss.eb) + 4)}" y="${f(pb.py(ss.at(ss.eb)) - 5)}" class="bx-tiny" fill="#D4503A">✕ snap</text>`;
+    s += `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--mat)" stroke-width="2.5"/><text x="${f(pb.px(ss.eb) + 4)}" y="${f(pb.py(ss.at(ss.eb)) - 5)}" class="bx-tiny" fill="#D4503A">✕ break</text>`;
     const pe = Math.min(pull * .9, ss.eb), broke = pull * .9 > ss.eb;
     s += `<circle cx="${f(pb.px(pe))}" cy="${f(pb.py(ss.at(pe)))}" r="5.5" fill="${broke ? '#D4503A' : '#E8822A'}" stroke="var(--ink)"/>`;
-    s += `<text x="150" y="-26" class="bx-small${broke ? '' : ' hot'}" ${broke ? 'fill="#D4503A"' : ''}>${broke ? 'Snapped! Stiff but brittle' : pull > .02 ? 'Pulling…' : 'Drag the pull slider'}</text>`;
-    const bar = (y, l, v) => `<text x="150" y="${y}" class="bx-tiny">${l}</text><rect x="235" y="${y - 8}" width="140" height="8" rx="4" fill="rgba(127,127,127,.18)"/><rect x="235" y="${y - 8}" width="${f(140 * v)}" height="8" rx="4" fill="var(--mat)"/>`;
-    s += bar(-8, 'stiffness', (ss.E - 1) / 7) + bar(8, 'stretchiness', ss.eb / .9) + bar(24, 'cloudiness', c);
-    s += IX.slider('c', -200, 24, 230, 'crystallinity (% of chains lined up)', c * 100, 0, 100, v => v.toFixed(0) + ' %');
+    s += `<text x="150" y="-26" class="bx-small${broke ? '' : ' hot'}" ${broke ? 'fill="#D4503A"' : ''}>${broke ? 'Broke early in this model' : pull > .02 ? 'Pulling…' : 'Drag the pull slider'}</text>`;
+    const bar = (y, l, v) => `<text x="150" y="${y}" class="bx-tiny">${l}</text><rect x="260" y="${y - 8}" width="115" height="8" rx="4" fill="rgba(127,127,127,.18)"/><rect x="260" y="${y - 8}" width="${f(115 * v)}" height="8" rx="4" fill="var(--mat)"/>`;
+    s += bar(-8, 'stiffness (trend)', (ss.E - 1) / 7) + bar(8, 'stretch (trend)', ss.eb / .9) + bar(24, 'cloudiness (trend)', c);
+    s += `<text x="150" y="40" class="bx-tiny">Trends only: chemistry, temperature,</text><text x="150" y="51" class="bx-tiny">weight and processing matter too.</text>`;
+    s += IX.slider('c', -200, 24, 230, 'crystallinity (% crystal)', c * 100, 0, 100, v => v.toFixed(0) + ' %');
     s += IX.slider('pull', -200, 56, 230, 'pull the part', pull, 0, 1, v => (v * 100).toFixed(0) + ' %');
     s += IX.chips('c', [[0, 'PETG / ABS / ASA'], [15, 'PLA printed'], [45, 'PLA annealed'], [100, 'ideal crystal']], -200, 88, Math.round(c * 100), 4);
-    const exp = c < .2 ? 'Cooked noodles: tangled, sliding past each other. They stretch a lot, soften gradually when heated and let light through (see-through). PETG, ABS and ASA are like this.' : c < .7 ? 'Little patches of dry spaghetti inside a tangle. The patches act like tough anchors (stiffer, stronger), the tangle gives stretch. Fast-cooled PLA is mostly tangle; heating it later grows patches.' : 'Dry spaghetti: straight chains packed in neat bundles. Very stiff and strong in the lined-up direction, but it snaps instead of bending. Cloudy, because the bundles scatter light, and it stays solid until it suddenly melts.';
+    const exp = c < .2 ? 'Imagine cooked spaghetti: bent, tangled and randomly arranged. This is an amorphous polymer, where the chains have no regular long-range arrangement. Chain segments can move more freely once warm, so it softens gradually and tends to be see-through.' : c < .8 ? 'Imagine a bundle holding both neat and tangled spaghetti. Sections of the same chains line up and fold into ordered crystals; the rest stays disordered. Some chains (tie molecules) link crystals through the tangle. It generally balances stiffness and toughness.' : 'Imagine uncooked spaghetti: every strand straight and neatly packed beside the others. This is a crystalline structure, an organised, repeating pattern. More crystal generally means more stiffness, density and resistance to deformation, and often more cloudiness. (Real polymers are never 100 % crystal.)';
     s += para(-200, 135, exp, 80, 'bx-small', 13);
     return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
   }
@@ -5763,12 +5770,13 @@ const B_FDM = (() => {
       ]) },
     { label: 'Spaghetti chains', base: { sid: '', c: 0, pull: 0 }, ctl: c1, draw: drawSpag, live: true,
       steps: mkSteps('fs', [
-        ['Plastic is spaghetti', 'Every filament is made of very long molecules called chains, like noodles. How the noodles are arranged decides almost everything about the material. First, a pot of uncooked spaghetti: every strand straight and packed neatly in a bundle. That is a crystal.', { c: 100, pull: 0 }],
-        ['Cooked spaghetti', 'Now cook it: the same noodles, but tangled and sliding. No order at all: this is amorphous plastic. Compare the stretch and cloudiness bars with the crystal. The orange noodle is the same strand in both pictures.', { c: 0, pull: 0 }],
-        ['Semi-crystalline: a bit of both', 'Most real plastics have patches of dry spaghetti inside a bowl of cooked. The neat patches are crystals; the tangle between them is amorphous. Drag crystallinity to grow and shrink the patches.', { c: 35, pull: 0 }],
-        ['Pull on it', 'Pull the cooked noodles and the tangle straightens and slides: lots of stretch, no sudden snap. Pull dry spaghetti and it resists strongly then snaps with no warning. Try both and watch the dot on the force curve.', { c: 0, pull: .75 }],
-        ['Which filament is which?', 'PETG, ABS and ASA are amorphous: cooked spaghetti. Nylons (PA6, PA12) and PP are semi-crystalline: patches of dry spaghetti, which is why they are tough and slippery but warp as they crystallise and shrink. PLA is semi-crystalline, but it cools so quickly out of the nozzle that it mostly stays tangled (PLA printed). Anneal it in an oven and crystals grow: stiffer and heat resistant, but it shrinks a little.', { c: 15, pull: 0 }],
-        ['Why see-through or cloudy?', 'Light passes through an even tangle, so amorphous plastics (clear PETG, acrylic) can be transparent. Crystal bundles bend and scatter light, so crystalline plastics look cloudy or white. Slide crystallinity and watch the cloudiness bar.', { c: 60, pull: 0 }],
+        ['Plastic is spaghetti', 'Every filament is made of very long molecules called chains, like noodles. The way the chains are arranged influences how a plastic behaves. Imagine a bundle of uncooked spaghetti: every strand straight and neatly packed beside the others. This is a crystalline structure, where chains form an organised, repeating pattern.', { c: 100, pull: 0 }],
+        ['Cooked spaghetti', 'Now imagine cooked spaghetti: bent, tangled and randomly arranged. This is an amorphous polymer, where the chains have no regular long-range arrangement. The blue noodle is one chain, wandering through the tangle.', { c: 0, pull: 0 }],
+        ['Semi-crystalline: a bit of both', 'Now a bundle with both neat and tangled spaghetti. Sections of the same chains line up and fold back and forth into small ordered crystals; other sections stay disordered. Some chains, tie molecules, link crystals through the tangle (the blue noodle). Slide crystallinity: it is the share of the material that is crystal, not the share of chains.', { c: 35, pull: 0 }],
+        ['Pull on it', 'Compare the force curves. More crystal generally gives a stiffer, stronger material; more tangle generally lets the chains move and stretch. These are trends, not rules: chemistry, temperature, molecular weight and processing change them (PETG is amorphous yet tough; nylon is semi-crystalline and tough).', { c: 0, pull: .75 }],
+        ['Which filament is which?', 'PETG, ABS and ASA are amorphous. Nylons (PA6, PA12) and PP are semi-crystalline. PLA is semi-crystalline, but it cools so fast out of the nozzle that it mostly stays tangled (PLA printed). Anneal it and crystals grow: stiffer and more heat resistant, but it shrinks a little.', { c: 15, pull: 0 }],
+        ['See-through or cloudy?', 'Light passes through an even tangle, so amorphous plastics can be transparent. Crystals scatter light, so highly crystalline plastics look cloudy or white. Slide crystallinity and watch the cloudiness trend.', { c: 60, pull: 0 }],
+        ['The big idea', 'How the chains are arranged influences how the plastic behaves. More crystal: generally stiffer, denser and more resistant to deformation. More amorphous: generally more chain mobility, depending on temperature and chemistry. Semi-crystalline plastics combine both, a useful balance.', { c: 40, pull: 0 }],
       ]) },
     { label: 'Heating up', base: { sid: '', m: 0, T: 25 }, ctl: c2, draw: drawHeat, live: true,
       steps: mkSteps('fh', [
