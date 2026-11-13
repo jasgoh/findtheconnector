@@ -447,6 +447,9 @@ label.btn { cursor: pointer; }
 .eq-tool-name { font-weight: 700; font-size: 1.02rem; line-height: 1.25; }
 .eq-tool[aria-pressed="true"] .eq-tool-name { color: var(--mat); }
 .eq-tool-sub { font-size: .85rem; color: var(--muted); }
+.eq-grp { margin: .7rem .8rem .1rem; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.eq-grp:first-child, .eq-grp[hidden] + .eq-grp:first-of-type { margin-top: .1rem; }
+.eq-grp[hidden] { display: none; }
 .eq-more { font-size: .85rem; color: var(--muted); margin: .35rem .8rem 0; }
 
 .eq-stage {
@@ -633,6 +636,7 @@ label.btn { cursor: pointer; }
   .eq-tools { flex-direction: row; flex-wrap: wrap; align-items: center; position: static; }
   .eq-tool { border-color: var(--line); background: var(--surface); }
   .eq-more { margin: 0 0 0 .5rem; }
+  .eq-grp { flex-basis: 100%; margin: .2rem .1rem 0; }
 }
 @media (max-width: 820px) {
   .eq-main { grid-template-columns: 1fr; gap: 1.1rem; }
@@ -640,6 +644,7 @@ label.btn { cursor: pointer; }
   .eq-step { min-height: 0; }
   .eq-tools { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .2rem; }
   .eq-tool { flex: none; }
+  .eq-grp { flex: none; margin: 0 .2rem 0 .4rem; }
   .eq-more { display: none; }
 }
 @media (max-width: 480px) {
@@ -670,6 +675,7 @@ label.btn { cursor: pointer; }
     <div class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-equip" aria-controls="panel-equip" aria-selected="true" data-hash="equipment">Equipment</button>
       <button class="tab" role="tab" id="tab-basics" aria-controls="panel-basics" aria-selected="false" tabindex="-1" data-hash="basics">Basics</button>
+      <button class="tab" role="tab" id="tab-machines" aria-controls="panel-machines" aria-selected="false" tabindex="-1" data-hash="machines">Machines</button>
       <button class="tab" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="false" tabindex="-1" data-hash="scan">Scan me</button>
       <button class="tab" role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" tabindex="-1" data-hash="train">Train the model</button>
     </div>
@@ -900,7 +906,6 @@ label.btn { cursor: pointer; }
     <div class="eq-cats" role="radiogroup" aria-label="Basics category">
       <button type="button" class="eq-cat" role="radio" data-cat="mechanical" aria-checked="true">Mechanical</button>
       <button type="button" class="eq-cat" role="radio" data-cat="electrical" aria-checked="false">Electrical</button>
-      <button type="button" class="eq-cat" role="radio" data-cat="machines" aria-checked="false">Machines</button>
     </div>
     <p class="eq-empty" id="bsEmpty" hidden>No guides here yet. They'll appear as they're added.</p>
     <div class="eq" id="bsBody">
@@ -933,6 +938,48 @@ label.btn { cursor: pointer; }
           <div class="eq-caution" id="bsCaution" hidden><strong>Watch out:</strong><span id="bsCautionText"></span></div>
         </div>
         <ol class="eq-list" id="bsList" aria-label="All steps"></ol>
+       </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MACHINES ============ -->
+  <section role="tabpanel" id="panel-machines" aria-labelledby="tab-machines" hidden>
+    <div class="eq-intro">
+      <h2>Machines</h2>
+      <p class="lead">How the lab machines work, with sliders and animations you can play with. Pick a machine and step through it.</p>
+    </div>
+    <p class="eq-empty" id="mcEmpty" hidden>No guides here yet. They'll appear as they're added.</p>
+    <div class="eq" id="mcBody">
+      <nav class="eq-tools" id="mcTools" aria-label="Machines"></nav>
+      <div class="eq-main">
+       <div class="eq-left">
+        <div class="eq-stage" id="mcStage" tabindex="0" aria-label="Illustration. Use the left and right arrow keys to move between steps.">
+          <svg id="mcFigure" role="img" aria-labelledby="mcStepTitle" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="eq-controls">
+          <button class="btn" id="mcBack" type="button">Back</button>
+          <button class="btn" id="mcReplay" type="button">Replay</button>
+          <button class="btn" id="mcPlay" type="button" aria-pressed="false">Play all</button>
+          <button class="btn btn-primary" id="mcNext" type="button">Next step</button>
+        </div>
+       </div>
+       <div class="eq-right">
+        <div class="eq-term" id="mcTask" hidden>
+          <span class="eq-term-label" id="mcTaskLabel">Section</span>
+          <div class="eq-chips" id="mcTaskChips" role="radiogroup" aria-labelledby="mcTaskLabel"></div>
+          <div id="mcSizeWrap" hidden>
+            <span class="eq-term-label eq-size-label" id="mcSizeLabel">Size</span>
+            <div class="eq-chips" id="mcSizeChips" role="radiogroup" aria-labelledby="mcSizeLabel"></div>
+          </div>
+        </div>
+        <div class="eq-step" aria-live="polite">
+          <div class="eq-step-top"><span class="eq-step-num" id="mcStepNum"></span><div class="pins" id="mcPins" aria-hidden="true"></div></div>
+          <h3 id="mcStepTitle"></h3>
+          <p id="mcStepBody"></p>
+          <div class="eq-caution" id="mcCaution" hidden><strong>Watch out:</strong><span id="mcCautionText"></span></div>
+        </div>
+        <ol class="eq-list" id="mcList" aria-label="All steps"></ol>
        </div>
       </div>
     </div>
@@ -1457,7 +1504,7 @@ const PA14 = (() => {
     <filter id="eqBlurSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
   return {
-    id: 'pa14', fig: 1, softStart: true, name: 'Wire stripper', sub: 'Stripping holes 0.4–1.45 mm',
+    id: 'pa14', grp: 'hand', fig: 1, softStart: true, name: 'Wire stripper', sub: 'Stripping holes 0.4–1.45 mm',
     viewBox: [-215, -212, 600, 430], look: 'real', defs,
     holes: HOLES,
     holeLabel: h => `AWG ${h.str} stranded / AWG ${h.sol} solid`,
@@ -2109,7 +2156,7 @@ const PAD11 = (() => {
     vars: () => ({ C: dieName(SEL.c), I: dieName(SEL.i),
       M: SEL.c === SEL.i ? `Keep it in the ${dieName(SEL.i)} mm die but slide it further in` : `Move the terminal to the ${dieName(SEL.i)} mm die and push it in` }),
     picker: true,
-    id: 'pad11', fig: 2, softStart: true, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
+    id: 'pad11', grp: 'hand', fig: 2, softStart: true, name: 'Engineer PAD-11', sub: 'Micro crimper, open-barrel terminals',
     viewBox: [-215, -212, 600, 430],
     look: 'real', defs,
     base: { open: 0, lock: 1, lockGlow: 0, toolFade: 1, glowC: 0, glowI: 0, termOn: 0, wireOn: 0, die: 3, ty: 24, wY: 26, wOff: 9, slug: 0,
@@ -2424,7 +2471,7 @@ const LUG = (() => {
     this.base.wY = t.s1 + 18;
   }
   return {
-    id: 'lug', fig: 3, softStart: true, name: 'Lug crimper', sub: 'Insulated terminals, 22–10 AWG',
+    id: 'lug', grp: 'hand', fig: 3, softStart: true, name: 'Lug crimper', sub: 'Insulated terminals, 22–10 AWG',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: FRONT_KIT.defs,
     holes: NESTS, defaultHole: 1, holeLabel: h => `${h.name} terminal: ${h.awg} AWG (${h.mm2} mm²)`,
     holeNote: h => `Uses the ${h.name.toLowerCase()} nest. Match the nest to the terminal's sleeve colour.`,
@@ -2646,7 +2693,7 @@ const FERRULE = (() => {
     this.base.wY = fe.c1 + 16;
   }
   return {
-    id: 'ferrule', fig: 4, softStart: true, name: 'Ferrule crimper', sub: 'Self-adjusting, 0.25–6 mm²',
+    id: 'ferrule', grp: 'hand', fig: 4, softStart: true, name: 'Ferrule crimper', sub: 'Self-adjusting, 0.25–6 mm²',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: FRONT_KIT.defs,
     holes: SIZES, defaultHole: 3, holeLabel: h => `${h.mm2} mm² ferrule (about AWG ${h.awg})`,
     holeNote: h => `Collar colour shown per DIN 46228-4; colour codes vary by brand, so check the box. The tool adjusts itself to the ferrule.`,
@@ -3168,7 +3215,7 @@ const SOLDER = (() => {
     <linearGradient id="sd-pad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3D99A"/><stop offset="1" stop-color="#C79A3A"/></linearGradient>`;
 
   const tool = {
-    id: 'solder', fig: 5, name: 'Soldering iron', sub: 'Tinning, splicing, XT, pads, inserts', cat: 'electrical',
+    id: 'solder', grp: 'power', fig: 5, name: 'Soldering iron', sub: 'Tinning, splicing, XT, pads, inserts', cat: 'electrical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs,
     modes: MODES.map(m => m.label),
     get mode() { return mode; },
@@ -3510,7 +3557,7 @@ const DRILL = (() => {
   const DEFS = `<radialGradient id="dr-glow"><stop offset="0" stop-color="#FFF6D0" stop-opacity=".95"/><stop offset="1" stop-color="#FFF6D0" stop-opacity="0"/></radialGradient>`
     + `<linearGradient id="dr-beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFF6D0" stop-opacity=".7"/><stop offset="1" stop-color="#FFF6D0" stop-opacity="0"/></linearGradient>`;
   return {
-    id: 'drill', fig: 1, name: 'Power drill', sub: 'Makita cordless drill: battery, chuck, torque', cat: 'mechanical',
+    id: 'drill', grp: 'power', fig: 1, name: 'Power drill', sub: 'Makita cordless drill: battery, chuck, torque', cat: 'mechanical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs + DEFS,
     modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
     get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
@@ -3575,7 +3622,7 @@ const PUNCH = (() => {
     return { svg, tags, anchors: { flash: MK.pt(st, px + 40, PLATE_Y - 140) } };
   }
   return {
-    id: 'punch', fig: 2, name: 'Centre punch', sub: 'Marking hole centres', cat: 'mechanical',
+    id: 'punch', grp: 'hand', fig: 2, name: 'Centre punch', sub: 'Marking hole centres', cat: 'mechanical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
     base: { blue: 0, rule: 0, scribe: 0, scribeX: 0, lines: 0, punchOn: 0, tilt: 30, lift: 1, hammerOn: 0, strike: 0, depth: 0, off: 0, inset: 0, zoom: 1, zs: 1.4, fx: 30, fy: -6 },
     steps: [
@@ -3700,7 +3747,7 @@ const CALIPER = (() => {
   ];
   let mode = 0;
   return {
-    id: 'caliper', fig: 3, name: 'Vernier caliper', sub: 'Outside, inside, depth and step', cat: 'mechanical',
+    id: 'caliper', grp: 'hand', fig: 3, name: 'Vernier caliper', sub: 'Outside, inside, depth and step', cat: 'mechanical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
     modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
     get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
@@ -3898,7 +3945,7 @@ const MULTI = (() => {
     <linearGradient id="mm-needle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6F7"/><stop offset="1" stop-color="#8E959B"/></linearGradient>
     <linearGradient id="mm-batt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3A3E45"/><stop offset=".5" stop-color="#5A5F66"/><stop offset="1" stop-color="#2A2D32"/></linearGradient>`;
   return {
-    id: 'multimeter', fig: 6, name: 'Multimeter', sub: 'Fluke 115: volts, ohms, continuity, amps', cat: 'electrical',
+    id: 'multimeter', grp: 'power', fig: 6, name: 'Multimeter', sub: 'Fluke 115: volts, ohms, continuity, amps', cat: 'electrical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs,
     modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
     get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
@@ -4139,7 +4186,7 @@ const TAPDIE = (() => {
   const MODES = [TAP, DIE];
   let mode = 0;
   return {
-    id: 'tapdie', fig: 4, name: 'Tap and die', sub: 'Threading holes and rods, M3–M8', cat: 'mechanical',
+    id: 'tapdie', grp: 'hand', fig: 4, name: 'Tap and die', sub: 'Threading holes and rods, M3–M8', cat: 'mechanical',
     viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs,
     modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
     sizes: SIZES.map(s => s.name), get size() { return SEL.i; }, setSize(i) { SEL.i = i; }, showSizes: () => true, sizeLabel: 'Thread size',
@@ -4149,7 +4196,560 @@ const TAPDIE = (() => {
   };
 })();
 
-const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER, MULTI, DRILL, PUNCH, CALIPER, TAPDIE];
+/* ---------- Mechanical: Hand saw ---------- */
+const HANDSAW = (() => {
+  const { lerp, f } = EQ;
+  const PY = 62, PH = 40, CX = 60;                       // plank top, thickness, cut line x
+  function saw(ang, d, ox, oy, sc = 1) {
+    // local frame: teeth edge along y = 0, toe at x = 0, handle at the far end; origin sits on the kerf
+    let t = ''; const p = 7;
+    for (let x = 6; x < 232; x += p) t += `L${f(x)} 0 L${f(x + p * .12)} 6.5 `;
+    return `<g transform="translate(${f(ox)} ${f(oy)}) rotate(${f(-ang)}) translate(${f(-d)} 0) scale(${sc})">
+      <path d="M0 -6 L0 -4 L6 0 ${t}L232 0 L232 -34 L6 -34 Q0 -34 0 -28Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.55)"/>
+      <path d="M232 -34 Q262 -46 288 -40 Q304 -20 292 14 Q270 20 246 12 L232 0Z" fill="url(#mk-handle)" stroke="rgba(0,0,0,.6)"/>
+      <ellipse cx="266" cy="-16" rx="13" ry="9" fill="rgba(0,0,0,.35)"/>
+      <path d="M6 -2 L232 -2" stroke="rgba(255,255,255,.55)" stroke-width="1"/></g>`;
+  }
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    // bench and vice
+    b += `<rect x="-210" y="${PY + PH + 38}" width="420" height="14" fill="#4b535b" stroke="rgba(0,0,0,.5)"/>`;
+    const L = -150, R = lerp(150, 90, st.trim || 0);
+    const cut = st.depth || 0;
+    // the plank
+    const fall = st.fall || 0;
+    b += `<g><rect x="${L}" y="${PY}" width="${CX - L}" height="${PH}" fill="url(#mk-wood)" stroke="rgba(0,0,0,.5)"/>`;
+    b += Array.from({ length: 5 }, (_, i) => `<path d="M${L} ${PY + 6 + i * 8} L${CX} ${PY + 6 + i * 8}" stroke="#7a5528" stroke-width=".8" opacity=".55"/>`).join('') + `</g>`;
+    b += `<g transform="translate(${f(fall * 10)} ${f(fall * 70)}) rotate(${f(fall * 14)} ${CX} ${PY})"><rect x="${CX}" y="${PY}" width="${R - CX}" height="${PH}" fill="url(#mk-wood)" stroke="rgba(0,0,0,.5)"/>`
+      + Array.from({ length: 5 }, (_, i) => `<path d="M${CX} ${PY + 6 + i * 8} L${R} ${PY + 6 + i * 8}" stroke="#7a5528" stroke-width=".8" opacity=".55"/>`).join('') + `</g>`;
+    // vice
+    if (st.vice > .02) b += `<g opacity="${f(st.vice)}"><rect x="-175" y="${PY + PH}" width="95" height="38" fill="#3a4047" stroke="rgba(0,0,0,.6)"/><rect x="-175" y="${PY - 14}" width="22" height="${PH + 52}" fill="#4b535b" stroke="rgba(0,0,0,.6)"/><rect x="-100" y="${PY - 14}" width="22" height="${14}" fill="#4b535b" stroke="rgba(0,0,0,.6)"/><rect x="-90" y="${PY + PH}" width="12" height="2" fill="#fff" opacity=".2"/></g>`;
+    // the kerf
+    if (cut > 0) b += `<rect x="${CX - 1.5}" y="${PY}" width="3" height="${f(Math.min(PH, cut * PH))}" fill="#1a1612"/>`;
+    // the pencil line
+    if (st.line > .02) b += `<g opacity="${f(st.line)}"><line x1="${CX - 1}" y1="${PY - 1}" x2="${CX - 1}" y2="${PY + PH}" stroke="#222" stroke-width="1.6"/><line x1="${CX - 1}" y1="${PY - 1}" x2="${CX + 22}" y2="${PY - 1}" stroke="#222" stroke-width=".8"/></g>`;
+    // the saw
+    const sxp = Math.sin((st.ph || 0) * Math.PI * 2);                      // +1 = pushed forward
+    const d = 62 + (st.reach || 0) - sxp * (st.len ?? 40);
+    const ky = PY + (cut * PH);
+    const ox = CX, oy = cut > 0 ? Math.max(PY, ky) : PY - 1;
+    if (st.sawOn > .02) b += `<g opacity="${f(st.sawOn)}">${saw(st.ang, d, ox, oy, .78)}</g>`;
+    // thumb that guides the blade
+    if (st.thumb > .02) b += `<g opacity="${f(st.thumb)}"><path d="M${CX - 34} ${PY - 6} q-4 -22 10 -34 q12 -6 16 8 q2 14 -2 30Z" fill="#E8B898" stroke="#7a5238"/><path d="M${CX - 22} ${PY - 32} q4 -4 8 0" fill="none" stroke="#7a5238" stroke-width="1"/></g>`;
+    // a hand holding up the offcut
+    if (st.sup > .02) b += `<g opacity="${f(st.sup)}"><path d="M${R - 50} ${PY + PH + 3} q20 14 52 4 l8 20 q-24 14 -66 2Z" fill="#E8B898" stroke="#7a5238"/></g>`;
+    // sawdust
+    if (st.dust > .02 && sxp > -2) for (let i = 0; i < 7; i++) b += `<circle cx="${f(CX + 6 + ((i * 7) % 18))}" cy="${f(PY + PH + 12 + ((i * 13) % 28) * st.dust)}" r="1.6" fill="#C79A5B" opacity="${f(.9 - i * .1)}"/>`;
+    const tags = {
+      line: { xy: MK.pt(st, CX - 1, PY), dx: -30, dy: -70, text: 'Cut line' },
+      waste: { xy: MK.pt(st, 120, PY + 10), dx: 40, dy: -50, text: 'Waste side' },
+      keep: { xy: MK.pt(st, -60, PY + 14), dx: -10, dy: -70, text: 'Keep side' },
+      vice: { xy: MK.pt(st, -140, PY + 50), dx: -20, dy: 60, text: 'Vice, close to the cut' },
+      thumb: { xy: MK.pt(st, CX - 24, PY - 28), dx: -70, dy: -60, text: 'Thumb guides the blade' },
+      saw: { xy: MK.pt(st, CX + 120, PY - 80), dx: 40, dy: -30, text: 'Saw' },
+      kerf: { xy: MK.pt(st, CX, PY + 8), dx: -80, dy: 90, text: 'Kerf (saw cut)' },
+      hand: { xy: MK.pt(st, R - 20, PY + PH + 18), dx: 30, dy: 50, text: 'Support the offcut' },
+    };
+    // inset: teeth close-up, or the plan view of the cut line
+    let w = `<rect x="198" y="-202" width="160" height="160" fill="#E8DCC6"/>`;
+    if (st.insMode < .5) {                                      // plan view: the kerf sits on the waste side of the line
+      w += `<rect x="198" y="-202" width="82" height="160" fill="#C79A5B" opacity=".6"/><rect x="288" y="-202" width="70" height="160" fill="#C79A5B" opacity=".25"/>`
+        + `<line x1="280" y1="-202" x2="280" y2="-42" stroke="#222" stroke-width="1.6"/><rect x="281" y="-202" width="6" height="160" fill="#1a1612"/>`
+        + `<text x="238" y="-124" text-anchor="middle" font-size="12" fill="#222">KEEP</text><text x="323" y="-124" text-anchor="middle" font-size="12" fill="#222">WASTE</text>`;
+    } else {
+      let teeth = ''; for (let i = 0; i < 9; i++) { const x = 205 + i * 17; teeth += `L${x} -92 L${x + 2} -74 `; }
+      w += `<path d="M198 -120 ${teeth} L358 -92 L358 -150 L198 -150Z" fill="url(#mk-steel)" stroke="#333" stroke-width="1.4"/>`
+        + `<path d="M222 -66 L322 -66" stroke="#D4503A" stroke-width="3"/><path d="M314 -72 L324 -66 L314 -60Z" fill="#D4503A"/>`;
+    }
+    const lab = st.insMode < .5 ? 'Plan view: cut in the waste, beside the line' : 'Teeth lean forward: cut on the push (→)';
+    return { svg: MK.scene(st, b) + MK.inset(-100, -122, 76, `<g transform="translate(-378 0)">${w}</g>`, lab, 'hsIn', st.inset), tags, anchors: { flash: MK.pt(st, CX + 40, PY - 90) } };
+  }
+  return {
+    id: 'handsaw', grp: 'hand', fig: 4, name: 'Hand saw', sub: 'Marking, starting, sawing, finishing', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { line: 0, vice: 0, sawOn: 0, ang: 60, ph: 0, len: 40, reach: 0, depth: 0, thumb: 0, sup: 0, dust: 0, fall: 0, trim: 0, inset: 0, insMode: 0, zoom: 0, zs: 1.3, fx: 40, fy: 70 },
+    steps: [
+      { title: 'Mark the cut line', dur: 1800,
+        body: 'Mark the line all the way round the work with a pencil and square, so you can follow it on every face. Decide which side is waste: the kerf (the slot the saw removes) is about as wide as the blade, so you cut on the waste side of the line and leave the line itself on the piece you keep.',
+        tags: ['line', 'waste', 'keep'], hot: ['line'], keys: [[.3, { line: 1, inset: 1 }], [1, { zoom: 0 }]] },
+      { title: 'Clamp it close to the cut', dur: 1600,
+        body: 'Clamp the work in a vice or against the bench, with the line just beyond the jaws. If the work can flex or chatter it will bind the blade and splinter. Keep the cut line over the side of the bench so the blade does not hit anything.',
+        tags: ['vice'], hot: ['vice'], keys: [[.5, { vice: 1 }]] },
+      { title: 'Start with a nick', dur: 2600,
+        body: 'Rest the blade on the waste side of the line with your thumb knuckle against the side of the blade as a guide. Pull the saw back a few times with a low angle and light pressure to cut a small groove. Then begin pushing with short, light strokes.',
+        tags: ['thumb', 'saw'], hot: ['thumb'], keys: [[.15, { sawOn: 1, thumb: 1, ang: 22, zoom: 1, inset: 0 }], [.5, { depth: .06 }], [1, { ph: 2, depth: .1 }]] },
+      { title: 'Long, steady strokes', dur: 3600,
+        body: 'Raise the saw to about 45° and use the full length of the blade. Cutting happens on the push stroke, with only light pressure on the return. Let the saw do the work: forcing it makes it wander and tires you. Keep your eye on the line and the blade square to the work.',
+        tags: ['saw', 'kerf'], hot: ['kerf'], keys: [[.1, { thumb: 0, ang: 45, zoom: .4, insMode: 1, inset: 1 }], [1, { ph: 6, depth: .78, dust: 1 }]], flashes: [[.35, 'Push']] },
+      { title: 'Ease off at the end', dur: 3000,
+        body: 'Support the offcut with your free hand so it cannot fall and tear a strip off the piece you are keeping. Slow down to short, light strokes as you come through the last few millimetres.',
+        caution: 'Keep your free hand clear of the blade and behind the line of the cut. Never saw towards your own hand.',
+        tags: ['hand', 'kerf'], hot: ['hand'], keys: [[.1, { sup: 1, ang: 35 }], [.9, { ph: 9, depth: 1, len: 14 }], [1, { dust: 0 }]], flashes: [[.8, 'Almost through']] },
+      { title: 'Check, then tidy', dur: 2200,
+        body: 'Lift the offcut away. Check the cut is square and on the line. Knock the sharp edge off with a file or sandpaper. Wipe the blade and hang the saw up with the teeth covered, as a blunt saw (it feels like it is rubbing rather than cutting) should be replaced or professionally sharpened.',
+        tags: ['kerf'], keys: [[.2, { sawOn: 0, sup: 0, fall: 1, zoom: 0, inset: 0 }]] },
+    ],
+  };
+})();
+
+/* ---------- Mechanical: Files (equipment guide) ---------- */
+const FILEGUIDE = (() => {
+  const { lerp, f } = EQ;
+  const VY = 70;                                     // top of the vice jaws
+  function file(x, y, tilt) {
+    let t = ''; for (let i = 0; i < 30; i++) t += `<line x1="${-100 + i * 7}" y1="-1" x2="${-96 + i * 7}" y2="-4.5" stroke="#555" stroke-width="1"/>`;
+    return `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(tilt)})"><path d="M-125 -9 L100 -9 L100 0 L-125 0Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>${t}
+      <path d="M100 -7 L124 -5 L124 -2 L100 -2Z" fill="#7E868D" stroke="rgba(0,0,0,.5)"/>
+      <path d="M124 -14 Q168 -22 176 -4 Q168 14 124 10Z" fill="#B85C2A" stroke="rgba(0,0,0,.6)"/><path d="M130 -8 Q160 -14 168 -4" stroke="rgba(255,255,255,.3)" fill="none"/></g>`;
+  }
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    b += `<rect x="-210" y="${VY + 70}" width="420" height="14" fill="#4b535b" stroke="rgba(0,0,0,.5)"/>`;
+    // vice with the work held low
+    b += `<rect x="-120" y="${VY}" width="140" height="70" fill="#3a4047" stroke="rgba(0,0,0,.6)"/><rect x="-120" y="${VY - 4}" width="20" height="74" fill="#4b535b"/><rect x="0" y="${VY - 4}" width="20" height="74" fill="#4b535b"/>`;
+    const wk = 26 - (st.cut || 0) * 3;
+    b += `<rect x="-100" y="${VY - wk}" width="100" height="${wk + 8}" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/>`;
+    if (st.clamp < .5) b += `<g opacity="${f(1 - st.clamp * 2)}"><rect x="-100" y="${VY - 50}" width="100" height="58" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/></g>`;
+    // the file moves along the work
+    const ph = st.ph || 0, sw = Math.sin(ph * Math.PI * 2), push = Math.cos(ph * Math.PI * 2) < 0 ? 1 : 0;
+    const press = st.press ?? 0, lift = (st.lift || 0) * 10;
+    const fx = -20 + st.shift - sw * 38 * (st.stroke ?? 1), fy = VY - wk - 9 - lift + (st.fy || 0);
+    if (st.fileOn > .02) b += `<g opacity="${f(st.fileOn)}">${file(fx, fy, (st.tilt || 0))}</g>`;
+    // hands
+    if (st.hands > .02) {
+      b += `<g opacity="${f(st.hands)}"><path d="M${f(fx + 112)} ${f(fy - 10)} q26 -22 62 -8 q10 20 -8 30 q-34 10 -54 -2Z" fill="#E8B898" stroke="#7a5238"/>`
+        + `<path d="M${f(fx - 92)} ${f(fy - 12)} q16 -14 34 -2 q6 12 -6 18 q-18 4 -28 -4Z" fill="#E8B898" stroke="#7a5238"/></g>`;
+    }
+    // pressure arrow
+    if (st.parrow > .02) { const ax = fx - 74, ay = fy - 46; b += `<g opacity="${f(st.parrow * (push ? 1 : .25))}"><line x1="${f(ax)}" y1="${f(ay)}" x2="${f(ax)}" y2="${f(ay + 28)}" stroke="#E8822A" stroke-width="3.5"/><path d="M${f(ax - 7)} ${f(ay + 24)} L${f(ax)} ${f(ay + 34)} L${f(ax + 7)} ${f(ay + 24)}Z" fill="#E8822A"/></g>`; }
+    // filings
+    if (st.dust > .02) for (let i = 0; i < 6; i++) b += `<circle cx="${f(fx - 70 + i * 9)}" cy="${f(VY + 4 + ((i * 11) % 20) * st.dust)}" r="1.5" fill="#B8BEC4" opacity="${f(.9 - i * .1)}"/>`;
+    // a steel straight edge with light showing through
+    if (st.rule > .02) {
+      b += `<g opacity="${f(st.rule)}"><rect x="-110" y="${VY - wk - 8}" width="120" height="8" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/><path d="M-98 ${VY - wk} L-70 ${VY - wk} L-70 ${VY - wk + 1.5} L-98 ${VY - wk}Z" fill="#fff8c8"/>`
+        + `<path d="M-96 ${VY - wk - .4} Q-60 ${VY - wk + 3} -14 ${VY - wk - .4}" fill="none" stroke="#fff3a8" stroke-width="2.2"/></g>`;
+    }
+    const tags = {
+      file: { xy: MK.pt(st, fx - 40, fy - 4), dx: -40, dy: -80, text: 'File' },
+      handle: { xy: MK.pt(st, fx + 150, fy - 4), dx: 10, dy: -60, text: 'Handle in the palm' },
+      tip: { xy: MK.pt(st, fx - 82, fy - 10), dx: -30, dy: -64, text: 'Other hand on the tip' },
+      jaws: { xy: MK.pt(st, -110, VY + 30), dx: -10, dy: 70, text: 'Work low in the vice' },
+      press: { xy: MK.pt(st, fx - 74, fy - 30), dx: -60, dy: -50, text: 'Press as it pushes' },
+      lift: { xy: MK.pt(st, fx, fy - 10), dx: 20, dy: -90, text: 'Ease off on the way back' },
+      rule: { xy: MK.pt(st, -40, VY - wk - 6), dx: -50, dy: -80, text: 'Straight edge' },
+      dust: { xy: MK.pt(st, fx - 40, VY + 12), dx: -50, dy: 70, text: 'Filings' },
+    };
+    let w = `<rect x="198" y="-202" width="160" height="160" fill="#3a3f46"/>`;
+    if (st.card > .02) {
+      for (let i = 0; i < 18; i++) w += `<line x1="${206 + i * 8}" y1="-150" x2="${210 + i * 8}" y2="-128" stroke="#6b737a" stroke-width="2"/>`;
+      w += `<g opacity="${f(.3 + st.card * .7)}"><rect x="${f(214 + st.card * 70)}" y="-176" width="30" height="64" rx="3" fill="#B85C2A"/>${Array.from({ length: 9 }, (_, i) => `<line x1="${f(214 + st.card * 70)}" y1="${-172 + i * 7}" x2="${f(244 + st.card * 70)}" y2="${-172 + i * 7}" stroke="#4a2410"/>`).join('')}</g>`;
+    } else if (st.draw > .02) {                           // draw filing: file lies across the work
+      w += `<rect x="216" y="-176" width="124" height="108" fill="#8E959B"/><rect x="212" y="${f(-134 + Math.sin(ph * 6.28) * 20)}" width="132" height="12" fill="#D9DEE2" stroke="#222"/><path d="M200 -100 L356 -100" stroke="#e8822a" stroke-width="2" stroke-dasharray="4 3"/>`;
+    } else {
+      w += `<rect x="204" y="-176" width="148" height="108" fill="#8E959B"/>${Array.from({ length: 7 }, (_, i) => `<line x1="${210 + i * 20}" y1="-170" x2="${f(244 + i * 20)}" y2="-74" stroke="#5a6068" stroke-width="1.1" opacity=".7"/>`).join('')}`;
+    }
+    const lab = st.card > .02 ? 'File card: brush along the teeth' : st.draw > .02 ? 'Draw filing: finish with the file held across the work' : 'Surface: even, parallel strokes';
+    return { svg: MK.scene(st, b) + MK.inset(278, -122, 76, w, lab, 'flIn', st.inset), tags, anchors: { flash: MK.pt(st, fx, fy - 70) } };
+  }
+  return {
+    id: 'filetool', grp: 'hand', fig: 5, name: 'Files', sub: 'Gripping, stroking, checking flat', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { clamp: 0, fileOn: 0, hands: 0, ph: 0, stroke: 1, press: 0, lift: 0, shift: 0, tilt: 0, cut: 0, dust: 0, parrow: 0, rule: 0, card: 0, draw: 0, inset: 0, fy: 0, zoom: 1, zs: 1.45, fx: 20, fy2: 0 },
+    steps: [
+      { title: 'Clamp the work low in the vice', dur: 1800,
+        body: 'Put the work in the vice with the edge you are filing just above the jaws, so it cannot flex or chatter. Use soft jaws or a strip of card on finished work so the vice does not mark it.',
+        tags: ['jaws'], hot: ['jaws'], keys: [[.5, { clamp: 1 }]] },
+      { title: 'Grip it properly', dur: 2000,
+        body: 'Fit a handle: a bare tang can stab your palm. Hold the handle in your palm with your thumb along the top. Put the fingertips or heel of your other hand on the file tip so you can steer and press.',
+        caution: 'Never use a file without a handle: the sharp tang can go straight into your hand.',
+        tags: ['handle', 'tip'], hot: ['handle'], keys: [[.2, { fileOn: 1 }], [.6, { hands: 1 }]] },
+      { title: 'Press on the push stroke', dur: 3400,
+        body: 'Files cut on the forward push. Press down steadily and push the file along its full length, moving it slightly sideways across the work so the strokes overlap. Keep the file flat: if you rock it, you round the edge off.',
+        tags: ['file', 'press'], hot: ['press'], keys: [[.1, { parrow: 1, press: 1, dust: 1, inset: 1 }], [1, { ph: 3, cut: 1 }]], flashes: [[.2, 'Push']] },
+      { title: 'Ease off on the return', dur: 3000,
+        body: 'On the way back, lift the file slightly or keep only the lightest contact. Dragging the teeth backwards under pressure dulls them quickly.',
+        tags: ['lift'], hot: ['lift'], keys: [[.1, { lift: 1, press: 0 }], [1, { ph: 3 }]] },
+      { title: 'Check it is flat', dur: 2400,
+        body: 'Every so often hold a steel straight edge on the face and hold it up to the light. Light showing through means a low spot; no light means flat. Change the angle of your strokes (cross-file) so you do not make grooves, and brush the file clean.',
+        tags: ['rule'], hot: ['rule'], keys: [[.2, { rule: 1, fileOn: 0, hands: 0, parrow: 0, dust: 0, lift: 0 }]] },
+      { title: 'Finish and clean', dur: 2800,
+        body: 'For a smooth finish, draw-file: hold the file crosswise in both hands and slide it along the surface. When the teeth clog (pinning) the file scratches instead of cutting: brush it along the teeth with a file card. Finally, knock off any burrs.',
+        tags: ['dust'], keys: [[.1, { rule: 0, draw: 1, inset: 1 }], [.55, { draw: 0, card: .1 }], [1, { card: 1 }]] },
+    ],
+  };
+})();
+
+/* ---------- Mechanical: Chisel ---------- */
+const CHISEL = (() => {
+  const { lerp, f } = EQ;
+  const TY = 60;                                       // top face of the work
+  function chisel(ang, tipx, tipy, bevelUp) {
+    // blade lies along local +x going back to the handle; the cutting edge is the origin
+    const bv = bevelUp ? -1 : 1;
+    return `<g transform="translate(${f(tipx)} ${f(tipy)}) rotate(${f(-ang)})">
+      <path d="M0 0 L36 ${f(bv * -3)} L36 -11 L0 -11Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>
+      <path d="M0 0 L36 ${f(bv * -3)}" stroke="#2a2d31" stroke-width="1.2"/>
+      <rect x="36" y="-12" width="70" height="12" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>
+      <rect x="106" y="-13" width="12" height="14" fill="#7E868D" stroke="rgba(0,0,0,.5)"/>
+      <path d="M118 -17 Q180 -22 186 -6 Q180 10 118 4Z" fill="url(#mk-handle)" stroke="rgba(0,0,0,.6)"/></g>`;
+  }
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    b += `<rect x="-210" y="${TY + 70}" width="420" height="14" fill="#4b535b" stroke="rgba(0,0,0,.5)"/>`;
+    // the work: a block with a pocket cut into it, depth grows with st.cut
+    const x0 = -120, x1 = 150, bw = 270, pd = st.cut * 26, xr = 20, xl = -50;
+    b += `<path d="M${x0} ${TY} L${xl} ${TY} L${xl} ${f(TY + pd)} L${xr} ${f(TY + pd)} L${xr} ${TY} L${x1} ${TY} L${x1} ${TY + 70} L${x0} ${TY + 70}Z" fill="url(#mk-wood)" stroke="rgba(0,0,0,.5)"/>`;
+    b += Array.from({ length: 6 }, (_, i) => `<path d="M${x0} ${TY + 10 + i * 10} L${xl} ${TY + 10 + i * 10} M${xr} ${TY + 10 + i * 10} L${x1} ${TY + 10 + i * 10}" stroke="#7a5528" stroke-width=".8" opacity=".5"/>`).join('');
+    if (st.clamp > .02) b += `<g opacity="${f(st.clamp)}"><rect x="-80" y="${TY - 18}" width="30" height="14" fill="#8a9097" stroke="rgba(0,0,0,.6)"/><rect x="-72" y="${TY - 4}" width="14" height="4" fill="#555"/><rect x="${x1 - 40}" y="${TY - 18}" width="30" height="14" fill="#8a9097" stroke="rgba(0,0,0,.6)"/></g>`;
+    if (st.line > .02) b += `<g opacity="${f(st.line)}"><line x1="${xl}" y1="${TY - 1}" x2="${xl}" y2="${TY + 26}" stroke="#222" stroke-width="1.5"/><line x1="${xr}" y1="${TY - 1}" x2="${xr}" y2="${TY + 26}" stroke="#222" stroke-width="1.5"/></g>`;
+    // shavings
+    if (st.shave > .02) for (let i = 0; i < 4; i++) b += `<path d="M${f(xl + 20 + i * 24)} ${f(TY + pd - 2)} q6 -14 14 -8 q6 8 -4 10" fill="none" stroke="#E7C58E" stroke-width="2.2" opacity="${f(st.shave)}"/>`;
+    // the chisel
+    const mv = st.mv || 0, tipx = lerp(xl + 6, xr - 14, mv) + (st.dx || 0), tipy = TY + (st.cut > 0 ? st.cut * 26 - 1 : -1) - (st.raise || 0) * 14;
+    if (st.chOn > .02) b += `<g opacity="${f(st.chOn)}">${chisel(st.ang, tipx, tipy, st.bevelUp > .5)}</g>`;
+    // the mallet
+    if (st.mal > .02) {
+      const hx = tipx + Math.cos(st.ang * Math.PI / 180) * 160, hy = tipy - Math.sin(st.ang * Math.PI / 180) * 160 - 56 - (1 - st.hit) * 34;
+      b += `<g opacity="${f(st.mal)}"><rect x="${f(hx - 26)}" y="${f(hy - 10)}" width="52" height="42" rx="6" fill="url(#mk-handle)" stroke="rgba(0,0,0,.6)"/><rect x="${f(hx + 20)}" y="${f(hy + 4)}" width="64" height="9" rx="3" fill="url(#mk-ash)" stroke="rgba(0,0,0,.5)"/></g>`;
+    }
+    // hands: the guiding hand holds the blade; always behind the edge
+    if (st.hands > .02) {
+      const gx = tipx + Math.cos(st.ang * Math.PI / 180) * 48, gy = tipy - Math.sin(st.ang * Math.PI / 180) * 48;
+      b += `<g opacity="${f(st.hands)}"><ellipse cx="${f(gx)}" cy="${f(gy - 12)}" rx="22" ry="15" fill="#E8B898" stroke="#7a5238"/>`
+        + `<ellipse cx="${f(tipx + Math.cos(st.ang * Math.PI / 180) * 150)}" cy="${f(tipy - Math.sin(st.ang * Math.PI / 180) * 150 - 6)}" rx="30" ry="20" fill="#E8B898" stroke="#7a5238"/></g>`;
+    }
+    const tags = {
+      line: { xy: MK.pt(st, xl, TY), dx: -50, dy: -70, text: 'Marked lines' },
+      clamp: { xy: MK.pt(st, -65, TY - 10), dx: -50, dy: -60, text: 'Clamp' },
+      edge: { xy: MK.pt(st, tipx, tipy), dx: -70, dy: 60, text: 'Cutting edge' },
+      bevel: { xy: MK.pt(st, tipx + 14, tipy - 4), dx: 60, dy: 70, text: 'Bevel' },
+      hand: { xy: MK.pt(st, tipx + 50, tipy - 20), dx: 50, dy: -70, text: 'Hand behind the edge' },
+      mallet: { xy: MK.pt(st, tipx + 150, tipy - 110), dx: -70, dy: -40, text: 'Wooden mallet' },
+      pocket: { xy: MK.pt(st, -15, TY + 10), dx: -20, dy: 80, text: 'Waste comes out in layers' },
+    };
+    let w = `<rect x="198" y="-202" width="160" height="160" fill="#2c3138"/>`;
+    // inset: the cross-section of the edge with its bevel angle
+    const ba = 25, cl = 5;
+    w += `<path d="M214 -92 L342 -92 L342 -152 L260 -152 Z" fill="url(#mk-steel)" stroke="#222"/><path d="M214 -92 L342 -92" stroke="#e8822a" stroke-width="2.4"/>`
+      + `<path d="M214 -92 L${f(214 + 70)} ${f(-92 - Math.tan(ba * Math.PI / 180) * 70)}" fill="none" stroke="#fff" stroke-dasharray="3 3"/><text x="250" y="-108" font-size="10.5" fill="#fff">bevel ~25°</text>`
+;
+    return { svg: MK.scene(st, b) + MK.inset(-100, -122, 76, `<g transform="translate(-378 0)">${w}</g>`, 'Edge: flat back meets ~25° bevel', 'chIn', st.inset), tags, anchors: { flash: MK.pt(st, tipx + 120, tipy - 90) } };
+  }
+  return {
+    id: 'chisel', grp: 'hand', fig: 6, name: 'Chisel', sub: 'Paring, chopping, keeping it sharp', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { clamp: 0, line: 0, chOn: 0, ang: 18, mv: 0, dx: 0, raise: 0, cut: 0, hands: 0, mal: 0, hit: 1, shave: 0, bevelUp: 0, inset: 0, zoom: 0, zs: 1.25, fx: 20, fy: 40 },
+    steps: [
+      { title: 'Mark and clamp', dur: 1800,
+        body: 'Mark the edges of the area to remove with a knife or sharp pencil. Clamp the work firmly to the bench so both hands are free and behind the blade: a chisel slips when the work moves.',
+        tags: ['line', 'clamp'], hot: ['line'], keys: [[.3, { line: 1, clamp: 1 }]] },
+      { title: 'Know the edge', dur: 2000,
+        body: 'The cutting edge is where the flat back meets the bevel (about 25°). A chisel cuts only if this edge is sharp: dull chisels crush and slip, and they are more likely to hurt you than sharp ones.',
+        tags: ['edge', 'bevel'], hot: ['edge'], keys: [[.2, { chOn: 1, inset: 1, zoom: 1, ang: 20 }]] },
+      { title: 'Chop the edges', dur: 2600,
+        body: 'To define the edges, stand the chisel straight up on the line (bevel facing the waste) and tap it with a wooden mallet to cut down a little way. Chop, then pare away the waste towards the chop, working in thin layers.',
+        tags: ['mallet', 'edge'], hot: ['mallet'], keys: [[.1, { mal: 1, ang: 80, mv: .25, raise: 0, hands: 1, hit: 0 }], [.5, { hit: 1, cut: .3 }], [.8, { hit: 0 }], [1, { hit: 1, cut: .4 }]], flashes: [[.5, 'Tap']] },
+      { title: 'Pare with your hands', dur: 3200,
+        body: 'For fine cuts, push with your hand alone: one hand on the handle, the other holding the blade close to the edge for control. Keep both hands behind the cutting edge. Use a slight slicing sideways motion.',
+        caution: 'Always keep both hands behind the cutting edge and cut away from your body. Never hold the work in the hand you are not using, and never put a hand in the path of the chisel.',
+        tags: ['hand', 'edge'], hot: ['hand'], keys: [[.1, { mal: 0, ang: 12, hands: 1, mv: .1, shave: 1 }], [1, { mv: .85, cut: .8 }]], flashes: [[.5, 'Pare']] },
+      { title: 'Waste comes out in layers', dur: 2600,
+        body: 'Take off thin layers rather than one deep cut, cutting down to the marked depth and checking the bottom is flat. Use the chisel flat-back down to pare a flat bottom and bevel down to lever out chips.',
+        tags: ['pocket'], hot: ['pocket'], keys: [[.2, { mv: .15, cut: 1, shave: 1, dx: 0 }], [1, { mv: .85 }]] },
+      { title: 'Keep it sharp', dur: 2200,
+        body: 'Test: a sharp chisel shaves a curl of end-grain without effort and leaves a shiny surface. Hone the bevel on a sharpening stone at a steady angle. Do not use the chisel as a screwdriver or a lever, and cover the edge when not in use.',
+        tags: ['edge'], keys: [[.2, { hands: 0, shave: 0, mv: 0, raise: 1, zoom: 0, inset: 1 }]] },
+    ],
+  };
+})();
+
+/* ---------- Mechanical: Pop rivet gun ---------- */
+const RIVET = (() => {
+  const { lerp, f } = EQ;
+  const HX = 40, T0 = 70, T1 = 102;                       // hole centre, top and bottom of the two sheets together
+  function gun(sq) {
+    // origin = centre of the nose face; the nose points down
+    const a = sq * 22;
+    return `<g>
+      <path d="M-15 0 L-15 -26 L15 -26 L15 0Z" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>
+      <path d="M-22 -26 L-22 -64 Q-22 -72 -14 -72 L140 -72 Q150 -72 150 -62 L150 -30 Q150 -26 142 -26Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/>
+      <rect x="-6" y="-66" width="150" height="5" rx="2" fill="#D4503A" opacity=".9"/>
+      <path d="M118 -26 L152 -26 L176 78 Q160 86 142 80Z" fill="url(#mk-rubber)" stroke="rgba(0,0,0,.7)"/>
+      <g transform="rotate(${f(-a)} 70 -30)"><path d="M58 -30 L84 -30 L124 84 Q108 92 90 84Z" fill="url(#mk-rubber)" stroke="rgba(0,0,0,.7)"/><path d="M62 -30 L72 -30 L100 70" stroke="rgba(255,255,255,.2)" fill="none"/></g>
+      <circle cx="70" cy="-30" r="5" fill="#B9C0C6" stroke="rgba(0,0,0,.6)"/></g>`;
+  }
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    const rv = st.rv, p = st.pull, snap = st.snap;
+    // the two sheets, with the hole
+    for (const [y0, y1, fill] of [[T0, 86, 'url(#mk-plate)'], [86, T1, 'url(#mk-steel)']]) {
+      b += `<rect x="-130" y="${y0}" width="${HX - 11 + 130}" height="${y1 - y0}" fill="${fill}" stroke="rgba(0,0,0,.5)"/><rect x="${HX + 11}" y="${y0}" width="${230 - HX - 11}" height="${y1 - y0}" fill="${fill}" stroke="rgba(0,0,0,.5)"/>`;
+    }
+    if (st.hole < 1) b += `<rect x="${HX - 11}" y="${T0}" width="22" height="${T1 - T0}" fill="url(#mk-plate)" opacity="${f(1 - st.hole)}"/>`;
+    // clamp the sheets together
+    if (st.dim > .02) b += `<g opacity="${f(st.dim)}"><path d="M-146 ${T0} L-156 ${T0} L-156 ${T1} L-146 ${T1}" fill="none" stroke="#E8822A" stroke-width="1.8"/><text x="-166" y="${(T0 + T1) / 2 + 4}" text-anchor="end" font-size="11" fill="#E8822A">sheets together</text></g>`;
+    // drill bit lowering into the hole
+    if (st.bit > -90) b += `<g transform="translate(${HX} ${f(st.bit)})"><rect x="-9" y="-150" width="18" height="180" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>${Array.from({ length: 14 }, (_, i) => `<line x1="-9" y1="${-20 + i * 9 - 40}" x2="9" y2="${-14 + i * 9 - 40}" stroke="#6b737a" stroke-width="1"/>`).join('')}</g>`;
+    // the rivet: head, body (tube), tail, and the mandrel stem with its head
+    const h = 18 - 10 * p, bw = 20 + 24 * p;
+    const sy = snap * 90, hold = snap < .02;
+    const stemTop = 64 - 70, headY = T1 + h;
+    if (st.rivOn > .02) {
+      b += `<g opacity="${f(st.rivOn)}"><g transform="translate(0 ${f(rv)})">`;
+      // stem upper part (stays with the gun after the snap) and lower part (falls)
+      if (hold) b += `<rect x="${HX - 4}" y="${stemTop - p * 10}" width="8" height="${f(headY - (stemTop - p * 10))}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>`;
+      // body in the hole
+      b += `<rect x="${HX - 10}" y="${T0}" width="20" height="${T1 - T0}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+      // tail bulb
+      b += `<rect x="${f(HX - bw / 2)}" y="${T1}" width="${f(bw)}" height="${f(h)}" rx="${f(3 + 4 * p)}" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+      if (snap > .5) b += `<rect x="${HX - 3}" y="64" width="6" height="${f(T1 + h - 64)}" fill="#14171b" opacity="${f(snap)}"/>`;
+      // head
+      b += `<path d="M${HX - 22} 70 Q${HX - 22} 63 ${HX - 12} 63 L${HX + 12} 63 Q${HX + 22} 63 ${HX + 22} 70Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/>`;
+      // mandrel head under the tail
+      b += `<g transform="translate(0 ${f(sy)})" opacity="${f(1 - snap)}"><rect x="${HX - 7}" y="${f(headY)}" width="14" height="7" rx="2" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.6)"/>${!hold ? `<rect x="${HX - 4}" y="${f(64 - 4)}" width="8" height="${f(headY - 60)}" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.55)"/>` : ''}</g>`;
+      b += `</g></g>`;
+    }
+    // the gun
+    if (st.gunOn > .02) b += `<g opacity="${f(st.gunOn)}" transform="translate(${HX} ${f(64 + st.gy)})">${gun((.5 - .5 * Math.cos(2 * Math.PI * (st.ph || 0))) * (st.sqz || 0))}</g>`;
+    // the dropped stem shown as a sliver
+
+    const gy = 64 + st.gy;
+    const tags = {
+      hole: { xy: MK.pt(st, HX + 11, T0 + 12), dx: 110, dy: 50, text: 'Hole ≈ rivet + 0.1 mm' },
+      grip: { xy: MK.pt(st, -130, (T0 + T1) / 2), dx: 20, dy: 90, text: 'Stack thickness' },
+      head: { xy: MK.pt(st, HX + 22, 66 + rv), dx: 70, dy: -30, text: 'Rivet head' },
+      stem: { xy: MK.pt(st, HX, 20 + rv), dx: -90, dy: -30, text: 'Mandrel stem' },
+      nose: { xy: MK.pt(st, HX + 14, gy - 12), dx: 60, dy: -60, text: 'Nose' },
+      tail: { xy: MK.pt(st, HX + bw / 2, T1 + h / 2 + rv), dx: 80, dy: 50, text: 'Tail swells' },
+      handle: { xy: MK.pt(st, HX + 120, gy + 60), dx: 40, dy: 60, text: 'Squeeze the handles' },
+      flush: { xy: MK.pt(st, HX + 22, 66), dx: 90, dy: -20, text: 'Head flush with sheet' },
+    };
+    return { svg: MK.scene(st, b), tags, anchors: { flash: MK.pt(st, HX + 80, gy - 70) } };
+  }
+  return {
+    id: 'rivet', grp: 'hand', fig: 8, name: 'Pop rivet gun', sub: 'Joining sheet with blind rivets', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { hole: 0, dim: 0, bit: -150, rivOn: 0, rv: -120, pull: 0, snap: 0, gunOn: 0, gy: -250, ph: 0, sqz: 0, zoom: .55, zs: 1.5, fx: 60, fy: 40 },
+    steps: [
+      { title: 'Drill the hole', dur: 2400,
+        body: 'Clamp the sheets together and drill a hole through both, about 0.1 mm bigger than the rivet body (for a 3.2 mm rivet use a 3.3 mm bit). Remove the burrs from both sides so the sheets sit flat against each other.',
+        tags: ['hole'], hot: ['hole'], keys: [[.4, { bit: 20 }], [.7, { hole: 1 }], [1, { bit: -150 }]] },
+      { title: 'Choose the rivet', dur: 2000,
+        body: 'Pick the diameter to match the hole and the length from the stack: the rivet\'s grip range (printed on the pack) must cover the thickness of the sheets together. Too short and it will not hold; too long and the tail will not form properly. Rivet material should match the sheets (aluminium rivets for aluminium).',
+        tags: ['grip'], hot: ['grip'], keys: [[.3, { dim: 1 }], [.7, { rivOn: 1 }]] },
+      { title: 'Load the gun', dur: 2200,
+        body: 'Slide the stem of the rivet into the gun\'s nose until the rivet head sits against the nose. Choose the right nosepiece for the rivet size if the gun has more than one.',
+        tags: ['stem', 'nose'], hot: ['stem'], keys: [[.15, { dim: 0, rivOn: 1, gunOn: 1 }], [.85, { gy: -120 }]] },
+      { title: 'Put it into the hole', dur: 2000,
+        body: 'Push the rivet into the hole until its head lies flat against the sheet. Keep the gun square to the work (at right angles to the sheets), or the rivet will form crooked.',
+        tags: ['head'], hot: ['head'], keys: [[.6, { rv: 0, gy: 0 }]] },
+      { title: 'Squeeze the handles', dur: 4200,
+        body: 'Squeeze the handles. The nose holds the head while the jaws pull the stem upwards. The mandrel head at the other end is drawn into the rivet and swells the tail into a bulb behind the sheets, clamping them together. Release and squeeze again until the rivet stops moving.',
+        caution: 'Keep your free hand and face away from the nose: the stem snaps with a bang.',
+        tags: ['handle', 'tail'], hot: ['tail'], keys: [[.05, { zoom: 1.2, sqz: 1 }], [1, { ph: 3, pull: 1 }]], flashes: [[.5, 'Squeeze']] },
+      { title: 'The stem snaps', dur: 2600,
+        body: 'When the bulb is fully formed, the stem breaks off at a weak point inside the rivet with a snap. Lift the gun away, and the broken stem is held in the gun (open the jaws to drop it, or empty the catcher). Never carry on pulling.',
+        tags: ['flush', 'tail'], hot: ['flush'], keys: [[.4, { snap: 1 }], [.8, { gy: -100 }], [1, { gunOn: 0 }]], flashes: [[.38, 'Snap!']] },
+      { title: 'Check the joint', dur: 2200,
+        body: 'The head should sit flush with a swollen bulb behind it and no gap between the sheets. The sheets should not move. If the joint is loose, drill out the rivet (use a bit the same size as the rivet body, not bigger) and use a longer one.',
+        tags: ['flush', 'tail'], keys: [[.2, { zoom: 1.4 }]] },
+    ],
+  };
+})();
+
+/* ---------- Mechanical: Feeler gauge ---------- */
+const FEELER = (() => {
+  const { lerp, f } = EQ;
+  const S = 100;                                         // pixels per millimetre in the magnified view
+  const LEAVES = [.05, .10, .15, .20, .25, .30, .40, .50];
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    const gap = st.gap, lf = st.leaf, l2 = st.l2 || 0, tot = lf + l2;
+    const gp = gap * S, bot = 150, lp = tot * S;
+    // lower and upper surfaces; the upper sits on the gap
+    b += `<rect x="-160" y="${bot}" width="380" height="50" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/>`;
+    b += `<rect x="-160" y="${f(bot - gp - 50)}" width="260" height="50" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)"/>`;
+    b += `<rect x="100" y="${f(bot - gp - 50)}" width="120" height="50" fill="url(#mk-steel)" stroke="rgba(0,0,0,.5)" opacity=".0"/>`;
+    // the leaf slides in from the right
+    const tooBig = tot > gap + .001, reach = tooBig ? Math.min(st.slide, .12) : st.slide;
+    const xTip = lerp(230, -40, reach);
+    if (st.leafOn > .02) {
+      const tint = tooBig && st.slide > .05 ? '#D4503A' : null;
+      b += `<g opacity="${f(st.leafOn)}"><rect x="${f(xTip)}" y="${f(bot - lp)}" width="${f(330 - xTip + 80)}" height="${f(Math.max(lp, 1.5))}" fill="${tint || 'url(#mk-steel)'}" stroke="rgba(0,0,0,.6)"/>`;
+      if (l2 > 0) b += `<line x1="${f(xTip)}" y1="${f(bot - l2 * S)}" x2="${f(xTip + 330 - xTip + 80)}" y2="${f(bot - l2 * S)}" stroke="rgba(0,0,0,.6)"/>`;
+      b += `<text x="${f(xTip + 80)}" y="${f(bot - lp - 6)}" font-size="11" fill="#fff" text-anchor="middle">${tot.toFixed(2)} mm</text></g>`;
+    }
+    // handle: the fan of blades
+    if (st.fan > .02) {
+      b += `<g opacity="${f(st.fan)}" transform="translate(335 -70)">${LEAVES.map((v, i) => { const a = 180 + (i - 3.5) * 7 * st.fan; return `<g transform="rotate(${f(a)})"><rect x="0" y="-3" width="${70 + (i % 2) * 6}" height="6" fill="url(#mk-steel)" stroke="rgba(0,0,0,.55)" ${LEAVES[i] === st.pick ? 'stroke-width="2" stroke="#E8822A"' : ''}/><text x="${34 + (i % 2) * 3}" y="1.8" font-size="5.5" text-anchor="middle" fill="#222">${v.toFixed(2)}</text></g>`; }).join('')}<circle r="8" fill="#E8822A" stroke="rgba(0,0,0,.6)"/></g>`;
+    }
+    // status chip
+    let msg = '', col = '#2c3138';
+    if (st.chip > .02) {
+      const d = gap - tot;
+      if (st.slide < .05) { msg = 'try ' + tot.toFixed(2) + ' mm'; }
+      else if (d > .03) { msg = tot.toFixed(2) + ' mm: loose'; col = '#2a6fb0'; }
+      else if (d >= -.001) { msg = tot.toFixed(2) + ' mm: light drag, fits'; col = '#2E8B57'; }
+      else { msg = tot.toFixed(2) + ' mm: will not go in'; col = '#B8402E'; }
+      b += `<g opacity="${f(st.chip)}"><rect x="-190" y="-195" width="190" height="30" rx="15" fill="${col}"/><text x="-95" y="-175" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">${msg}</text></g>`;
+    }
+    if (st.reading > .02) b += `<g opacity="${f(st.reading)}"><rect x="-190" y="-150" width="190" height="30" rx="15" fill="#2c3138"/><text x="-95" y="-130" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">gap = ${(st.read || 0).toFixed(2)} mm</text></g>`;
+    const tags = {
+      gap: { xy: MK.pt(st, -120, bot - gp / 2), dx: 10, dy: -80, text: 'The gap, magnified' },
+      leaf: { xy: MK.pt(st, xTip + 30, bot - lp / 2), dx: -10, dy: -90, text: 'Blade (leaf)' },
+      fan: { xy: MK.pt(st, 290, -70), dx: -40, dy: 60, text: 'Blades fold out of the handle' },
+      surf: { xy: MK.pt(st, -60, bot + 4), dx: -40, dy: 60, text: 'Clean, flat surfaces' },
+      drag: { xy: MK.pt(st, xTip + 6, bot - lp / 2), dx: -60, dy: -90, text: 'Feel the resistance' },
+    };
+    return { svg: MK.scene(st, b), tags, anchors: { flash: MK.pt(st, 40, bot - 110) } };
+  }
+  return {
+    id: 'feeler', grp: 'hand', fig: 9, name: 'Feeler gauge', sub: 'Measuring small gaps by feel', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { gap: .18, leaf: .10, l2: 0, leafOn: 0, slide: 0, fan: 0, pick: 0, chip: 0, reading: 0, read: 0, zoom: 1, zs: 1.1, fx: 90, fy: 60 },
+    steps: [
+      { title: 'Know the gauge', dur: 2200,
+        body: 'A feeler gauge is a set of thin steel blades, each ground to an exact thickness (marked in mm on each). Common sets run from 0.05 mm to about 1 mm in steps of 0.05 mm. Fan the blades out of the handle to select one.',
+        tags: ['fan'], hot: ['fan'], keys: [[.5, { fan: 1, pick: .1 }]] },
+      { title: 'Clean the surfaces', dur: 1800,
+        body: 'Wipe both surfaces and the blade with a clean cloth. A speck of dirt or oil adds thickness and gives a wrong reading. Do not measure over rough or burred surfaces.',
+        tags: ['surf'], hot: ['surf'], keys: [[.4, { leafOn: 1, fan: 1 }]] },
+      { title: 'Try a thin blade first', dur: 2400,
+        body: 'Pick a blade you expect to be smaller than the gap and slide it in gently. A blade that slides in with no resistance at all is too thin. The gap is bigger than this blade.',
+        tags: ['leaf', 'gap'], hot: ['leaf'], keys: [[.1, { leaf: .10, chip: 1, pick: .1 }], [.8, { slide: .8 }]] },
+      { title: 'Go up until you feel a light drag', dur: 3200,
+        body: 'Try the next thicker blade. The right blade slides in with a slight drag: you can feel it but it still moves. If you have to force it, it is too thick. Go back one size.',
+        caution: 'Never force a blade into a gap: you can bend it or scratch the surfaces. Bent blades give wrong readings.',
+        tags: ['drag'], hot: ['drag'], keys: [[.05, { slide: 0 }], [.1, { leaf: .15 }], [.35, { slide: .85, pick: .15 }], [.5, { slide: 0 }], [.55, { leaf: .20, pick: .2 }], [.85, { slide: .8 }]] },
+      { title: 'Combine blades for in-between sizes', dur: 2400,
+        body: 'For a value that is not in the set, stack two blades and add them (for example 0.15 + 0.05 = 0.20 mm). Use as few blades as you can, because thin blades bend and each added blade adds error.',
+        tags: ['leaf'], hot: ['leaf'], keys: [[0, { slide: 0 }], [.1, { leaf: .10, l2: .05, gap: .15, pick: .1 }], [.8, { slide: .8 }]] },
+      { title: 'Read the gap', dur: 2000,
+        body: 'The gap is the thickest blade (or stack) that goes in with a slight drag. For example, if 0.15 mm slides in and 0.20 mm does not, the gap is about 0.15 mm. Fold the blades away and wipe a trace of oil on the steel to keep it from rusting.',
+        tags: ['gap'], hot: ['gap'], keys: [[.2, { reading: 1, read: .15, chip: 0 }]] },
+    ],
+  };
+})();
+
+/* ---------- Mechanical: Rotary tool (Dremel) ---------- */
+const DREMEL = (() => {
+  const { lerp, f } = EQ;
+  const ACC = [
+    { n: 'Cutting disc', use: 'cutting metal, plastic, bolts' },
+    { n: 'Grinding stone', use: 'deburring, sharpening, metal removal' },
+    { n: 'Sanding drum', use: 'sanding and shaping wood, plastic' },
+    { n: 'Engraving cutter', use: 'engraving, carving, fine detail' },
+    { n: 'Polishing wheel', use: 'polishing with compound' },
+  ];
+  // an accessory drawn with its tip at x = 0, axis along +x
+  function acc(i, ph) {
+    const a = ((ph || 0) * 60) % 12;
+    const streak = (h) => `<line x1="2" y1="${-h + (a % 6)}" x2="26" y2="${-h + (a % 6)}" stroke="rgba(255,255,255,.35)" stroke-width="1"/><line x1="2" y1="${h - (a % 6)}" x2="26" y2="${h - (a % 6)}" stroke="rgba(255,255,255,.35)" stroke-width="1"/>`;
+    switch (i) {
+      case 0: return `<rect x="8" y="-30" width="3" height="60" rx="1" fill="#8a7c6a" stroke="rgba(0,0,0,.6)"/><rect x="11" y="-4" width="12" height="8" fill="#B9C0C6" stroke="rgba(0,0,0,.6)"/><rect x="23" y="-2" width="6" height="4" fill="url(#mk-steelv)"/>`;
+      case 1: return `<path d="M0 0 Q2 -14 14 -14 L28 -14 L28 14 L14 14 Q2 14 0 0Z" fill="#7f6b8c" stroke="rgba(0,0,0,.6)"/>${streak(8)}`;
+      case 2: return `<rect x="2" y="-13" width="26" height="26" rx="3" fill="#C9A06A" stroke="rgba(0,0,0,.6)"/>${streak(8)}<rect x="28" y="-3" width="8" height="6" fill="url(#mk-steelv)"/>`;
+      case 3: return `<path d="M0 0 L14 -3.5 L34 -3.5 L34 3.5 L14 3.5Z" fill="url(#mk-steel)" stroke="rgba(0,0,0,.6)"/><path d="M2 0 L14 -3 M2 0 L14 3" stroke="#555"/>`;
+      default: return `<rect x="4" y="-22" width="14" height="44" rx="6" fill="#E9E0CF" stroke="rgba(0,0,0,.5)"/>${streak(12)}<rect x="18" y="-3" width="14" height="6" fill="url(#mk-steelv)"/>`;
+    }
+  }
+  function tool(st, bit) {
+    // local frame: the accessory tip is the origin; the tool lies along +x
+    const ins = st.ins, nutRot = st.nut;
+    const shank = 52;
+    let s = '';
+    s += `<g transform="translate(${f(-60 * (1 - ins))} 0)">${acc(bit, st.ph)}<rect x="28" y="-3" width="${shank + 10}" height="6" fill="url(#mk-steelv)" stroke="rgba(0,0,0,.5)"/></g>`;
+    // collet nut with turning ridges
+    s += `<rect x="80" y="-11" width="16" height="22" rx="2" fill="url(#mk-chrome)" stroke="rgba(0,0,0,.6)"/>`;
+    for (let i = 0; i < 4; i++) { const yy = -9 + ((i * 5.5 + nutRot * 22) % 22); s += `<line x1="81" y1="${f(yy)}" x2="95" y2="${f(yy)}" stroke="rgba(0,0,0,.35)"/>`; }
+    // nose cone, gear case, body
+    s += `<path d="M96 -11 L128 -15 L128 15 L96 11Z" fill="url(#mk-teal)" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<rect x="128" y="-17" width="40" height="34" rx="4" fill="url(#mk-chrome)" stroke="rgba(0,0,0,.6)"/><rect x="142" y="${f(-17 - st.lock * 6)}" width="14" height="${f(6 + st.lock * 3)}" rx="2" fill="#D4503A" stroke="rgba(0,0,0,.6)"/>`;
+    s += `<path d="M168 -22 L320 -22 Q336 -22 336 -8 L336 8 Q336 22 320 22 L168 22Z" fill="url(#mk-black)" stroke="rgba(0,0,0,.7)"/><path d="M176 -18 L318 -18" stroke="rgba(255,255,255,.18)"/>`;
+    // speed dial on top
+    const dx = 222, ang = -130 + st.rpm * 260;
+    s += `<g transform="translate(${dx} -24)"><rect x="-26" y="-6" width="52" height="8" rx="4" fill="url(#mk-teal)" stroke="rgba(0,0,0,.6)"/>${Array.from({ length: 10 }, (_, i) => `<line x1="${-22 + i * 4.9}" y1="-6" x2="${-22 + i * 4.9}" y2="-9" stroke="#ddd" stroke-width=".8"/>`).join('')}<rect x="${f(-24 + st.rpm * 46)}" y="-9" width="4" height="12" rx="2" fill="#E8822A" stroke="rgba(0,0,0,.6)"/></g>`;
+    s += `<rect x="250" y="12" width="40" height="3" fill="#D4503A" opacity=".7"/>`;
+    return s;
+  }
+  function draw(st) {
+    let b = MK.mat(this.viewBox);
+    const bit = Math.round(st.bit);
+    // bench and workpiece
+    b += `<rect x="-210" y="130" width="420" height="14" fill="#4b535b" stroke="rgba(0,0,0,.5)"/>`;
+    b += `<rect x="-150" y="96" width="260" height="34" fill="url(#mk-plate)" stroke="rgba(0,0,0,.5)"/>`;
+    if (st.clamp > .02) b += `<g opacity="${f(st.clamp)}"><rect x="-160" y="86" width="26" height="12" fill="#8a9097" stroke="rgba(0,0,0,.6)"/><rect x="94" y="86" width="26" height="12" fill="#8a9097" stroke="rgba(0,0,0,.6)"/></g>`;
+    // groove left on the work
+    if (st.mv > .02) b += `<path d="M-60 97 L${f(lerp(-60, 60, st.mv))} 97" stroke="#2a2d31" stroke-width="2.6" stroke-linecap="round"/>`;
+    // the tool: tip at (tx, ty), tilted like a pen
+    const tilt = st.tilt, tx = lerp(-190, -120, st.pos) + lerp(0, 120, st.mv) * (st.mvOn || 0), ty = lerp(40, 92, st.down);
+    const sc = 1;
+    b += `<g transform="translate(${f(tx)} ${f(ty)}) rotate(${f(-tilt)}) scale(${sc})">${tool(st, bit)}</g>`;
+    // hot glow on the accessory
+    if (st.hot > .02) b += `<circle cx="${f(tx)}" cy="${f(ty)}" r="${f(16 + st.hot * 5)}" fill="#FF7A1A" opacity="${f(st.hot * .25)}"/>`;
+    // sparks / dust at the tip
+    if (st.dust > .02) for (let i = 0; i < 6; i++) b += `<circle cx="${f(tx + 6 + i * 6)}" cy="${f(ty - 3 - ((i * 7 + (st.ph || 0) * 40) % 14))}" r="1.5" fill="#E8B060" opacity="${f(st.dust * (1 - i * .12))}"/>`;
+    // the hand holding the nose
+    if (st.hand > .02) { const hx = tx + Math.cos(tilt * Math.PI / 180) * 85 * sc, hy = ty - Math.sin(tilt * Math.PI / 180) * 85 * sc; b += `<g opacity="${f(st.hand)}"><ellipse cx="${f(hx)}" cy="${f(hy - 12)}" rx="30" ry="17" fill="#E8B898" stroke="#7a5238" transform="rotate(${f(-tilt)} ${f(hx)} ${f(hy - 12)})"/></g>`; }
+    // cord and plug into the socket
+    const ex = tx + Math.cos(tilt * Math.PI / 180) * 336 * sc, ey = ty - Math.sin(tilt * Math.PI / 180) * 336 * sc;
+    const px = 302 - st.plug * 45, py = 70;
+    b += `<rect x="332" y="40" width="40" height="60" rx="5" fill="#cfd4d8" stroke="rgba(0,0,0,.6)"/><rect x="340" y="62" width="8" height="4" fill="#333"/><rect x="340" y="76" width="8" height="4" fill="#333"/>`;
+    b += `<path d="M${f(ex)} ${f(ey)} C${f(ex + 20)} ${f(ey + 40)} ${f(px - 40)} ${py + 30} ${f(px)} ${py}" fill="none" stroke="#1a1c20" stroke-width="3.5"/><rect x="${f(px)}" y="${py - 9}" width="30" height="18" rx="3" fill="#2a2d31" stroke="rgba(0,0,0,.7)"/>`;
+    // accessory rack
+    if (st.rack > .02) {
+      b += `<g opacity="${f(st.rack)}">${ACC.map((a, i) => { const x = -150 + i * 62, on = i === bit; return `<g transform="translate(${x + 10} -128) rotate(90)"><g transform="scale(.9)">${acc(i, 0)}</g></g>${on ? `<rect x="${x - 18}" y="-160" width="60" height="70" rx="6" fill="none" stroke="#E8822A" stroke-width="2"/>` : ''}<text x="${x + 10}" y="-84" text-anchor="middle" font-size="8.5" fill="#fff">${a.n.split(' ')[0]}</text>`; }).join('')}</g>`;
+    }
+    // readout chip
+    let msg = '';
+    if (st.chip > .02) {
+      if (st.chipMode < .5) msg = ACC[bit].n + ': ' + ACC[bit].use;
+      else { const r = Math.round(5 + st.rpm * 30); msg = 'about ' + r + ',000 rpm: ' + (st.rpm < .3 ? 'plastic, polishing' : st.rpm < .6 ? 'wood, sanding, engraving' : 'metal: cutting, grinding'); }
+      b += `<g opacity="${f(st.chip)}"><rect x="-200" y="-196" width="${msg.length * 6.6 + 24}" height="28" rx="14" fill="#2c3138"/><text x="${-200 + (msg.length * 6.6 + 24) / 2}" y="-178" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${esc(msg)}</text></g>`;
+    }
+    const pt = (lx, ly) => { const a = tilt * Math.PI / 180, X = lx * sc, Y = ly * sc; return MK.pt(st, tx + X * Math.cos(a) + Y * Math.sin(a), ty - X * Math.sin(a) + Y * Math.cos(a)); };
+    const tags = {
+      lock: { xy: pt(149, -22), dx: -30, dy: -70, text: 'Spindle lock button' },
+      nut: { xy: pt(88, -11), dx: -20, dy: -70, text: 'Collet nut' },
+      shank: { xy: pt(50, 0), dx: -10, dy: 70, text: 'Shank fully in the collet' },
+      dial: { xy: pt(222, -28), dx: 20, dy: -70, text: 'Speed dial' },
+      tip: { xy: MK.pt(st, tx, ty), dx: -50, dy: 60, text: 'Accessory tip' },
+      hot: { xy: MK.pt(st, tx, ty), dx: -70, dy: 70, text: 'Hot! Let it cool' },
+      plug: { xy: MK.pt(st, px, py), dx: -30, dy: 70, text: 'Unplug first' },
+      hand: { xy: MK.pt(st, tx + 62, ty - 22), dx: 20, dy: -80, text: 'Hold like a pen' },
+    };
+    return { svg: MK.scene(st, b), tags, anchors: { flash: MK.pt(st, tx + 60, ty - 70) } };
+  }
+  return {
+    id: 'dremel', grp: 'power', fig: 2, name: 'Rotary tool (Dremel)', sub: 'Accessories, speed, safe use', cat: 'mechanical',
+    viewBox: [-215, -212, 600, 430], look: 'real', defs: MK.defs, draw,
+    base: { bit: 0, ins: 1, nut: 0, lock: 0, rpm: .1, ph: 0, tilt: 0, pos: 0, down: 0, mv: 0, mvOn: 0, hand: 0, hot: 0, dust: 0, plug: 0, rack: 0, chip: 0, chipMode: 0, clamp: 0, zoom: 0, zs: 1, fx: 0, fy: 0 },
+    steps: [
+      { title: 'Unplug and protect yourself', dur: 2200,
+        body: 'Always unplug the tool (or remove the battery) before you change an accessory. Wear safety glasses, and tie back long hair, loose sleeves and jewellery. A rotary tool throws chips and dust at high speed.',
+        caution: 'Wear eye protection every time, and a dust mask when sanding or cutting.',
+        tags: ['plug'], hot: ['plug'], keys: [[.4, { plug: 1 }]] },
+      { title: 'Choose the accessory', dur: 3800,
+        body: 'Match the accessory to the job. A cutting disc cuts through metal, plastic or bolts. A grinding stone deburrs and sharpens. A sanding drum shapes and sands. An engraving cutter carves fine detail. A felt wheel with compound polishes.',
+        tags: [], keys: [[.05, { rack: 1, chip: 1, chipMode: 0, bit: 0 }], [.3, { bit: 1 }], [.55, { bit: 2 }], [.7, { bit: 3 }], [.85, { bit: 4 }]] },
+      { title: 'Fit it in the collet', dur: 3200,
+        body: 'Press the spindle lock button so the shaft cannot turn, then loosen the collet nut. Push the shank all the way into the collet (the collet size must match the shank, often 3.2 mm), then tighten the nut firmly with the wrench or by hand. Spin the tool by hand to check the accessory runs true.',
+        tags: ['lock', 'nut', 'shank'], hot: ['nut'], keys: [[.0, { rack: 0, chip: 0, bit: 1, ins: 0 }], [.2, { lock: 1, nut: 1 }], [.55, { ins: 1 }], [.85, { nut: 0 }], [1, { lock: 0 }]] },
+      { title: 'Set the speed', dur: 3200,
+        body: 'Use the speed dial: low speed for plastics (fast, hot tools melt them) and polishing; medium for wood, sanding and engraving; high for metal, cutting and grinding. If you are unsure, start low and increase until it cuts cleanly without burning.',
+        tags: ['dial'], hot: ['dial'], keys: [[.0, { plug: 1, chip: 1, chipMode: 1, rpm: .1 }], [.5, { rpm: .5 }], [.9, { rpm: .95 }]] },
+      { title: 'Hold it like a pen', dur: 4200,
+        body: 'Clamp the work so it cannot move. Hold the tool like a pen close to the nose, let it reach full speed before it touches the work, then let the accessory do the cutting with light pressure. Move along the work steadily and keep the tool moving.',
+        caution: 'Never force a cutting disc or push it sideways: thin discs shatter. Keep your fingers and clothing away from the spinning accessory.',
+        tags: ['hand', 'tip'], hot: ['hand'], keys: [[.0, { chip: 0, plug: 0, clamp: 1, rpm: .7 }], [.2, { tilt: 35, pos: 1, hand: 1, down: 1, dust: 1 }], [1, { ph: 6, mvOn: 1, mv: 1 }]] },
+      { title: 'Switch off and let it cool', dur: 2600,
+        body: 'Switch off and wait for the accessory to stop completely before putting the tool down. The accessory and the work get hot: let them cool. Unplug, brush the dust out of the vents and store the accessories with the tool.',
+        tags: ['hot', 'plug'], hot: ['hot'], keys: [[.2, { rpm: .1, dust: 0, hand: 0, down: .5, hot: 1, tilt: 10 }], [.7, { plug: 1 }]] },
+    ],
+  };
+})();
+
+const EQ_TOOLS = [PA14, PAD11, LUG, FERRULE, SOLDER, MULTI, CALIPER, PUNCH, TAPDIE, HANDSAW, FILEGUIDE, CHISEL, RIVET, FEELER, DRILL, DREMEL];
 EQ_TOOLS.forEach(t => { if (!t.cat) t.cat = 'electrical'; });
 /* ===================== BASICS ===================== */
 // Illustrated reference guides, shown with the same step viewer as the Equipment tab.
@@ -5484,6 +6084,7 @@ const B_CONN = (() => {
   };
 })();
 
+const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_CONN, B_SOLDER, B_RES];
 /* ===== Machines ===== */
 /* ---------- Machines: shared interactive layer (sliders, chips, live redraw) ---------- */
 const IX = (() => {
@@ -5513,18 +6114,18 @@ const IX = (() => {
   // a clickable area (no drawing): clicking sets id = val
   function area(id, val, x, y, w, h) { regions.push({ type: 'chip', id, val, x0: x, x1: x + w, y0: y, y1: y + h }); }
   const hit = (x, y) => { for (let i = regions.length - 1; i >= 0; i--) { const r = regions[i]; if (x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1) return r; } return null; };
-  function attach(stage, { set, live }) {
+  function attach(stage, { set, live, ui = () => mcUI }) {
     const svg = stage.querySelector('svg'); if (!svg) return () => { };
     let drag = null, raf = 0, last = 0;
     const toXY = e => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const m = svg.getScreenCTM(); return m ? pt.matrixTransform(m.inverse()) : null; };
-    const setSlider = (r, p) => { let u = clamp((p.x - r.x) / r.w, 0, 1); let v = r.log ? r.min * Math.pow(r.max / r.min, u) : r.min + u * (r.max - r.min); set(r.id, v); bsUI.rerender(); };
-    const down = e => { const p = toXY(e); if (!p) return; const r = hit(p.x, p.y); if (!r) return; if (r.type === 'slider') { drag = r; svg.setPointerCapture(e.pointerId); setSlider(r, p); } else { if (r.id === '*') for (const k in r.val) set(k, r.val[k]); else set(r.id, r.val); bsUI.rerender(); } };
+    const setSlider = (r, p) => { let u = clamp((p.x - r.x) / r.w, 0, 1); let v = r.log ? r.min * Math.pow(r.max / r.min, u) : r.min + u * (r.max - r.min); set(r.id, v); ui().rerender(); };
+    const down = e => { const p = toXY(e); if (!p) return; const r = hit(p.x, p.y); if (!r) return; if (r.type === 'slider') { drag = r; svg.setPointerCapture(e.pointerId); setSlider(r, p); } else { if (r.id === '*') for (const k in r.val) set(k, r.val[k]); else set(r.id, r.val); ui().rerender(); } };
     const move = e => { const p = toXY(e); if (!p) return; if (drag) { setSlider(drag, p); return; } svg.style.cursor = hit(p.x, p.y) ? 'pointer' : ''; };
     const up = () => { drag = null; };
     svg.addEventListener('pointerdown', down); svg.addEventListener('pointermove', move); svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
     const prevTA = svg.style.touchAction; svg.style.touchAction = 'pan-y';
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-    const tick = ts => { raf = requestAnimationFrame(tick); if (document.hidden || reduce.matches || ts - last < 33 || !live() || !svg.isConnected || !svg.getClientRects().length) return; last = ts; bsUI.rerender(); };
+    const tick = ts => { raf = requestAnimationFrame(tick); if (document.hidden || reduce.matches || ts - last < 33 || !live() || !svg.isConnected || !svg.getClientRects().length) return; last = ts; ui().rerender(); };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); svg.removeEventListener('pointerdown', down); svg.removeEventListener('pointermove', move); svg.removeEventListener('pointerup', up); svg.removeEventListener('pointercancel', up); svg.style.touchAction = prevTA; svg.style.cursor = ''; };
   }
@@ -5540,13 +6141,13 @@ function mkSteps(pre, arr, dur = 1600) {
   return arr.map(([title, body, st, anim, caution], i) => ({ title, body, caution, dur: (anim && anim.dur) || dur, tags: [], keys: [[0, { sid: pre + i, ...st }], ...(anim && anim.k ? anim.k : anim || [])] }));
 }
 // one tool with several modes; each mode is { label, base, steps, ctl, live, draw }
-function machineTool(meta, MODES) {
+function machineTool(meta, MODES, ui) {
   let mode = 0, det = null;
   return {
     ...meta, viewBox: [-215, -212, 600, 430], look: 'real', defs: '',
     modes: MODES.map(m => m.label), get mode() { return mode; }, setMode(i) { mode = i; },
     get steps() { return MODES[mode].steps; }, get base() { return MODES[mode].base; },
-    onShow(stage) { if (det) det(); det = IX.attach(stage, { set: (id, v) => MODES[mode].ctl.set(id, v), live: () => !!MODES[mode].live }); },
+    onShow(stage) { if (det) det(); det = IX.attach(stage, { set: (id, v) => MODES[mode].ctl.set(id, v), live: () => !!MODES[mode].live, ui }); },
     onHide() { if (det) det(); det = null; },
     draw(st) { return MODES[mode].draw.call(this, st); },
   };
@@ -5604,6 +6205,409 @@ const CHAINS = (() => {
     return s;
   };
 })();
+
+/* ---------- Basics (mechanical): Files ---------- */
+const B_FILES = (() => {
+  const { f } = EQ, clamp = IX.clamp;
+  const FT = [
+    { id: 'flat', n: 'Flat', best: 'Flat faces and edges, squaring up an end, removing saw marks. The most-used file in the box.', tip: 'Both faces are toothed and one edge too; a "safe edge" has no teeth so you can file up to a shoulder without cutting it.' },
+    { id: 'half', n: 'Half-round', best: 'Curved and concave surfaces, enlarging holes, general shaping. The flat side does flat work, the curved side does curves.', tip: 'Match the curve of the file to a curve slightly tighter than the one you are making.' },
+    { id: 'round', n: 'Round', best: 'Enlarging small round holes, filing round-bottomed slots and fillets, dressing the gullets of saw blades.', tip: 'Roll it slightly while stroking so the hole stays round and the file does not dig a groove.' },
+    { id: 'tri', n: 'Triangle (three-square)', best: 'Internal corners and angles over 60°, cleaning out threads, sharpening saw teeth and cutters.', tip: 'It reaches the acute corners no flat file can. Fine cut for sharpening.' },
+    { id: 'sq', n: 'Square', best: 'Rectangular slots, keyways and square holes; cleaning corners in slots.', tip: 'The teeth cut on all four sides, so the narrow side cuts as well as the wide ones: take care in a slot.' },
+    { id: 'knife', n: 'Knife', best: 'Narrow V-grooves, slots with an acute angle, work between close teeth or splines.', tip: 'Thin and delicate: easy to snap if it is levered.' },
+    { id: 'rasp', n: 'Rasp', best: 'Fast removal on wood, plastic and soft materials. Each tooth is separately raised, so the cut is coarse and fast.', tip: 'Leaves a rough surface: follow with a file, then sandpaper. Do not use on steel.' },
+  ];
+  const FC = '#aab2ba', PL = '#6e767f';
+  function prof(id, cx, cy, s, fill, extra = '') {
+    const a = `fill="${fill}" stroke="var(--ink)" stroke-width="1.5" ${extra}`;
+    switch (id) {
+      case 'flat': return `<rect x="${cx - s}" y="${cy - s * .3}" width="${2 * s}" height="${s * .6}" rx="2" ${a}/>`;
+      case 'half': case 'rasp': return `<path d="M${cx - s} ${cy - s * .45} A${s} ${s * .95} 0 0 0 ${cx + s} ${cy - s * .45}Z" ${a}/>` + (id === 'rasp' ? Array.from({ length: 12 }, (_, i) => { const a2 = Math.PI * (.1 + i / 12 * .8); return `<circle cx="${f(cx + Math.cos(a2) * s * .8)}" cy="${f(cy - s * .45 + Math.sin(a2) * s * .75)}" r="1.4" fill="#333"/>`; }).join('') : '');
+      case 'round': return `<circle cx="${cx}" cy="${cy}" r="${s * .6}" ${a}/>`;
+      case 'tri': return `<polygon points="${cx},${cy - s * .7} ${cx + s * .8},${cy + s * .62} ${cx - s * .8},${cy + s * .62}" ${a}/>`;
+      case 'sq': return `<rect x="${cx - s * .5}" y="${cy - s * .5}" width="${s}" height="${s}" ${a}/>`;
+      default: return `<polygon points="${cx},${cy - s * .8} ${cx + s * .22},${cy + s * .1} ${cx},${cy + s * .8} ${cx - s * .22},${cy + s * .1}" ${a}/>`;
+    }
+  }
+  /* mode 1: which file */
+  const c0 = mkCtl();
+  function drawWhich(st) {
+    const g = c0.begin(st), fi = Math.round(g('fi')), F = FT[fi], t = nowS();
+    let s = MK.mat(this.viewBox);
+    const cx = -80, y0 = -110, pulse = 1 + Math.sin(t * 3) * .03;
+    s += `<rect x="-200" y="-168" width="240" height="150" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="-194" y="-155" class="bx-tiny">end-on view: the file inside the work</text>`;
+    // workpiece with the matching feature
+    const W = (d) => `<path d="${d}" fill="${fi === 6 ? '#b58a58' : PL}" stroke="var(--ink)" stroke-width="1.5"/>`;
+    const L = -190, R = 30, B = -40;
+    const feat = { flat: `M${L} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z`, half: `M${L} ${y0} L${cx - 38} ${y0} A38 38 0 0 0 ${cx + 38} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z`, round: `M${L} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z M${cx + 27} ${y0 + 40} A27 27 0 1 0 ${cx - 27} ${y0 + 40} A27 27 0 1 0 ${cx + 27} ${y0 + 40}Z`, tri: `M${L} ${y0} L${cx - 40} ${y0} L${cx} ${y0 + 62} L${cx + 40} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z`, sq: `M${L} ${y0} L${cx - 28} ${y0} L${cx - 28} ${y0 + 50} L${cx + 28} ${y0 + 50} L${cx + 28} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z`, knife: `M${L} ${y0} L${cx - 12} ${y0} L${cx} ${y0 + 62} L${cx + 12} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z`, rasp: `M${L} ${y0} L${cx - 40} ${y0} A40 40 0 0 0 ${cx + 40} ${y0} L${R} ${y0} L${R} ${B} L${L} ${B}Z` }[F.id];
+    s += `<path d="${feat}" fill="${fi === 6 ? '#b58a58' : PL}" fill-rule="evenodd" stroke="var(--ink)" stroke-width="1.5"/>`;
+    const place = { flat: [cx, y0 - 8, 52], half: [cx, y0 + 1, 36], round: [cx, y0 + 40, 30], tri: [cx, y0 + 21, 40], sq: [cx, y0 + 25, 29], knife: [cx, y0 + 28, 30], rasp: [cx, y0 + 1, 36] }[F.id];
+    s += `<g transform="translate(${place[0]} ${place[1]}) scale(${f(pulse)}) translate(${-place[0]} ${-place[1]})">${prof(F.id, place[0], place[1], place[2] * (F.id === 'flat' ? .7 : .5) * (F.id === 'tri' ? 1.2 : 1), '#d9dee2')}</g>`;
+    for (let i = 0; i < 5; i++) { const u = (t * .7 + i / 5) % 1; s += `<circle cx="${f(cx - 20 + i * 11)}" cy="${f(y0 + 55 + u * 30)}" r="1.5" fill="#b8bec4" opacity="${f(1 - u)}"/>`; }
+    s += `<text x="${cx}" y="-24" text-anchor="middle" class="bx-tiny">stroke goes in and out of the page</text>`;
+    // profile big + text
+    s += `<text x="70" y="-166" class="bx-cap hot">${F.n}</text>` + `<rect x="62" y="-158" width="318" height="76" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/>` + prof(F.id, 180, -120, 38, FC) + `<text x="268" y="-120" class="bx-tiny">cross-section</text><text x="268" y="-108" class="bx-tiny">of the file</text>`;
+    s += para(70, -64, 'Best for: ' + F.best, 38, 'bx-small', 13) + para(70, 4, 'Tip: ' + F.tip, 38, 'bx-tiny', 11);
+    const lab = x => x.n.replace(' (three-square)', '');
+    s += IX.chips('fi', FT.slice(0, 4).map((x, i) => [i, lab(x)]), -200, 30, fi, 4) + IX.chips('fi', FT.slice(4).map((x, i) => [i + 4, lab(x)]), -200, 54, fi, 4);
+    s += para(-200, 96, 'Choose the file whose shape fits the feature, not the other way round: the shape of the file is what you will copy into the work. Tap a type above.', 82, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* mode 2: teeth */
+  const c1 = mkCtl(), GR = [[4, 'Rasp / very rough'], [8, 'Bastard (rough)'], [14, 'Second cut'], [22, 'Smooth'], [34, 'Dead smooth']];
+  function drawTeeth(st) {
+    const g = c1.begin(st), tpc = clamp(g('tpc'), 4, 40), t = nowS();
+    let s = MK.mat(this.viewBox);
+    const pitch = 230 / tpc * 1.6, grade = tpc < 6 ? 0 : tpc < 11 ? 1 : tpc < 18 ? 2 : tpc < 28 ? 3 : 4, x0 = -200;
+    s += `<rect x="-200" y="-168" width="260" height="110" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="-194" y="-155" class="bx-tiny">teeth, side view (magnified)</text>`;
+    let d = `M${x0} -70`; for (let x = x0; x < 60; x += pitch) d += `L${f(x + pitch * .18)} ${f(-70 - pitch * .5)} L${f(Math.min(x + pitch, 60))} -70`; 
+    s += `<path d="${d} L60 -50 L${x0} -50Z" fill="${FC}" stroke="var(--ink)" stroke-width="1.2"/><text x="-194" y="-40" class="bx-tiny">teeth lean forward: they cut on the push stroke →</text>`;
+    // the filing marks left behind
+    s += `<rect x="-200" y="-30" width="260" height="32" rx="4" fill="${PL}" stroke="var(--ink)"/>`;
+    const amp = pitch * .09 + .6; let sd = `M-196 -12`; for (let x = -196; x <= 56; x += 2.5) sd += `L${f(x)} ${f(-12 + Math.sin(x / (pitch * .28)) * amp)}`; s += `<path d="${sd}" fill="none" stroke="#d9dee2" stroke-width="1.6"/><text x="-194" y="14" class="bx-tiny" style="fill:#fff">surface left behind: ${amp < 2.2 ? 'smooth' : amp < 4.5 ? 'fine scratches' : 'deep scratches'}</text>`;
+    // filings
+    for (let i = 0; i < 12; i++) { const u = (t * .6 + i / 12) % 1; s += `<circle cx="${f(-190 + i * 20)}" cy="${f(-48 + u * 40)}" r="${f(.8 + pitch * .05)}" fill="#c9ced3" opacity="${f(1 - u)}"/>`; }
+    // right: patterns
+    const pat = (x, y, kind, lab) => { let o = `<rect x="${x}" y="${y}" width="70" height="52" rx="4" fill="${FC}" stroke="var(--ink)"/>`; if (kind === 'single') for (let i = -3; i < 9; i++) o += `<line x1="${x + i * 9}" y1="${y + 52}" x2="${x + i * 9 + 52}" y2="${y}" stroke="#555" stroke-width="1.2"/>`; else if (kind === 'double') { for (let i = -3; i < 9; i++) o += `<line x1="${x + i * 9}" y1="${y + 52}" x2="${x + i * 9 + 52}" y2="${y}" stroke="#555" stroke-width="1.2"/><line x1="${x + i * 9 + 52}" y1="${y + 52}" x2="${x + i * 9}" y2="${y}" stroke="#555" stroke-width=".8"/>`; } else for (let i = 0; i < 24; i++) o += `<circle cx="${x + 8 + (i % 6) * 11 + (Math.floor(i / 6) % 2) * 5}" cy="${y + 8 + Math.floor(i / 6) * 12}" r="2.2" fill="#444"/>`; return o + `<text x="${x + 35}" y="${y + 66}" text-anchor="middle" class="bx-tiny">${lab}</text>`; };
+    s += `<text x="82" y="-166" class="bx-small hot">tooth patterns (top view)</text>` + pat(82, -154, 'single', 'single cut') + pat(160, -154, 'double', 'double cut') + pat(238, -154, 'rasp', 'rasp');
+    const bar = (y, l, v, c) => `<text x="82" y="${y}" class="bx-tiny">${l}</text><rect x="150" y="${y - 8}" width="230" height="8" rx="4" fill="rgba(127,127,127,.2)"/><rect x="150" y="${y - 8}" width="${f(230 * v)}" height="8" rx="4" fill="${c}"/>`;
+    const rate = clamp(1 - (tpc - 4) / 40, .05, 1), fin = clamp((tpc - 4) / 36, .05, 1), clog = clamp(.15 + (tpc - 4) / 36 * .8, 0, 1);
+    s += bar(-64, 'speed', rate, '#E8822A') + bar(-48, 'smoothness', fin, '#4a8ad0') + bar(-32, 'clogging', clog, '#D4503A');
+    s += `<text x="82" y="-8" class="bx-cap hot">${GR[grade][1]}</text><text x="82" y="8" class="bx-tiny">about ${tpc.toFixed(0)} teeth per cm on a 200 mm file</text>`;
+    s += IX.slider('tpc', -200, 36, 260, 'teeth per cm (a coarser file has fewer)', tpc, 4, 40, v => v.toFixed(0), true) + IX.chips('tpc', GR.map(a => [a[0], a[1].split(' (')[0].replace('Rasp / very rough', 'Rasp')]), -200, 62, -1, 4);
+    s += para(-200, 106, 'Coarse teeth take big chips: fast, but deep scratches. Fine teeth leave a smooth surface but cut slowly and clog with soft metals such as aluminium and brass. Grade names depend on length: a long file of a given grade is coarser than a short one.', 82, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* mode 3: technique */
+  const c2 = mkCtl();
+  function drawUse(st) {
+    const g = c2.begin(st), pp = clamp(g('pp'), 0, 100), pr = clamp(g('pr'), 0, 100), pin = clamp(g('pin'), 0, 100), t = nowS();
+    let s = MK.mat(this.viewBox);
+    const cyc = (t * .35) % 1, push = cyc < .5, u = push ? cyc / .5 : 1 - (cyc - .5) / .5, fx = -150 + u * 110, lift = push ? 0 : 1 - pr / 100;
+    // vice + work
+    s += `<rect x="-200" y="-30" width="260" height="22" rx="3" fill="#4b535b" stroke="var(--ink)"/><rect x="-170" y="-90" width="160" height="62" rx="2" fill="${PL}" stroke="var(--ink)"/><text x="-166" y="-36" class="bx-tiny" style="fill:#fff">work, clamped low in the vice</text>`;
+    const wearPush = 0, wear = clamp(pr / 100 * .9 + (pp > 85 ? .2 : 0), 0, 1), scr = clamp(pin / 100 + (pp > 85 ? .25 : 0), 0, 1);
+    s += `<g transform="translate(${f(fx)} ${f(-96 - lift * 16)})"><rect x="-70" y="-6" width="170" height="12" rx="2" fill="${FC}" stroke="var(--ink)"/>` + Array.from({ length: 22 }, (_, i) => `<line x1="${-66 + i * 7.5}" y1="6" x2="${-62 + i * 7.5}" y2="9" stroke="#444" stroke-width="1.2"/>`).join('') + (pin > 8 ? Array.from({ length: Math.round(pin / 12) }, (_, i) => `<circle cx="${-60 + i * 21}" cy="8" r="2.3" fill="#8a7a66"/>`).join('') : '') + `<rect x="100" y="-12" width="40" height="22" rx="8" fill="#B85C2A" stroke="var(--ink)"/></g>`;
+    s += push ? `<text x="${f(fx + 20)}" y="-125" text-anchor="middle" class="bx-small hot">push: press down and cut →</text>` : `<text x="${f(fx + 20)}" y="-125" text-anchor="middle" class="bx-small">${pr > 40 ? 'return: dragging, wears the teeth' : 'return: lift or ease off'}</text>`;
+    if (push) for (let i = 0; i < 4; i++) s += `<circle cx="${f(fx + 60 + i * 8)}" cy="${f(-86 + ((t * 3 + i) % 1) * 18)}" r="1.5" fill="#c9ced3"/>`;
+    // scratches on work
+    for (let i = 0; i < Math.round(scr * 8); i++) s += `<line x1="${-160 + i * 12}" y1="${-85 + (i % 3) * 5}" x2="${-100 + i * 12}" y2="${-80 + (i % 3) * 5}" stroke="#2a2d31" stroke-width="1.2" opacity=".7"/>`;
+    const bar = (y, l, v, c) => `<text x="82" y="${y}" class="bx-tiny">${l}</text><rect x="82" y="${y + 3}" width="200" height="9" rx="4.5" fill="rgba(127,127,127,.2)"/><rect x="82" y="${y + 3}" width="${f(200 * v)}" height="9" rx="4.5" fill="${c}"/>`;
+    s += bar(-150, 'cutting', clamp(pp / 100 * (1 - pin / 160), 0, 1), '#3fae6a') + bar(-120, 'tooth wear', wear, '#D4503A') + bar(-90, 'scratches on the work', scr, '#E8822A');
+    s += IX.slider('pp', -200, 20, 250, 'pressure on the push stroke', pp, 0, 100, v => v < 35 ? 'light' : v < 80 ? 'steady' : 'too heavy') + IX.slider('pr', -200, 52, 250, 'pressure on the return stroke', pr, 0, 100, v => v < 15 ? 'lifted' : v < 50 ? 'light drag' : 'dragging') + IX.slider('pin', -200, 84, 250, 'filings stuck in the teeth (pinning)', pin, 0, 100, v => v < 15 ? 'clean' : v < 60 ? 'some' : 'clogged');
+    s += para(-200, 124, 'A file cuts only on the push. Press steadily on the way forward, ease off on the way back so you do not dull the teeth, and brush the teeth with a file card when they fill (chalk the file first on soft metals). Pinned filings leave deep scratches.', 82, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  const M = [
+    { label: 'Which file?', base: { sid: '', fi: 0 }, ctl: c0, draw: drawWhich, live: true, steps: mkSteps('fw', FT.map((F, i) => [F.n, F.best + ' ' + F.tip, { fi: i }])) },
+    { label: 'Teeth & grade', base: { sid: '', tpc: 14 }, ctl: c1, draw: drawTeeth, live: true, steps: mkSteps('ft', [
+      ['Teeth are tiny chisels', 'Every tooth is a small cutting edge that shaves off a chip. Big teeth remove a lot per stroke and leave a rough surface.', { tpc: 8 }],
+      ['Coarse to dead smooth', 'Bastard files remove fast; second-cut files are the all-rounders; smooth and dead smooth finish the surface. Drag the slider to see the scratch pattern and filings change.', { tpc: 14 }, [[.9, { tpc: 30 }]]],
+      ['Single cut, double cut, rasp', 'Single-cut files have one row of parallel teeth and leave a smooth finish. Double-cut files have two crossing rows and cut faster and coarser. Rasps have separate raised teeth for soft materials.', { tpc: 14 }],
+      ['Soft metals clog fine files', 'Aluminium and brass fill fine teeth quickly (pinning). Use a coarser or single-cut file, chalk the teeth and clean often.', { tpc: 30 }, [[.9, { tpc: 8 }]]],
+    ]) },
+    { label: 'Technique', base: { sid: '', pp: 60, pr: 10, pin: 5 }, ctl: c2, draw: drawUse, live: true, steps: mkSteps('fu', [
+      ['Push to cut, lift to return', 'Teeth lean forward, so they cut only on the push. Press steadily on the way forward and ease off on the way back.', { pp: 60, pr: 10, pin: 5 }],
+      ['Dragging dulls the file', 'Slide the return pressure up: the teeth wear quickly. A file that has been dragged back is blunt and slides without cutting.', { pp: 60, pr: 70, pin: 5 }],
+      ['Too much pressure', 'Heavy pressure does not help: it clogs teeth, breaks the tooth tips and leaves deep scratches.', { pp: 100, pr: 10, pin: 30 }],
+      ['Clean the teeth', 'When teeth fill with filings (pinning) the file stops cutting and scratches. Brush along the teeth with a file card; chalk the file first for soft metals.', { pp: 60, pr: 10, pin: 90 }, [[.9, { pin: 5 }]]],
+    ]) },
+  ];
+  return machineTool({ id: 'files', fig: 3, name: 'Files', sub: 'Types, teeth and which to use', cat: 'mechanical' }, M, () => bsUI);
+})();
+
+/* ---------- Basics (mechanical): Saw blades ---------- */
+const B_SAW = (() => {
+  const { f } = EQ, clamp = IX.clamp;
+  const ST = '#aab2ba';
+  // teeth along a blade edge, pointing +dir (1 = to the right). returns path d for the toothed edge at y0 (teeth hang downwards)
+  function teeth(x0, x1, y0, p, dir, depth) {
+    let d = '', n = 0;
+    for (let x = x0; x < x1; x += p) { const a = x, b = Math.min(x + p, x1); d += dir > 0 ? `L${f(a)} ${f(y0)} L${f(b - p * .12)} ${f(y0 + depth)} L${f(b)} ${f(y0)} ` : `L${f(a)} ${f(y0)} L${f(a + p * .12)} ${f(y0 + depth)} L${f(b)} ${f(y0)} `; n++; }
+    return d;
+  }
+  /* ---- mode 1: tooth direction ---- */
+  const c0 = mkCtl(), TYPES = [['push', 'Hand saw / hacksaw (push)'], ['pull', 'Japanese pull saw'], ['back', 'Hacksaw fitted backwards']];
+  function drawDir(st) {
+    const g = c0.begin(st), ty = g('ty'), t = nowS();
+    let s = MK.mat(this.viewBox);
+    const cyc = (t * .5) % 1, pos = Math.sin(cyc * Math.PI * 2);              // +1 = blade pushed to the right (away from the handle on the left)
+    const stroke = Math.cos(cyc * Math.PI * 2) > 0 ? 1 : -1;                  // +1 = moving right
+    const dir = ty === 'pull' ? -1 : ty === 'back' ? -1 : 1;                  // tooth points to the right = cuts when the blade moves right
+    const cuts = stroke === dir;
+    const bx = -170 + pos * 40 + 40, by = -40;
+    s += `<rect x="-200" y="${by + 22}" width="250" height="60" rx="3" fill="#C79A5B" stroke="var(--ink)"/>`;
+    for (let i = 0; i < 4; i++) s += `<path d="M-198 ${by + 34 + i * 12} L48 ${by + 34 + i * 12}" stroke="#7a5528" stroke-width=".8" opacity=".5"/>`;
+    // handle and blade
+    s += `<g transform="translate(${f(bx)} ${by})"><rect x="-76" y="-22" width="76" height="22" rx="8" fill="#B07A40" stroke="var(--ink)"/><rect x="0" y="-18" width="190" height="18" fill="${ST}" stroke="var(--ink)"/>`
+      + `<path d="M0 0 ${teeth(0, 190, 0, 10, dir, 9)}" fill="${ST}" stroke="var(--ink)" stroke-width="1"/></g>`;
+    // chips and arrows
+    const sw = cuts ? '#3fae6a' : '#D4503A';
+    s += `<text x="-200" y="-100" class="bx-cap" style="fill:${sw}">${cuts ? 'cutting stroke: teeth bite' : 'return stroke: teeth just slide'}</text>`;
+    const ax = bx + 80; s += `<path d="M${f(ax)} -88 L${f(ax + stroke * 48)} -88" stroke="${sw}" stroke-width="3.5"/><path d="M${f(ax + stroke * 48)} -94 L${f(ax + stroke * 58)} -88 L${f(ax + stroke * 48)} -82Z" fill="${sw}"/>`;
+    if (cuts) for (let i = 0; i < 4; i++) s += `<circle cx="${f(bx + 90 + i * 14 - stroke * 20)}" cy="${f(by + 12 + ((t * 3 + i * .3) % 1) * 24)}" r="1.6" fill="#E7C58E"/>`;
+    // tooth close-up
+    s += `<rect x="-200" y="60" width="150" height="112" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="-194" y="73" class="bx-tiny">one tooth, magnified</text>`
+      + `<path d="M-186 118 L-70 118 L-70 98 L-186 98Z" fill="${ST}" stroke="var(--ink)"/>`
+      + (dir > 0 ? `<path d="M-186 118 L-166 154 L-146 118Z" fill="${ST}" stroke="var(--ink)"/><path d="M-166 154 L-160 118" stroke="none"/><text x="-130" y="146" class="bx-tiny">cutting face</text><path d="M-166 154 L-146 118" stroke="#E8822A" stroke-width="3"/><text x="-190" y="166" class="bx-tiny">tip leans forward</text>`
+        : `<path d="M-186 118 L-146 118 L-170 154Z" fill="${ST}" stroke="var(--ink)"/><path d="M-170 154 L-186 118" stroke="#E8822A" stroke-width="3"/><text x="-140" y="146" class="bx-tiny">cutting face</text><text x="-190" y="166" class="bx-tiny">tip leans back</text>`);
+    // right: explanation
+    const E = { push: ['Push saws (Western hand saws, hacksaws)', 'Teeth point away from the handle. They cut on the push and the blade is under compression, so it needs a stiff, thick plate or a frame that keeps it taut.'], pull: ['Pull saws (Japanese saws)', 'Teeth point toward the handle. The blade is in tension on the cutting stroke, so it can be very thin: a narrower kerf, less effort and a cleaner, straighter cut.'], back: ['Hacksaw blade fitted backwards', 'The teeth then cut on the pull, where the frame cannot hold the blade straight: it wanders, jams and the teeth blunt fast. Teeth should point away from the handle on a hacksaw.'] }[ty];
+    s += `<text x="-30" y="76" class="bx-cap hot">${E[0]}</text>` + para(-30, 94, E[1], 40, 'bx-small', 13);
+    s += IX.chips('ty', TYPES.map(a => [a[0], a[1]]), -200, 188, ty, 4, 20);
+    s += para(-30, 164, 'Check: run a fingertip lightly along the edge. It should catch one way and slide the other: the way it slides is the way the saw cuts.', 40, 'bx-tiny', 11);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* ---- mode 2: teeth per inch ---- */
+  const c1 = mkCtl(), MATS = [[1.5, 'Thin sheet 1.5 mm'], [3, 'Tube wall 3 mm'], [10, 'Bar 10 mm'], [25, 'Wood 25 mm']];
+  function drawTpi(st) {
+    const g = c1.begin(st), tpi = Math.round(clamp(g('tpi'), 4, 32)), mm = g('mm');
+    let s = MK.mat(this.viewBox);
+    const sc = 7.2, p = 25.4 / tpi * sc, tx0 = -200, wmm = clamp(mm, 1, 25) * sc * .55 + 8;     // work drawn at about 4 px per mm of thickness
+    const wy0 = 30, wy1 = wy0 + wmm;
+    const nIn = mm / (25.4 / tpi);                                         // teeth in the cut at once
+    s += `<rect x="-200" y="${wy0}" width="260" height="${f(wmm)}" rx="2" fill="#8E959B" stroke="var(--ink)"/>`;
+    s += `<text x="-194" y="${f(wy1 + 14)}" class="bx-tiny">work ${mm} mm thick</text>`;
+    // blade: teeth sit in the work; each cutting tooth is shaded where it touches
+    const bx0 = -196, bx1 = 56; let d = `M${bx0} ${wy0 - 26} L${bx1} ${wy0 - 26} L${bx1} ${wy0 - 8} `;
+    for (let x = bx1; x > bx0; x -= p) { const a = x, b = Math.max(x - p, bx0); d += `L${f(a)} ${wy0 - 8} L${f(b + p * .88)} ${wy0 + 10} L${f(b)} ${wy0 - 8} `; }
+    s += `<path d="${d} Z" fill="${ST}" stroke="var(--ink)" stroke-width="1"/>`;
+    s += `<text x="-194" y="${wy0 - 32}" class="bx-tiny">blade edge, teeth pointing right</text>`;
+    // markers of the teeth that are in the work
+    s += `<line x1="-200" y1="${wy0}" x2="60" y2="${wy0}" stroke="#E8822A" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+    // bars
+    const bar = (y, l, v, c) => `<text x="82" y="${y}" class="bx-tiny">${l}</text><rect x="82" y="${y + 3}" width="200" height="9" rx="4.5" fill="rgba(127,127,127,.2)"/><rect x="82" y="${y + 3}" width="${f(200 * clamp(v, 0, 1))}" height="9" rx="4.5" fill="${c}"/>`;
+    const spd = clamp(1 - (tpi - 4) / 34, .05, 1), fin = clamp((tpi - 4) / 30, .05, 1), clog = clamp(1 - (tpi - 4) / 34, 0, 1) * .8 + (mm > 8 ? .2 : 0);
+    s += bar(-150, 'cutting speed', spd, '#E8822A') + bar(-120, 'finish: smoothness', fin, '#4a8ad0') + bar(-90, 'risk of the work snagging the teeth', clamp(1 - nIn / 4, 0, 1), '#D4503A');
+    const ok = nIn >= 3, over = nIn > 14;
+    s += `<text x="82" y="-52" class="bx-cap" style="fill:${ok ? '#3fae6a' : '#D4503A'}">${nIn.toFixed(1)} teeth in the cut</text>` + para(82, -36, ok ? (over ? 'Very fine: slow, and the small gullets clog with chips.' : 'Good: at least three teeth in the work keeps the cut smooth.') : (nIn < 1.5 ? 'Too coarse: the teeth straddle the work, snag and can strip or break.' : 'Coarse: it may snatch. Aim for at least 3 teeth in the work.'), 34, 'bx-small', 13);
+    s += IX.slider('tpi', -200, 112, 260, 'teeth per inch (TPI)', tpi, 4, 32, v => v.toFixed(0)) + IX.chips('mm', MATS.map(a => [a[0], a[1]]), -200, 138, mm, 4);
+    s += para(-200, 176, 'More teeth does not mean more material removed. Each tooth takes a smaller bite: a finer blade cuts more slowly but smoother. Coarse teeth take big bites and have deep gullets to carry the chips: fast but rougher.', 82, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* ---- mode 3: sharpness ---- */
+  const c2 = mkCtl();
+  function drawSharp(st) {
+    const g = c2.begin(st), w = clamp(g('wear'), 0, 100) / 100, t = nowS();
+    let s = MK.mat(this.viewBox);
+    const tooth = (cx, cy, k, label, light) => {
+      const tipR = 1 + k * 8, flat = k * 9;
+      return `<path d="M${cx - 24} ${cy - 40} L${cx + 24} ${cy - 40} L${cx + 24} ${cy} L${f(cx + 8 + flat * .4)} ${cy + 36 - k * 4} Q${f(cx + 6)} ${f(cy + 44 - k * 6)} ${f(cx - flat * .2)} ${f(cy + 40 - k * 5)} L${cx - 24} ${cy}Z" fill="${ST}" stroke="var(--ink)" stroke-width="1.3"/>`
+        + (light ? `<ellipse cx="${f(cx + 2)}" cy="${f(cy + 38 - k * 5)}" rx="${f(2 + k * 7)}" ry="${f(1.5 + k * 3)}" fill="#fff" opacity="${f(.2 + k * .8)}"/>` : '') + `<text x="${cx}" y="${cy + 62}" text-anchor="middle" class="bx-tiny">${label}</text>`;
+    };
+    s += `<rect x="-200" y="-190" width="200" height="140" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="-194" y="-177" class="bx-tiny">sharp</text>` + tooth(-150, -125, 0, 'pointed tip: no glint', true);
+    s += `<rect x="10" y="-190" width="200" height="140" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="16" y="-177" class="bx-tiny">your blade (wear ${Math.round(w * 100)}%)</text>` + tooth(110, -125, w, w < .25 ? 'sharp' : w < .6 ? 'rounding: tiny glint' : 'worn: bright flat tip', true);
+    // performance
+    const bar = (y, l, v, c) => `<text x="-200" y="${y}" class="bx-tiny">${l}</text><rect x="-200" y="${y + 3}" width="180" height="9" rx="4.5" fill="rgba(127,127,127,.2)"/><rect x="-200" y="${y + 3}" width="${f(180 * clamp(v, 0, 1))}" height="9" rx="4.5" fill="${c}"/>`;
+    s += bar(-30, 'pressure you need', .15 + w * .85, '#D4503A') + bar(0, 'heat and burning smell', w * w, '#E8822A') + bar(30, 'straightness of the cut', 1 - w * .8, '#3fae6a');
+    // chips from the cut
+    s += `<text x="30" y="-30" class="bx-small hot">what you see in the cut</text>`;
+    for (let i = 0; i < 6; i++) { const cx = 40 + i * 26, cy = 6; s += w < .5 ? `<path d="M${cx} ${cy} q8 -8 12 2 q-4 8 -10 4" fill="none" stroke="#E7C58E" stroke-width="2.4"/>` : `<circle cx="${cx + 6}" cy="${cy + 2}" r="${f(1.2 + (1 - w) * 1.4)}" fill="#B9A88a"/>`; }
+    s += `<text x="30" y="30" class="bx-tiny">${w < .5 ? 'curls and chips: the teeth are cutting' : 'fine dust or powder: the teeth are rubbing'}</text>`;
+    s += IX.slider('wear', -200, 70, 260, 'wear', w * 100, 0, 100, v => v < 25 ? 'sharp' : v < 60 ? 'tired' : 'blunt');
+    s += para(-200, 110, 'Tests: (1) a sharp blade bites in at once with its own weight; (2) look at the tips in a bright light: shiny dots or flats are worn tips; (3) a worn blade needs more pressure, wanders off the line, smells hot and makes powder instead of chips; (4) look for bent, chipped or missing teeth and for rust or gum on the plate.', 82, 'bx-small', 13);
+    s += para(-200, 172, 'Hand saws can be re-sharpened with a triangular saw file (hold it level at the set angle and file each tooth the same number of strokes); hacksaw and many pull-saw blades are replaced when blunt.', 82, 'bx-tiny', 11);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  const M = [
+    { label: 'Tooth direction', base: { sid: '', ty: 'push' }, ctl: c0, draw: drawDir, live: true, steps: mkSteps('sd', [
+      ['Teeth lean one way', 'Every tooth leans in one direction, like a tiny chisel. It bites when the blade moves toward the way the tooth leans and just slides over the work in the other direction.', { ty: 'push' }],
+      ['Push saws cut away from you', 'Hand saws and hacksaws have teeth that point away from the handle: they cut on the push stroke and ride lightly on the return. Press on the push, ease off on the way back.', { ty: 'push' }],
+      ['Pull saws cut toward you', 'Japanese saws cut on the pull. The blade is pulled straight rather than pushed, so it can be thin and cuts a narrow kerf with less effort.', { ty: 'pull' }],
+      ['Fitted the wrong way', 'A hacksaw blade fitted backwards cuts only on the pull, where the frame cannot hold it straight. It cuts badly and the teeth go blunt fast: turn it round.', { ty: 'back' }],
+    ]) },
+    { label: 'Teeth per inch', base: { sid: '', tpi: 18, mm: 10 }, ctl: c1, draw: drawTpi, live: false, steps: mkSteps('sp', [
+      ['TPI: teeth per inch', 'The blade is graded by teeth per inch (TPI). Few teeth (low TPI) means big teeth and deep gullets: fast and rough. Many teeth means small bites: slow and smooth.', { tpi: 14, mm: 10 }],
+      ['Does more teeth cut more?', 'Not more material: each tooth cuts a smaller chip, so a fine blade removes material more slowly. What more teeth gives you is a smoother cut and less snatching on thin work.', { tpi: 14, mm: 10 }, [[.9, { tpi: 28 }]]],
+      ['The three-teeth rule', 'Choose a blade so that at least three teeth are in the work at any time. If fewer, the teeth straddle the work and snag. Thin sheet needs a fine blade; thick wood or bar can take coarser teeth.', { tpi: 18, mm: 3 }, [[.9, { tpi: 32 }]]],
+      ['Thick work, coarse teeth', 'Thick or soft material needs room for the chips: use a coarse blade with deep gullets, or a fine blade will clog and heat up.', { tpi: 28, mm: 25 }, [[.9, { tpi: 6 }]]],
+    ]) },
+    { label: 'Is it sharp?', base: { sid: '', wear: 10 }, ctl: c2, draw: drawSharp, live: false, steps: mkSteps('sh', [
+      ['Look at the tips', 'In bright light, sharp teeth have fine points that give no glint. Worn teeth show a bright dot or flat on each tip where they have rounded.', { wear: 10 }, [[.9, { wear: 70 }]]],
+      ['Look at the chips', 'A sharp blade makes curls or chips. A blunt one makes fine powder or dust, because the teeth rub instead of cutting.', { wear: 15 }, [[.9, { wear: 85 }]]],
+      ['Feel the effort', 'A sharp blade bites in under its own weight and tracks the line. A blunt blade needs a lot of pressure, drifts, and gets hot.', { wear: 20 }, [[.9, { wear: 90 }]]],
+      ['Check for damage', 'Look for bent, chipped or missing teeth and for rust or gum on the blade. Damaged teeth tear the cut and a blade with several missing teeth should be replaced.', { wear: 60 }],
+    ]) },
+  ];
+  return machineTool({ id: 'sawblade', fig: 4, name: 'Saw blades', sub: 'Tooth direction, TPI and sharpness', cat: 'mechanical' }, M, () => bsUI);
+})();
+
+/* ---------- Basics (electrical): Oscilloscope ---------- */
+const B_SCOPE = (() => {
+  const { f } = EQ, clamp = IX.clamp;
+  const D = 33, W = 10 * D, H = 8 * D, X0 = -200, Y0 = -196, GREEN = '#39ff7a';
+  const snap = v => { const e = Math.pow(10, Math.floor(Math.log10(v))), m = v / e; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * e; };
+  const fmtV = v => Math.abs(v) >= 1 ? (+v.toPrecision(3)) + ' V' : (+(v * 1000).toPrecision(3)) + ' mV';
+  const fmtT = t => t >= 1e-3 ? (+(t * 1e3).toPrecision(3)) + ' ms' : (+(t * 1e6).toPrecision(3)) + ' µs';
+  const fmtF = h => h >= 1e3 ? (+(h / 1e3).toPrecision(3)) + ' kHz' : (+h.toPrecision(3)) + ' Hz';
+  const fr = x => x - Math.floor(x);
+  // a signal: shape, frequency, peak amplitude, dc offset, duty (square)
+  const wave = (sh, fq, A, off, duty = .5) => t => {
+    const p = fr(fq * t);
+    switch (sh) {
+      case 'sine': return off + A * Math.sin(2 * Math.PI * p);
+      case 'square': return off + (p < duty ? A : -A);
+      case 'tri': return off + A * (4 * Math.abs(p - .5) - 1);
+      case 'saw': return off + A * (2 * p - 1);
+      default: return off;
+    }
+  };
+  // time at which the signal crosses the trigger level in the chosen direction (null if it never does)
+  function trigAt(fn, T, L, edge) {
+    const N = 1200; let prev = fn(0) - L;
+    for (let i = 1; i <= N; i++) { const t = T * i / N, v = fn(t) - L; if (edge > 0 ? (prev < 0 && v >= 0) : (prev > 0 && v <= 0)) return t - T * .5 / N; prev = v; }
+    return null;
+  }
+  // draws the screen; returns { svg, yv, xt, tr } (positions of volts and of time)
+  function screen(o) {
+    const { fn, T, vdiv, tdiv, pos = 0, trig = { level: 0, edge: 1 }, coupling = 0, live, noise = 0 } = o, fnT = coupling === 1 ? (t => fn(t) - o.dc) : fn, t0 = coupling === 2 ? 0 : trigAt(fnT, T, trig.level, trig.edge);
+    const phase = t0 == null ? (live ? (nowS() * 7919) % T : 0) : t0;
+    const yv = v => Y0 + H / 2 - (v / vdiv + pos) * D, xt = t => X0 + W / 2 + t / tdiv * D;
+    let s = `<rect x="${X0}" y="${Y0}" width="${W}" height="${H}" rx="8" fill="#0a1510" stroke="#555" stroke-width="2"/>`;
+    for (let i = 0; i <= 10; i++) s += `<line x1="${X0 + i * D}" y1="${Y0}" x2="${X0 + i * D}" y2="${Y0 + H}" stroke="#2e6a44" stroke-width="${i === 5 ? 1.2 : .6}" opacity="${i === 5 ? .9 : .55}"/>`;
+    for (let j = 0; j <= 8; j++) s += `<line x1="${X0}" y1="${Y0 + j * D}" x2="${X0 + W}" y2="${Y0 + j * D}" stroke="#2e6a44" stroke-width="${j === 4 ? 1.2 : .6}" opacity="${j === 4 ? .9 : .55}"/>`;
+    for (let i = 0; i < 50; i++) { const x = X0 + i * D / 5, y = Y0 + H / 2; s += `<line x1="${f(x)}" y1="${y - 2}" x2="${f(x)}" y2="${y + 2}" stroke="#4fae78" stroke-width=".6"/>`; }
+    for (let j = 0; j < 40; j++) { const y = Y0 + j * D / 5, x = X0 + W / 2; s += `<line x1="${x - 2}" y1="${f(y)}" x2="${x + 2}" y2="${f(y)}" stroke="#4fae78" stroke-width=".6"/>`; }
+    // trace
+    const tr = (ph, op) => {
+      let d = '', pen = false;
+      for (let x = 0; x <= W; x += 1.5) {
+        const t = (x - W / 2) / D * tdiv + ph; let v = coupling === 2 ? 0 : fn(t) - (coupling === 1 ? o.dc : 0);
+        if (noise) v += noise * (Math.sin(t * 91000) * .6 + Math.sin(t * 53011 + 1) * .4);
+        const y = clamp(Y0 + H / 2 - (v / vdiv + pos) * D, Y0 - 1, Y0 + H + 1);
+        d += (pen ? 'L' : 'M') + f(X0 + x) + ' ' + f(y) + ' '; pen = true;
+      }
+      return `<path d="${d}" fill="none" stroke="${GREEN}" stroke-width="2" stroke-linejoin="round" opacity="${op}"/>`;
+    };
+    if (t0 == null) { for (let k = 0; k < 4; k++) s += tr(phase + k * T * .27, .28); } else s += tr(phase, 1);
+    // ground marker and trigger marker
+    const gy = clamp(Y0 + H / 2 - pos * D, Y0 + 4, Y0 + H - 4);
+    s += `<path d="M${X0 - 12} ${f(gy - 5)} L${X0 - 2} ${f(gy)} L${X0 - 12} ${f(gy + 5)}Z" fill="#E8C84A"/><text x="${X0 - 17}" y="${f(gy + 3)}" text-anchor="end" class="bx-tiny">0 V</text>`;
+    const ty = clamp(yv(trig.level), Y0 + 4, Y0 + H - 4);
+    s += `<path d="M${X0 + W + 12} ${f(ty - 5)} L${X0 + W + 2} ${f(ty)} L${X0 + W + 12} ${f(ty + 5)}Z" fill="#E8822A"/>`;
+    s += `<text x="${X0 + 6}" y="${Y0 + 12}" font-size="10" fill="#9fe8b8">${fmtV(vdiv)}/div</text><text x="${X0 + W - 6}" y="${Y0 + 12}" text-anchor="end" font-size="10" fill="#9fe8b8">${fmtT(tdiv)}/div</text>`;
+    s += `<text x="${X0 + W / 2}" y="${Y0 + H + 14}" text-anchor="middle" class="bx-tiny" style="fill:${t0 == null ? '#D4503A' : '#3fae6a'}">${t0 == null ? 'NOT TRIGGERING: the picture slides about' : 'triggered: a steady picture'}</text>`;
+    return { svg: s, yv, xt, trigd: t0 != null };
+  }
+  const PX = 160;                                             // right-hand control column
+  /* ---- mode 1: screen and reading ---- */
+  const c0 = mkCtl();
+  function drawRead(st) {
+    const g = c0.begin(st), vd = snap(g('vd')), td = snap(g('td')), pos = g('pos');
+    const A = st.A, fq = st.fq, off = 0, fn = wave(st.sh, fq, A, off), T = 1 / fq;
+    let s = MK.mat(this.viewBox);
+    const sc = screen({ fn, T, vdiv: vd, tdiv: td, pos, trig: { level: 0, edge: 1 }, live: false, dc: 0 });
+    s += sc.svg;
+    // dimension marks on the picture
+    if (st.dim) {
+      const xa = X0 + W - 26, ya = clamp(sc.yv(A), Y0 + 2, Y0 + H - 2), yb = clamp(sc.yv(-A), Y0 + 2, Y0 + H - 2);
+      s += `<path d="M${xa} ${f(ya)} L${xa} ${f(yb)}" stroke="#E8822A" stroke-width="2"/><path d="M${xa - 4} ${f(ya + 7)} L${xa} ${f(ya)} L${xa + 4} ${f(ya + 7)} M${xa - 4} ${f(yb - 7)} L${xa} ${f(yb)} L${xa + 4} ${f(yb - 7)}" fill="none" stroke="#E8822A" stroke-width="2"/><text x="${xa - 6}" y="${f((ya + yb) / 2 + 3)}" text-anchor="end" font-size="11" fill="#E8822A">Vpp</text>`;
+      const x1 = sc.xt(0), x2 = clamp(sc.xt(T), X0 + 4, X0 + W - 4), yy = Y0 + H / 2 - 14 - pos * D * 0;
+      s += `<path d="M${f(x1)} ${yy} L${f(x2)} ${yy}" stroke="#6ab0ff" stroke-width="2"/><path d="M${f(x1 + 7)} ${yy - 4} L${f(x1)} ${yy} L${f(x1 + 7)} ${yy + 4} M${f(x2 - 7)} ${yy - 4} L${f(x2)} ${yy} L${f(x2 - 7)} ${yy + 4}" fill="none" stroke="#6ab0ff" stroke-width="2"/><text x="${f((x1 + x2) / 2)}" y="${yy - 6}" text-anchor="middle" font-size="11" fill="#6ab0ff">T</text>`;
+    }
+    const nV = 2 * A / vd, nT = T / td;
+    s += `<text x="${PX}" y="-186" class="bx-cap hot">Readings</text>`
+      + `<text x="${PX}" y="-166" class="bx-small">Vpp = ${nV.toFixed(1)} div × ${fmtV(vd)}</text><text x="${PX}" y="-150" class="bx-small hot">= ${fmtV(nV * vd)}</text>`
+      + `<text x="${PX}" y="-128" class="bx-small">T = ${nT.toFixed(1)} div × ${fmtT(td)}</text><text x="${PX}" y="-112" class="bx-small hot">= ${fmtT(nT * td)}</text>`
+      + `<text x="${PX}" y="-90" class="bx-small">f = 1 / T</text><text x="${PX}" y="-74" class="bx-small hot">= ${fmtF(1 / (nT * td))}</text>`;
+    s += IX.slider('vd', PX, -40, 200, 'VOLTS / DIV', vd, .05, 10, v => fmtV(snap(v)), true) + IX.slider('td', PX, 6, 200, 'TIME / DIV', td, 1e-6, .1, v => fmtT(snap(v)), true) + IX.slider('pos', PX, 52, 200, 'vertical position', pos, -3, 3, v => v.toFixed(1) + ' div');
+    s += para(-200, 96, st.msg || '', 76, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* ---- mode 2: waveforms ---- */
+  const c1 = mkCtl(), SHAPES = [['sine', 'Sine'], ['square', 'Square / pulse'], ['tri', 'Triangle'], ['saw', 'Sawtooth']];
+  const INFO = { sine: ['Sine: mains, audio, oscillators', 'Smooth and symmetrical. Vrms = Vpk / √2 ≈ 0.707 × Vpk: a 230 V mains outlet peaks at about 325 V.'], square: ['Square / pulse: clocks, PWM, logic', 'Flips between two levels. Read the high and low levels, the frequency, and the duty cycle (the % of each period spent high). Rise time is measured from 10% to 90%.'], tri: ['Triangle: ramps, sweeps', 'Rises and falls at a constant rate. Vrms = Vpk / √3.'], saw: ['Sawtooth: sweeps, timebases', 'Ramps up and snaps back. Common in charging circuits and switching regulators.'] };
+  function drawShapes(st) {
+    const g = c1.begin(st), sh = g('sh'), duty = clamp(g('duty'), .05, .95), off = g('off');
+    const A = 2, fq = 1000, fn = wave(sh, fq, A, off, duty), T = 1 / fq;
+    let s = MK.mat(this.viewBox);
+    const sc = screen({ fn, T, vdiv: 1, tdiv: .5e-3, pos: 0, trig: { level: off, edge: 1 }, live: false, dc: off });
+    s += sc.svg;
+    const hl = (v, lab, col) => { const y = sc.yv(v); return y > Y0 && y < Y0 + H ? `<line x1="${X0}" y1="${f(y)}" x2="${X0 + W}" y2="${f(y)}" stroke="${col}" stroke-dasharray="5 4" stroke-width="1.2"/><text x="${X0 + 4}" y="${f(y - 3)}" font-size="10" fill="${col}">${lab}</text>` : ''; };
+    s += hl(off + A, 'Vpk', '#E8822A') + hl(off - A, '', '#E8822A');
+    if (sh === 'sine' || sh === 'tri') s += hl(off + A * (sh === 'sine' ? .7071 : .5774), 'Vrms', '#6ab0ff');
+    if (off) s += hl(off, 'DC offset', '#E8C84A');
+    const rms = sh === 'square' ? Math.sqrt(A * A) : sh === 'sine' ? A / Math.SQRT2 : A / Math.sqrt(3);
+    s += `<text x="${PX}" y="-186" class="bx-cap hot">${INFO[sh][0].split(':')[0]}</text>`;
+    s += para(PX, -166, INFO[sh][0].split(': ')[1] ? 'Used for: ' + INFO[sh][0].split(': ')[1] : '', 24, 'bx-tiny', 11);
+    s += `<text x="${PX}" y="-130" class="bx-small">Vpk = ${A.toFixed(1)} V   Vpp = ${(2 * A).toFixed(1)} V</text><text x="${PX}" y="-114" class="bx-small">Vrms = ${rms.toFixed(2)} V (AC part)</text><text x="${PX}" y="-98" class="bx-small">f = 1 kHz   T = 1 ms</text>` + (sh === 'square' ? `<text x="${PX}" y="-82" class="bx-small hot">duty = ${(duty * 100).toFixed(0)} %</text>` : '');
+    s += IX.chips('sh', SHAPES.slice(0, 2).map(a => [a[0], a[1]]), PX, -52, sh, 4, 20) + IX.chips('sh', SHAPES.slice(2).map(a => [a[0], a[1]]), PX, -28, sh, 4, 20);
+    if (sh === 'square') s += IX.slider('duty', PX, 20, 200, 'duty cycle', duty * 100, 5, 95, v => v.toFixed(0) + ' %'); 
+    s += IX.slider('off', PX, sh === 'square' ? 66 : 20, 200, 'DC offset', off, -2, 2, v => v.toFixed(1) + ' V');
+    s += para(-200, 96, INFO[sh][1], 76, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* ---- mode 3: trigger & coupling ---- */
+  const c2 = mkCtl();
+  function drawTrig(st) {
+    const g = c2.begin(st), L = clamp(g('lv'), -3, 3), edge = g('ed'), cp = g('cp'), vd = snap(g('vd'));
+    const dc = st.dc, fn = wave('sine', 1000, st.A, dc), T = 1e-3;
+    let s = MK.mat(this.viewBox);
+    const sc = screen({ fn, T, vdiv: vd, tdiv: .5e-3, pos: 0, trig: { level: L, edge }, coupling: cp, live: true, dc });
+    s += sc.svg;
+    s += `<text x="${PX}" y="-186" class="bx-cap hot">Trigger and coupling</text>`
+      + para(PX, -168, 'TRIGGER: the scope starts each sweep when the signal crosses the level (orange arrow) in the chosen direction.', 26, 'bx-tiny', 11)
+      + para(PX, -112, 'COUPLING: DC shows everything; AC blocks the DC part so you can zoom in on a small ripple; GND shows the 0 V line.', 26, 'bx-tiny', 11);
+    s += IX.chips('cp', [[0, 'DC'], [1, 'AC'], [2, 'GND']], PX, -50, cp, 4, 20) + IX.chips('ed', [[1, 'rising ↑'], [-1, 'falling ↓']], PX, -26, edge, 4, 20);
+    s += IX.slider('lv', PX, 22, 200, 'trigger level', L, -3, 3, v => v.toFixed(1) + ' V') + IX.slider('vd', PX, 66, 200, 'VOLTS / DIV', vd, .05, 10, v => fmtV(snap(v)), true);
+    s += para(-200, 96, st.msg || '', 76, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* ---- mode 4: probes ---- */
+  const c3 = mkCtl();
+  function drawProbe(st) {
+    const g = c3.begin(st), comp = clamp(g('comp'), -1, 1), pr = g('pr'), sm = g('sm'), lead = g('lead');
+    const Vpp = 5, f0 = 1000, T = 1 / f0, vd = 1, td = .25e-3;
+    // step response of the probe: under-compensated rounds, over-compensated overshoots
+    const tau = 12e-6 + (comp < 0 ? -comp * 90e-6 : 0), ov = comp > 0 ? comp * .45 : 0;
+    const shape = t => { const p = fr(f0 * t), lt = (p < .5 ? p : p - .5) * T; const hi = p < .5; const r = comp < 0 ? 1 - Math.exp(-lt / tau) : 1 + ov * Math.exp(-lt / 30e-6) - Math.exp(-lt / 8e-6) * (1 + ov); const ring = lead ? Math.sin(lt * 2 * Math.PI * 250e3) * Math.exp(-lt / 6e-6) * .22 : 0; const y = (hi ? r : 1 - r) + (hi ? ring : -ring); return Vpp * (y - .5) * 1; };
+    let s = MK.mat(this.viewBox);
+    const sc = screen({ fn: shape, T, vdiv: vd, tdiv: td, pos: 0, trig: { level: 0, edge: 1 }, live: false, dc: 0 });
+    s += sc.svg;
+    const shown = Vpp * (pr === sm ? 1 : pr === 10 ? .1 : 10);
+    s += `<text x="${PX}" y="-186" class="bx-cap hot">Probe</text>`
+      + `<text x="${PX}" y="-166" class="bx-small">probe switch: ${pr}×</text><text x="${PX}" y="-150" class="bx-small">scope channel set to: ${sm}×</text>`
+      + `<text x="${PX}" y="-128" class="bx-small hot" style="fill:${pr === sm ? '#3fae6a' : '#D4503A'}">${pr === sm ? 'the readout is right' : 'readout is ' + (pr > sm ? '10× too small' : '10× too big')}</text>`
+      + `<text x="${PX}" y="-110" class="bx-tiny">shows ${shown.toFixed(1)} Vpp of a true 5 Vpp</text>`;
+    s += `<text x="${PX}" y="-84" class="bx-small">probe</text>` + IX.chips('pr', [[1, '1×'], [10, '10×']], PX + 44, -98, pr, 4, 20) + `<text x="${PX}" y="-58" class="bx-small">scope</text>` + IX.chips('sm', [[1, '1×'], [10, '10×']], PX + 44, -72, sm, 4, 20);
+    s += `<text x="${PX}" y="-30" class="bx-small">ground lead</text>` + IX.chips('lead', [[0, 'short spring'], [1, 'long clip']], PX, -24, lead, 4, 20);
+    s += IX.slider('comp', PX, 40, 200, 'compensation trimmer', comp, -1, 1, v => v < -.12 ? 'under' : v > .12 ? 'over' : 'correct');
+    s += para(-200, 96, st.msg || '', 76, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  const M = [
+    { label: 'Screen & readings', base: { sid: '', vd: 1, td: 2e-4, pos: 0, sh: 'sine', A: 2, fq: 1000, dim: 0, msg: '' }, ctl: c0, draw: drawRead, live: false, steps: mkSteps('o1', [
+      ['The grid', 'Time runs left to right and voltage runs up. Each big square is a division: the vertical scale is VOLTS/DIV and the horizontal scale is TIME/DIV. The yellow arrow on the left marks 0 V.', { vd: 1, td: 5e-4, dim: 0, msg: 'Count squares, then multiply by the scale. Nothing on the screen is in volts until you do.' }],
+      ['Volts per division', 'Set VOLTS/DIV so the trace fills most of the screen without going off the top or bottom. Too high and the wave is a tiny ripple; too low and the peaks are clipped.', { vd: 1, td: 5e-4 }, [[.5, { vd: .2 }], [1, { vd: 1 }]]],
+      ['Time per division', 'Set TIME/DIV so two or three cycles fill the screen. A fast setting stretches one cycle across the display; a slow setting squeezes many cycles together.', { vd: 1, td: 5e-4 }, [[.5, { td: 5e-6 }], [1, { td: 5e-4 }]]],
+      ['Read voltage: Vpp', 'Peak-to-peak (Vpp) is the divisions from the top of the wave to the bottom times VOLTS/DIV. Here, 4 divisions at 1 V/div is 4 V (a 2 V peak).', { vd: 1, td: 5e-4, dim: 1, msg: 'Vpp = (divisions, peak to peak) × VOLTS/DIV.' }],
+      ['Read period and frequency', 'The period (T) is the divisions for one cycle times TIME/DIV. The frequency is 1/T: 2 divisions at 0.5 ms/div is 1 ms, so 1 kHz.', { vd: 1, td: 5e-4, dim: 1, msg: 'f = 1 / T. Many scopes also show Vpp, frequency and rms automatically (the MEASURE menu): check them against the grid.' }],
+    ]) },
+    { label: 'Waveforms', base: { sid: '', sh: 'sine', duty: .5, off: 0 }, ctl: c1, draw: drawShapes, live: false, steps: mkSteps('o2', [
+      ['Sine', 'The shape of mains and audio. Read Vpk, Vpp and the frequency; the rms value (what heats a resistor) is 0.707 × Vpk.', { sh: 'sine', off: 0 }],
+      ['Square and pulse', 'Clocks, PWM and logic. Check the high and low levels, the frequency and the duty cycle (the fraction of the period spent high). Corners that are rounded or have overshoot are information about the circuit.', { sh: 'square', duty: .5, off: 0 }, [[.9, { duty: .25 }]]],
+      ['Triangle and sawtooth', 'Constant-rate ramps. They appear in oscillators, charging capacitors and switching regulators.', { sh: 'tri', off: 0 }, [[.9, { sh: 'saw' }]]],
+      ['DC offset', 'Real signals often ride on a DC level, such as a 3.3 V logic signal swinging between 0 and 3.3 V. The offset is the middle of the wave, not 0 V.', { sh: 'sine', off: 1 }],
+    ]) },
+    { label: 'Trigger & coupling', base: { sid: '', lv: 0, ed: 1, cp: 0, vd: 1, A: 2, dc: 0, msg: '' }, ctl: c2, draw: drawTrig, live: true, steps: mkSteps('o3', [
+      ['Why you need a trigger', 'If every sweep started at a different point of the wave, the picture would smear across the screen. A trigger starts each sweep at the same point. With the level above the top of the wave, the scope cannot trigger: drag the level back inside the wave to lock the picture.', { lv: 2.8, ed: 1, cp: 0, vd: 1, A: 2, dc: 0, msg: 'The trigger level must lie inside the signal. Drag the level slider.' }, [[.9, { lv: 0 }]]],
+      ['Level and edge', 'Level is the voltage at which to trigger and edge is the direction: rising or falling. Changing them moves where the wave starts at the centre of the screen. Use rising and 0 V (or the middle of the signal) to begin with.', { lv: 0, ed: 1, cp: 0, vd: 1, A: 2, dc: 0 }, [[.5, { lv: 1.2 }], [.9, { ed: -1, lv: 1.2 }]]],
+      ['DC coupling shows everything', 'DC coupling passes the whole signal, DC level and all. A 5 V supply with a small ripple shows as a straight line high on the screen: the ripple is far too small to see.', { lv: 5, ed: 1, cp: 0, vd: 2, A: .1, dc: 5, msg: 'A 5 V supply with 100 mV of ripple, at 2 V/div: the ripple is a hair-thin wobble.' }],
+      ['AC coupling shows the ripple', 'AC coupling blocks the DC part, so the trace centres on 0 and you can turn VOLTS/DIV down to see the ripple. Remember AC coupling hides the DC level: use DC coupling to read the supply voltage.', { lv: 0, ed: 1, cp: 1, vd: 2, A: .1, dc: 5, msg: 'Set AC, then reduce VOLTS/DIV to 50 mV.' }, [[.9, { vd: .05 }]]],
+      ['GND shows 0 V', 'GND coupling disconnects the input and draws the 0 V reference line. Use it to line up the trace with a graticule line before measuring.', { lv: 0, ed: 1, cp: 2, vd: 1, A: 2, dc: 0 }],
+    ]) },
+    { label: 'Probes', base: { sid: '', comp: 0, pr: 10, sm: 10, lead: 0, msg: '' }, ctl: c3, draw: drawProbe, live: false, steps: mkSteps('o4', [
+      ['1× and 10× probes', 'A probe has a 1× / 10× switch. In 10× the probe divides the signal by 10 and presents a higher input resistance and a lower capacitance, so it disturbs the circuit less. Tell the scope the same setting (the channel menu) or every reading is 10 times wrong.', { pr: 10, sm: 10, comp: 0, lead: 0, msg: 'Set the probe and the scope channel to the same value: 10× for most work.' }, [[.5, { sm: 1 }], [.9, { sm: 10 }]]],
+      ['Compensate the probe', 'Connect the probe to the scope\'s calibration output (a 1 kHz square wave). Adjust the small trimmer screw on the probe until the top of the square wave is flat: rounded corners mean under-compensation, overshoot means over-compensation. Do this for each probe and channel.', { pr: 10, sm: 10, comp: -.8, lead: 0, msg: 'Turn the trimmer until the corners are square.' }, [[.5, { comp: .8 }], [.95, { comp: 0 }]]],
+      ['Keep the ground lead short', 'The long ground lead of the probe adds inductance and makes fast edges ring. For fast signals take off the clip and use the short spring ground at the probe tip.', { pr: 10, sm: 10, comp: 0, lead: 1, msg: 'Fast edges with the long ground clip ring. Choose the short spring.' }, [[.9, { lead: 0 }]]],
+      ['Bandwidth and ground safety', 'Choose a scope with a bandwidth at least five times the signal frequency, or the amplitude reads low and the edges look slow. The scope ground clip is connected to the mains earth: never connect it to a live or floating point, or you create a short circuit.', { pr: 10, sm: 10, comp: 0, lead: 0, msg: 'Never clip the ground lead onto a live or mains-referenced point. Use a differential probe or an isolating transformer.' }],
+    ]) },
+  ];
+  return machineTool({ id: 'oscilloscope', fig: 5, name: 'Oscilloscope', sub: 'Reading the screen, triggers and probes', cat: 'electrical' }, M, () => bsUI);
+})();
+
+BASICS.push(B_FILES, B_SAW, B_SCOPE);
 
 /* ---------- Machines 01: 3D printer (FDM) ---------- */
 const B_FDM = (() => {
@@ -5760,7 +6764,111 @@ const B_FDM = (() => {
     }
     return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
   }
+
+  /* ---- how it works: the machine ---- */
+  const c4 = mkCtl(), PRE = [['PLA', 210, 60], ['PETG', 235, 80], ['ABS', 250, 100], ['ASA', 255, 100], ['PA6', 260, 80]];
+  function drawWorks(st) {
+    const g = c4.begin(st), T = clamp(g('T'), 170, 280), sp = clamp(g('sp'), 20, 200), lh = clamp(g('lh'), .1, .4), bow = g('bow') === 'bowden', fan = Math.round(g('fan')), hl = Math.round(g('hl')), bt = g('bt'), t = nowS();
+    let s = MK.mat(this.viewBox);
+    const flow = lh * .4 * sp, maxF = Math.max(2, .3 * (T - 170)), under = flow > maxF;
+    const LAY = 8, per = 6, n = Math.floor(t / per) % LAY, ph = (t / per) % 1, lp = 3 + lh * 14, bedTop = 44, dirR = n % 2 === 0;
+    const nx = -55 + 110 * (dirR ? ph : 1 - ph), tipY = bedTop - (n + 1) * lp - 1;
+    const bad = (k, x, y) => `<circle cx="${x}" cy="${y}" r="7" fill="${hl === k ? '#E8822A' : 'rgba(127,127,127,.5)'}" stroke="var(--ink)" stroke-width=".8"/><text x="${x}" y="${y + 3.4}" text-anchor="middle" class="bx-tiny" style="fill:${hl === k ? '#000' : '#fff'};font-weight:700">${k}</text>`;
+    // bed and part
+    s += `<rect x="-95" y="${bedTop}" width="190" height="10" rx="2" fill="#4b535b" stroke="var(--ink)"/>` + Array.from({ length: 6 }, (_, i) => `<path d="M${-80 + i * 30} ${bedTop + 14} q4 -5 8 0 t8 0" fill="none" stroke="#E8822A" stroke-width="1.3" opacity="${f(.3 + .3 * Math.sin(t * 3 + i))}"/>`).join('');
+    for (let i = 0; i < n; i++) s += `<rect x="-55" y="${f(bedTop - (i + 1) * lp)}" width="110" height="${f(lp - .3)}" fill="#d9b56a" stroke="rgba(0,0,0,.25)" stroke-width=".4"/>`;
+    const bx0 = dirR ? -55 : nx, bw = dirR ? nx + 55 : 55 - nx;
+    s += `<rect x="${f(bx0)}" y="${f(bedTop - (n + 1) * lp)}" width="${f(Math.max(0, bw))}" height="${f(lp - .3)}" fill="${under ? '#c98a8a' : '#f0c878'}" ${under ? 'stroke-dasharray="3 3" stroke="#a33"' : ''}/>`;
+    if (fan) s += Array.from({ length: 4 }, (_, i) => { const u = (t * 1.5 + i / 4) % 1; return `<line x1="${f(nx + 30 - u * 8)}" y1="${f(tipY - 36 + u * 36)}" x2="${f(nx + 24 - u * 8)}" y2="${f(tipY - 30 + u * 38)}" stroke="#7ec8ff" stroke-width="1.6" opacity="${f(1 - u)}"/>`; }).join('');
+    // X beam, carriage
+    const ex = bow ? -120 : nx, ey = bow ? -150 : tipY - 100;
+    s += `<rect x="-200" y="${f(tipY - 116)}" width="300" height="8" rx="2" fill="#6e767f" stroke="var(--ink)"/><text x="-196" y="${f(tipY - 120)}" class="bx-tiny">X rail (moves up one layer at a time)</text>`;
+    // filament path from spool
+    const sx = -172, sy = -152, hotTop = tipY - 82;
+    s += `<circle cx="${sx}" cy="${sy}" r="26" fill="#2a2f36" stroke="var(--ink)" stroke-width="1.5"/><circle cx="${sx}" cy="${sy}" r="9" fill="#9AA2A9"/>` + Array.from({ length: 6 }, (_, i) => `<line x1="${sx}" y1="${sy}" x2="${f(sx + Math.cos(i * 1.047 + t * flow * .02) * 24)}" y2="${f(sy + Math.sin(i * 1.047 + t * flow * .02) * 24)}" stroke="#4a8ad0" stroke-width="3" opacity=".7"/>`).join('') + bad(1, sx, sy - 34);
+    s += `<path d="M${sx + 24} ${sy + 8} Q${(sx + ex) / 2} ${sy + 30} ${f(ex - 4)} ${ey}" fill="none" stroke="#4a8ad0" stroke-width="2.4"/>`;
+    if (bow) s += `<path d="M${ex} ${ey} Q${f((ex + nx) / 2 - 20)} ${f(ey + 50)} ${f(nx)} ${f(hotTop - 14)}" fill="none" stroke="#c9d1d8" stroke-width="5" opacity=".7"/><path d="M${ex} ${ey} Q${f((ex + nx) / 2 - 20)} ${f(ey + 50)} ${f(nx)} ${f(hotTop - 14)}" fill="none" stroke="#4a8ad0" stroke-width="2.4" stroke-dasharray="6 5" stroke-dashoffset="${f(-t * flow * 2)}"/><text x="${f((ex + nx) / 2 - 30)}" y="${f(ey + 44)}" class="bx-tiny">PTFE tube</text>`;
+    // extruder
+    s += `<rect x="${f(ex - 22)}" y="${f(ey - 16)}" width="44" height="36" rx="4" fill="#3a3f47" stroke="var(--ink)"/><circle cx="${f(ex - 5)}" cy="${f(ey + 2)}" r="9" fill="#9AA2A9" stroke="var(--ink)"/>` + Array.from({ length: 8 }, (_, i) => { const a = i * .785 + t * flow * .18; return `<line x1="${f(ex - 5 + Math.cos(a) * 9)}" y1="${f(ey + 2 + Math.sin(a) * 9)}" x2="${f(ex - 5 + Math.cos(a) * 12)}" y2="${f(ey + 2 + Math.sin(a) * 12)}" stroke="#6e767f" stroke-width="2.4"/>`; }).join('') + `<circle cx="${f(ex + 12)}" cy="${f(ey + 2)}" r="6" fill="#6e767f" stroke="var(--ink)"/>` + bad(2, f(ex - 22), f(ey - 16));
+    // hotend
+    const hot = clamp((T - 170) / 110, 0, 1), blk = `rgb(${Math.round(110 + hot * 140)},${Math.round(90 - hot * 40)},${Math.round(80 - hot * 40)})`;
+    if (!bow) s += `<line x1="${f(nx)}" y1="${f(ey + 20)}" x2="${f(nx)}" y2="${f(hotTop)}" stroke="#4a8ad0" stroke-width="3"/>`;
+    s += `<line x1="${f(nx)}" y1="${f(hotTop)}" x2="${f(nx)}" y2="${f(tipY - 28)}" stroke="#4a8ad0" stroke-width="3" stroke-dasharray="5 3" stroke-dashoffset="${f(-t * flow * 2)}"/><line x1="${f(nx)}" y1="${f(tipY - 28)}" x2="${f(nx)}" y2="${f(tipY - 3)}" stroke="#E8822A" stroke-width="5"/>`;
+    for (let i = 0; i < 5; i++) s += `<rect x="${f(nx - 12)}" y="${f(tipY - 80 + i * 6)}" width="24" height="3" rx="1" fill="#9aa4ad" stroke="var(--ink)" stroke-width=".5"/>`;
+    s += `<rect x="${f(nx - 3.5)}" y="${f(tipY - 50)}" width="7" height="20" fill="#b9c2ca" opacity=".55"/><line x1="${f(nx)}" y1="${f(hotTop)}" x2="${f(nx)}" y2="${f(tipY - 50)}" stroke="#4a8ad0" stroke-width="3"/>`;
+    s += `<rect x="${f(nx - 13)}" y="${f(tipY - 30)}" width="26" height="18" rx="2" fill="${blk}" stroke="var(--ink)"/><polygon points="${f(nx - 5)},${f(tipY - 12)} ${f(nx + 5)},${f(tipY - 12)} ${f(nx + 1.5)},${f(tipY)} ${f(nx - 1.5)},${f(tipY)}" fill="#c9a24a" stroke="var(--ink)" stroke-width=".8"/>`;
+    s += `<rect x="${f(nx + 14)}" y="${f(tipY - 76)}" width="16" height="22" rx="2" fill="#3a3f47" stroke="var(--ink)"/><circle cx="${f(nx + 22)}" cy="${f(tipY - 65)}" r="6" fill="none" stroke="#7ec8ff" stroke-width="${fan ? 1.6 : .6}" stroke-dasharray="3 2" stroke-dashoffset="${f(-t * 20 * fan)}"/>`;
+    s += bad(3, f(nx - 20), f(tipY - 66)) + bad(4, f(nx - 20), f(tipY - 40)) + bad(5, f(nx + 24), f(tipY - 21)) + bad(6, f(nx - 14), f(tipY + 4)) + bad(7, 110, bedTop + 6);
+    // legend + gauge
+    const LG = ['filament spool', 'extruder: gear pushes the filament', 'heatsink and part-cooling fan', 'heat break: stays cold above, hot below', 'heater block (' + T.toFixed(0) + ' °C)', 'nozzle: squeezes out the bead', 'heated bed (' + bt + ' °C)'];
+    LG.forEach((l, i) => s += `<text x="150" y="${-160 + i * 15}" class="bx-tiny"${hl === i + 1 ? ' style="fill:var(--mat);font-weight:700"' : ''}>${i + 1}  ${l}</text>`);
+    const gx = 150, gw = 230, uF = flow / 30, uM = maxF / 30;
+    s += `<text x="${gx}" y="-35" class="bx-tiny">flow wanted</text><text x="${gx + gw}" y="-35" text-anchor="end" class="bx-small" fill="${under ? '#D4503A' : '#3fae6a'}">${flow.toFixed(1)} mm³/s</text><rect x="${gx}" y="-28" width="${gw}" height="9" rx="4.5" fill="rgba(127,127,127,.2)"/><rect x="${gx}" y="-28" width="${f(gw * clamp(uF, 0, 1))}" height="9" rx="4.5" fill="${under ? '#D4503A' : '#3fae6a'}"/><line x1="${f(gx + gw * clamp(uM, 0, 1))}" y1="-32" x2="${f(gx + gw * clamp(uM, 0, 1))}" y2="-15" stroke="var(--ink)" stroke-width="2"/><text x="${f(gx + gw * clamp(uM, 0, 1))}" y="-5" text-anchor="middle" class="bx-tiny">melt limit ${maxF.toFixed(0)}</text>`;
+    s += para(gx, 14, under ? 'UNDER-EXTRUDING: the hotend cannot melt plastic this fast, so the bead goes thin and gappy (dashed). Slow down, print hotter or use thinner layers.' : 'The hotend melts all the plastic it is asked to. A hotter nozzle raises the limit; faster or thicker layers lower the margin.', 36, 'bx-tiny', 11);
+    s += IX.slider('T', -200, 84, 150, 'nozzle temperature', T, 170, 280, v => v.toFixed(0) + ' °C') + IX.slider('sp', -20, 84, 150, 'print speed', sp, 20, 200, v => v.toFixed(0) + ' mm/s') + IX.slider('lh', -200, 116, 150, 'layer height', lh, .1, .4, v => v.toFixed(2) + ' mm');
+    s += IX.chips('bow', [['direct', 'direct drive'], ['bowden', 'bowden']], -20, 100 + 18, g('bow'), 4) + IX.chips('fan', [[0, 'fan off'], [100, 'fan on']], 170, 118, fan, 4);
+    s += `<text x="-200" y="158" class="bx-tiny">preset</text>` + IX.chips('*', [], 0, 0, 0);
+    let cx = -160; PRE.forEach(([nm, tt, bb]) => { const w = IX.txtw(nm); s += IX.chip('*', { T: tt, bt: bb }, cx, 146, w, nm, T === tt, 20); cx += w + 4; });
+    s += para(-200, 184, 'Cold filament goes in, a hot bead comes out, and the plate or the head steps up one layer at a time. Move the sliders: the plastic is only as good as the heat you can get into it.', 82, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  /* ---- slicing, walls and infill ---- */
+  const c5 = mkCtl();
+  function drawSlice(st) {
+    const g = c5.begin(st), N = 40, L = Math.round(clamp(g('L'), 1, N)), inf = clamp(g('inf'), 0, 100), walls = Math.round(g('w')), pat = g('pat'), t = nowS();
+    let s = MK.mat(this.viewBox);
+    const px = -195, py = -165, pw = 240, ph = 140, skin = L <= 3 || L > N - 3, lw = 3, cx = px + pw / 2, cy = py + ph / 2;
+    s += `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="6" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="${px + 4}" y="${py - 5}" class="bx-tiny">top view of layer ${L} of ${N}</text>`;
+    const mx = 18, ix0 = px + mx + walls * lw * 1.6, iy0 = py + mx + walls * lw * 1.6, ix1 = px + pw - mx - walls * lw * 1.6, iy1 = py + ph - mx - walls * lw * 1.6;
+    s += `<rect x="${px + mx}" y="${py + mx}" width="${pw - 2 * mx}" height="${ph - 2 * mx}" rx="10" fill="#d9b56a" fill-opacity=".14"/>`;
+    // infill (clipped by bounding to inner rect; a hole is drawn on top)
+    const sp = skin ? 4.5 : Math.max(4, 40 / Math.max(inf, 1) * 3.2 * (pat === 'tri' ? 2.4 : pat === 'grid' ? 1.6 : 1));
+    let inf_ = ''; const dirs = skin ? [.785] : pat === 'lines' ? [.785] : pat === 'grid' ? [0, 1.571] : [0, 1.047, 2.094];
+    if (inf > 0 || skin) dirs.forEach(a => { const ca = Math.cos(a), sa = Math.sin(a), R = 200; for (let o = -R; o <= R; o += sp) { const p0 = [cx - sa * o - ca * R, cy + ca * o - sa * R], p1 = [cx - sa * o + ca * R, cy + ca * o + sa * R]; const cl = clipSeg(p0, p1, ix0, iy0, ix1, iy1); if (cl) inf_ += `<line x1="${f(cl[0])}" y1="${f(cl[1])}" x2="${f(cl[2])}" y2="${f(cl[3])}"/>`; } });
+    s += `<g stroke="${skin ? '#f0c878' : '#E8C27A'}" stroke-width="1.6" opacity="${skin ? .95 : .85}">${inf_}</g>`;
+    // walls (concentric rounded rects)
+    for (let k = 0; k < walls; k++) { const o = mx + k * lw * 1.6; s += `<rect x="${px + o}" y="${py + o}" width="${pw - 2 * o}" height="${ph - 2 * o}" rx="${Math.max(3, 10 - k * 1.6)}" fill="none" stroke="#5aa0f0" stroke-width="${lw}"/>`; }
+    // a hole through the part
+    if (!skin) s += `<circle cx="${cx}" cy="${cy}" r="${24 + walls * lw * 1.6}" fill="var(--surface)"/>` + Array.from({ length: walls }, (_, k) => `<circle cx="${cx}" cy="${cy}" r="${24 + (walls - 1 - k) * lw * 1.6 + lw / 2}" fill="none" stroke="#5aa0f0" stroke-width="${lw}"/>`).join('');
+    // nozzle path indicator
+    const along = (t * .2) % 1; s += `<circle cx="${f(ix0 + (ix1 - ix0) * along)}" cy="${f(iy0 + (iy1 - iy0) * ((along * 7) % 1))}" r="4" fill="#E8822A" stroke="var(--ink)"/>`;
+    // side stack
+    const sx0 = 70, sy0 = -165, sw = 80, sh = 140;
+    s += `<rect x="${sx0}" y="${sy0}" width="${sw}" height="${sh}" rx="4" fill="rgba(127,127,127,.07)" stroke="var(--muted)"/><text x="${sx0}" y="${sy0 - 5}" class="bx-tiny">side stack</text>`;
+    for (let i = 1; i <= N; i++) { const yy = sy0 + sh - 4 - i * ((sh - 8) / N); s += `<rect x="${sx0 + 10}" y="${f(yy)}" width="${sw - 20}" height="${f((sh - 8) / N - .4)}" fill="${i <= 3 || i > N - 3 ? '#f0c878' : '#d9b56a'}" opacity="${i <= L ? 1 : .22}"/>`; }
+    const ly = sy0 + sh - 4 - L * ((sh - 8) / N) + (sh - 8) / N / 2; s += `<line x1="${sx0 - 4}" y1="${f(ly)}" x2="${sx0 + sw + 4}" y2="${f(ly)}" stroke="#E8822A" stroke-width="2.2"/>`;
+    s += `<text x="${sx0 + sw + 5}" y="${sy0 + 12}" class="bx-tiny">top skin</text><text x="${sx0 + sw + 5}" y="${sy0 + sh - 4}" class="bx-tiny">bottom skin</text>`;
+    // readouts
+    const solid = (1 - inf / 100) * 0, mat = clamp(.3 + inf / 100 * .55 + walls * .04, 0, 1), time = clamp(.25 + inf / 100 * .5 + walls * .06, 0, 1), str = clamp(.25 + walls * .16 + inf / 100 * .12, 0, 1); void solid;
+    const RX = 244;
+    const bar = (y, l, v, col) => `<text x="${RX}" y="${y}" class="bx-tiny">${l}</text><rect x="${RX}" y="${y + 3}" width="${gw()}" height="8" rx="4" fill="rgba(127,127,127,.2)"/><rect x="${RX}" y="${y + 3}" width="${f(gw() * v)}" height="8" rx="4" fill="${col}"/>`; const gw = () => 130;
+    s += `<text x="${RX}" y="${-165}" class="bx-small hot">what this costs you</text>` + bar(-150, 'filament used', mat, '#E8822A') + bar(-126, 'print time', time, '#4a8ad0') + bar(-102, 'strength (trend)', str, '#3fae6a');
+    s += para(RX, -80, `${walls} wall${walls > 1 ? 's' : ''}, ${inf.toFixed(0)} % infill (${pat === 'tri' ? 'triangles' : pat === 'grid' ? 'grid' : 'lines'}).`, 19, 'bx-tiny', 11) + para(RX, -56, skin ? 'This is a top or bottom skin layer: solid plastic that closes the part.' : 'Walls (blue) are the outer skin; infill (gold) is the inner scaffolding.', 19, 'bx-tiny', 11);
+    s += IX.slider('L', -200, 22, 240, 'layer', L, 1, N, v => Math.round(v) + ' / ' + N) + IX.slider('inf', -200, 54, 240, 'infill density', inf, 0, 100, v => v.toFixed(0) + ' %');
+    s += `<text x="-200" y="98" class="bx-tiny">walls</text>` + IX.chips('w', [[1, '1'], [2, '2'], [3, '3'], [4, '4']], -165, 85, walls, 4) + `<text x="-30" y="98" class="bx-tiny">pattern</text>` + IX.chips('pat', [['lines', 'lines'], ['grid', 'grid'], ['tri', 'triangles']], 15, 85, pat, 4);
+    s += para(-200, 126, 'The slicer cuts the 3D model into thin slices, then plans one path per slice: outer walls first, then a sparse scaffold (infill), with solid skins on top and bottom. Walls carry most of the load, so adding walls usually beats adding infill.', 82, 'bx-small', 13);
+    return { svg: s, tags: {}, anchors: { flash: [85, -160] } };
+  }
+  function clipSeg(p0, p1, x0, y0, x1, y1) { let t0 = 0, t1 = 1; const dx = p1[0] - p0[0], dy = p1[1] - p0[1]; for (const [p, q] of [[-dx, p0[0] - x0], [dx, x1 - p0[0]], [-dy, p0[1] - y0], [dy, y1 - p0[1]]]) { if (p === 0) { if (q < 0) return null; } else { const r = q / p; if (p < 0) { if (r > t1) return null; if (r > t0) t0 = r; } else { if (r < t0) return null; if (r < t1) t1 = r; } } } return [p0[0] + t0 * dx, p0[1] + t0 * dy, p0[0] + t1 * dx, p0[1] + t1 * dy]; }
   const M = [
+    { label: 'How it works', base: { sid: '', T: 210, bt: 60, sp: 60, lh: .2, bow: 'direct', fan: 0, hl: 0 }, ctl: c4, draw: drawWorks, live: true,
+      steps: mkSteps('fw', [
+        ['Plastic wire in, hot line out', 'An FDM printer (fused deposition modelling) pushes a plastic wire, the filament, into a hot nozzle that melts it and draws the part one thin line at a time, layer on layer. Everything you see moving serves that one job.', { hl: 0, T: 210, bt: 60, sp: 60, lh: .2, bow: 'direct', fan: 0 }],
+        ['1 · 2 The extruder pushes', 'A motor-driven gear grips the filament against an idler wheel and pushes it forward by a measured amount. The software counts gear turns to control exactly how much plastic is fed. The filament is stiff enough to push but not to pull a long way.', { hl: 2 }],
+        ['3 · 4 Cold above, hot below', 'The filament must stay solid until the last moment, or it would soften and jam higher up. A finned heatsink and fan keep the upper part cold; a thin heat break separates it from the heater block below.', { hl: 4, T: 215 }],
+        ['5 · 6 Melt and squeeze', 'The heater block melts the plastic, and fresh filament behind it acts as a piston, squeezing the melt through a nozzle hole of about 0.4 mm. Raise the temperature and see the block glow and the melt limit rise.', { hl: 6, T: 235 }],
+        ['Flow has a limit', 'The hotend can only melt so much plastic per second. Print too fast with thick layers and you ask for more than it can melt: the bead goes thin and gappy (under-extrusion). Try 200 mm/s with 0.3 mm layers.', { hl: 6, T: 200, sp: 180, lh: .3 }],
+        ['7 · Bed and fan', 'A heated bed keeps the first layer warm so it sticks and does not curl. The part-cooling fan then freezes each bead quickly so overhangs and bridges hold their shape. Too much cooling weakens layer bonding (see the Layers tab).', { hl: 7, T: 210, sp: 60, lh: .2, fan: 100 }],
+        ['Direct drive or Bowden', 'In a direct-drive printer the extruder rides on the head: short path, good for soft filaments like TPU. A Bowden printer fixes the extruder on the frame and pushes through a PTFE tube: a lighter head and faster moves, but flexible filaments can buckle in the tube.', { hl: 2, bow: 'bowden', fan: 100 }],
+      ]) },
+    { label: 'Slicing & infill', base: { sid: '', L: 12, inf: 20, w: 2, pat: 'grid' }, ctl: c5, draw: drawSlice, live: true,
+      steps: mkSteps('fi', [
+        ['The slicer turns a model into layers', 'The printer cannot read a 3D model. Slicing software cuts it into thin horizontal slices and plans a path for each one. Drag the layer slider and watch the orange line climb the stack on the right.', { L: 12, inf: 20, w: 2, pat: 'grid' }, [[.9, { L: 30 }]]],
+        ['Walls: the outer skin', 'Each slice begins with outlines called walls or perimeters (blue). Walls carry most of the load and decide how the part looks. Two or three walls is typical; try one then four.', { L: 14, inf: 15, w: 1 }, [[.9, { w: 4 }]]],
+        ['Infill: a scaffold inside', 'Printing the inside solid would waste time and plastic, so the slicer prints a sparse pattern called infill. At 0 % the part is a hollow shell; at 100 % it is solid. Most parts use 10 to 30 %.', { L: 14, inf: 0, w: 2 }, [[.9, { inf: 60 }]]],
+        ['Infill patterns', 'Grid, lines and triangles trade strength, speed and material differently. Triangles resist loads from every direction; lines print fastest. Flip between them and compare the cost bars.', { L: 14, inf: 25, w: 2, pat: 'tri' }],
+        ['Top and bottom skins', 'Slide to the first or last layers: the slicer prints solid skins (a few layers of 100 % fill) so the part is closed on top and sits flat on the bed. This is why a 0 % infill box is still watertight.', { L: 2, inf: 10, w: 2 }, [[.9, { L: 39 }]]],
+      ]) },
     { label: 'Which filament?', base: { sid: '', ax: 0, ay: 2, sel: 0 }, ctl: c0, draw: drawAshby, live: true,
       steps: mkSteps('fa', [
         ['Every filament is a trade-off', 'Each bubble is a filament. Its position shows how it scores on the two properties on the axes. Nothing sits in the top-right of everything, which is the idea of an Ashby chart. Click a bubble or change the axes.', { ax: 0, ay: 2, sel: 0 }],
@@ -6256,7 +7364,7 @@ const B_LASER = (() => {
   return machineTool({ id: 'laser', fig: 4, name: 'Laser engraver', sub: 'How it works, power = energy / time, settings', cat: 'machines' }, M);
 })();
 
-const BASICS = [B_SCREWS, B_DRILLS, B_WIRE, B_CONN, B_SOLDER, B_RES, B_FDM, B_SLA, B_CNC, B_LASER];
+const MACHINES = [B_FDM, B_SLA, B_CNC, B_LASER];
 
 PAD11.setTerminal('micro', 3, 3);          // until the picker loads
 
@@ -6435,8 +7543,18 @@ function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) 
   }
 
   function init() {
-    el('Tools').innerHTML = TOOLS.map(x =>
-      `<button type="button" class="eq-tool" data-tool="${x.id}" aria-pressed="false"><span class="eq-fig">Fig. ${String(x.fig).padStart(2, '0')}</span><span class="eq-tool-name">${esc(x.name)}</span><span class="eq-tool-sub">${esc(x.sub)}</span></button>`).join('')
+    if (TOOLS.some(x => x.grp)) {                // hand tools first, then power tools; the figures are numbered again within each category
+      const rank = { hand: 0, power: 1 }, n = {};
+      TOOLS.sort((a, b) => (rank[a.grp] ?? 0) - (rank[b.grp] ?? 0));
+      TOOLS.forEach(x => { n[x.cat] = (n[x.cat] || 0) + 1; x.fig = n[x.cat]; });
+    }
+    const GL = { electrical: { hand: 'Hand tools', power: 'Powered & test tools' }, mechanical: { hand: 'Hand tools', power: 'Power tools' } };
+    let lastG = '';
+    el('Tools').innerHTML = TOOLS.map(x => {
+      const gk = x.grp ? x.cat + x.grp : '', head = gk && gk !== lastG ? `<p class="eq-grp" data-cat="${x.cat}">${(GL[x.cat] || {})[x.grp] || ''}</p>` : '';
+      lastG = gk;
+      return head + `<button type="button" class="eq-tool" data-tool="${x.id}" aria-pressed="false"><span class="eq-fig">Fig. ${String(x.fig).padStart(2, '0')}</span><span class="eq-tool-name">${esc(x.name)}</span><span class="eq-tool-sub">${esc(x.sub)}</span></button>`;
+    }).join('')
       + `<p class="eq-more">${esc(more)}</p>`;
     el('Tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) selectTool(b.dataset.tool); });
     el('List').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) { setPlaying(false); go(+b.dataset.step); } });
@@ -6461,6 +7579,7 @@ function makeGuideUI({ prefix, tools: TOOLS, panel, more, defaultCat, onTool }) 
     root.querySelectorAll('.eq-cat').forEach(b => b.setAttribute('aria-checked', b.dataset.cat === c));
     const list = TOOLS.filter(t => t.cat === c);
     el('Tools').querySelectorAll('[data-tool]').forEach(b => { b.hidden = !list.some(t => t.id === b.dataset.tool); });
+    el('Tools').querySelectorAll('.eq-grp').forEach(p => { p.hidden = p.dataset.cat !== c; });
     el('Empty').hidden = list.length > 0;
     el('Body').hidden = list.length === 0;
     if (list.length && !list.includes(tool)) selectTool(list[0].id);
@@ -6681,6 +7800,9 @@ function makeTaskPicker(prefix, getUI) {
 }
 const taskPicker = makeTaskPicker('eq', () => eqUI);
 const bsTask = makeTaskPicker('bs', () => bsUI);
+const mcUI = makeGuideUI({ prefix: 'mc', tools: MACHINES, panel: 'panel-machines', more: 'More machines are on the way.', defaultCat: 'machines',
+  onTool: t => { if (typeof mcTask !== 'undefined') mcTask.showFor(t); } });
+const mcTask = makeTaskPicker('mc', () => mcUI);
 
 
 /* ===================== THEME ===================== */
@@ -6708,6 +7830,8 @@ termPicker.init();
 wirePicker.init();
 taskPicker.init();
 bsTask.init();
+mcUI.init();
+mcTask.init();
 taskPicker.showFor(EQ_TOOLS[0]);
 termPicker.showFor(EQ_TOOLS[0].id);
 wirePicker.showFor(EQ_TOOLS[0].id);
@@ -6726,6 +7850,7 @@ function selectTab(tab) {
   $('setBar').hidden = !['scan', 'train'].includes(tab.dataset.hash);
   if (tab.dataset.hash === 'equipment') eqUI.replay();
   if (tab.dataset.hash === 'basics') bsUI.replay();
+  if (tab.dataset.hash === 'machines') mcUI.replay();
 }
 tabs.forEach((t, i) => {
   t.addEventListener('click', () => selectTab(t));

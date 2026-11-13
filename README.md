@@ -82,18 +82,26 @@ a tool can set its own camera (`EQ.setView`), shading (`look: 'real'` plus gradi
 People who have asked their device to reduce motion see each step's end position without the animation.
 
 ## Equipment guides
-The tab has an Electrical / Mechanical switch; every tool sets `cat` ('electrical' if left out).
+The tab has an Electrical / Mechanical switch, and each category is split into **Hand tools** and **Powered & test tools** (electrical) or **Power tools** (mechanical). Every tool sets `cat` ('electrical' if left out) and `grp` ('hand' or 'power'). On start-up the list is sorted by group and the Fig. numbers are renumbered within each category, so to move a tool between groups change its `grp` only. The group names are in `GL` inside `makeGuideUI.init()`.
 
-Mechanical:
-- Fig. 01, Power drill (Makita cordless drill, from the supplied CAD model): tasks for the battery, fitting a drill bit, and torque and speed.
+Mechanical hand tools:
+- Fig. 01, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
+- Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
+- Fig. 03, Tap and die: tapping a hole and threading a rod, M3-M8 (tap drill about diameter minus pitch).
+- Fig. 04, Hand saw: marking and clamping, starting the cut with the thumb guide, full strokes, supporting the offcut.
+- Fig. 05, Files: clamping low in the vice, grip, push and return strokes, checking flat with a straight edge, draw-filing, cleaning with a file card.
+- Fig. 06, Chisel: marking and clamping, the bevel and edge, chopping with a mallet, paring by hand, taking waste in layers, keeping it sharp.
+- Fig. 07, Pop rivet gun: drilling the hole, choosing the rivet by grip range, loading, inserting, squeezing (the tail swells), the stem snapping, checking the joint.
+- Fig. 08, Feeler gauge: the blades, clean surfaces, going up in thickness until there is a light drag, stacking blades, reading the gap.
+
+Mechanical power tools:
+- Fig. 09, Power drill (Makita cordless drill, from the supplied CAD model): tasks for the battery, fitting a drill bit, and torque and speed.
   The drill is drawn from the CAD model at the same angle as the manual's picture. The parts that move (battery, release button, trigger, reversing
   lever, speed lever, chuck sleeve, the three jaws, adjusting ring) are separate layers cut from the model, so the steps animate the real parts. The ring numbers
   (1 2 4 6 ... 18 and a dash), the logo, the red indicator, the check lamps and the drill bit are drawn over it. The text follows Makita's instruction manual.
-- Fig. 02, Centre punch: marking out with rule and scriber, finding the crossing, tapping and deepening the mark.
-- Fig. 03, Vernier caliper (0.05 mm): reading the scale, and outside, inside, depth and step measurements.
-- Fig. 04, Tap and die: tapping a hole and threading a rod, M3–M8 (tap drill ≈ diameter − pitch).
+- Fig. 10, Rotary tool (Dremel): unplugging and eye protection, choosing the accessory, fitting it in the collet, speed dial, holding it like a pen, cooling down. Speeds are typical values, so check your own tool's manual.
 
-Electrical:
+Electrical hand tools (Fig. 01-04) and powered & test tools (Fig. 05-06; the soldering iron and the multimeter):
 
 - Fig. 01, Wire stripper (Engineer PA-06): 7 steps. The Wire size box picks the stripping hole from Engineer's chart
   (0.4 to 1.45 mm holes for AWG 30-18 stranded and AWG 28-16 solid).
@@ -132,8 +140,8 @@ choice is remembered in that browser.
 Reference guides shown with the same step viewer as Equipment (`makeGuideUI` builds both; the Basics tab uses
 the `bs` element-id prefix). Topics live in the `BASICS` array and use the same shape as equipment tools.
 
-Mechanical: Screws (anatomy, head styles, measuring e.g. M3 × 10, drive types) and Drill bits (anatomy, measuring).
-Electrical: Connectors (interactive 3D crimp terminals, below), Wire (finding the gauge, gauge for the current, insulation and housing materials), Solder (leaded vs
+Mechanical: Screws (anatomy, head styles, measuring e.g. M3 × 10, drive types), Drill bits (anatomy, measuring), **Files** (three modes: which file for which job (flat, half-round, round, triangle, square, knife, rasp); teeth and grade (bastard, second cut, smooth) with a live speed/finish/clogging readout; and technique, with push and return pressure and pinning) and **Saw blades** (tooth direction for push and pull saws, teeth per inch against material thickness with the three-teeth rule, and how to tell whether a blade is sharp).
+Electrical: **Oscilloscope** (four modes: reading the screen (volts/div, time/div, Vpp, period, frequency), the waveforms to know (sine, square and duty cycle, triangle, sawtooth, DC offset), trigger and coupling, and probes (1x/10x, compensation, ground lead, bandwidth and ground safety); drag the sliders and click the chips), Connectors (interactive 3D crimp terminals, below), Wire (finding the gauge, gauge for the current, insulation and housing materials), Solder (leaded vs
 lead-free, flux types) and Resistor colour codes. Ampacity figures are the common chassis-wiring guide values for a
 single wire in open air; derate for bundling, enclosure, temperature and length.
 
@@ -156,13 +164,13 @@ A real model can set `wt` (sheet thickness) and `fy` (floor height) so the demo 
 ### Solder: materials science
 Basics → Electrical → Solder has two extra modes. "Lead, tin, antimony" shows what each metal does (tin bonds to copper through a Cu₆Sn₅ layer, lead lowers the melting point below both metals, antimony hardens). "Why it melts at 183 °C" is a simplified Sn–Pb phase diagram with a cooling animation and an atom view; in its last step the composition marker can be dragged (or moved with the arrow keys) to read off the liquidus, solidus, pasty range and a suggested iron temperature (liquidus + about 140 °C, in line with the 330–350 °C leaded and 350–380 °C lead-free settings in the soldering guides). The curve values are rounded textbook figures, so treat them as teaching values, not a datasheet.
 
-## Basics → Machines (new tab)
+## Machines (its own tab, next to Basics)
 
 Four interactive guides, all in the same step-through format as the rest of Basics. Each has several modes (chips above the steps); drag the sliders, click the chips and bubbles, or click the figure itself. Moving to another step resets your changes to that step's setup.
 
-- **3D printer (FDM)**: *Which filament?* (interactive Ashby-style chart of PLA, PETG, ABS, ASA, PLA Tough and CF-filled with selectable axes, radar and best use), *Spaghetti chains* (amorphous / semi-crystalline / crystalline with a pull test), *Heating up* (stiffness vs temperature, Tg and Tm), *Layers & fibre* (layer bonding vs nozzle temperature and fan; carbon-fibre directional strength).
+- **3D printer (FDM)**: *How it works* (animated machine: spool, extruder, hotend, nozzle, bed, fan; flow limit, direct vs Bowden), *Slicing & infill* (layers, walls, infill density and pattern), *Which filament?* (interactive Ashby-style chart of PLA, PETG, ABS, ASA, PLA Tough and CF-filled with selectable axes, radar and best use), *Spaghetti chains* (amorphous / semi-crystalline / crystalline with a pull test), *Heating up* (stiffness vs temperature, Tg and Tm), *Layers & fibre* (layer bonding vs nozzle temperature and fan; carbon-fibre directional strength).
 - **SLA / DLP resin**: *How it prints* (SLA vs DLP vs LCD cycle and layer-time comparison), *How resin cures* (monomers, photoinitiator, Cd = Dp·ln(E/Ec), under/over exposure), *Peel & post-cure*.
 - **CNC milling**: *Cutting basics* (rpm, feed, flutes, chip load, surface speed, material), *Toolpaths* (pocket stepover, profile offset, ball-end scallops, climb vs conventional), *How it moves* (axes, lead screw, steps per mm).
 - **Laser engraver**: *How it works* (wavelength absorption, focus), *Power, energy, time* (P = E/t, dwell, J/mm), *Settings explorer* (speed × power test grid, passes, focus, line interval).
 
-Material numbers are typical, rounded datasheet-style values meant for teaching, not for design. Code lives in the `Machines` block before `const BASICS`; the shared slider/chip layer is `IX`, and each tool is built with `machineTool(meta, modes)`.
+Material numbers are typical, rounded datasheet-style values meant for teaching, not for design. Code lives in the `Machines` block after `const BASICS`; the shared slider/chip layer is `IX`, and each tool is built with `machineTool(meta, modes)`.
